@@ -47,6 +47,8 @@ with tab1:
     if logs:
         cols = st.columns(3)
         for i, (name, info) in enumerate(logs.items()):
+            if not isinstance(info, dict):
+                continue
             status = info.get("status", "unknown")
             icon   = "✅" if status == "success" else "❌" if status == "failed" else "❓"
             with cols[i % 3]:
