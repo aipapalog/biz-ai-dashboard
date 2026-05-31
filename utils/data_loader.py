@@ -121,6 +121,31 @@ def levelup_status() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def autonomous_loop() -> dict:
+    fb = firebase_client.get_doc("dashboard", "autonomous_loop")
+    return fb if isinstance(fb, dict) else {}
+
+
+def funnel() -> dict:
+    fb = firebase_client.get_doc("dashboard", "funnel")
+    return fb if isinstance(fb, dict) else {}
+
+
+def pdca() -> dict:
+    fb = firebase_client.get_doc("dashboard", "pdca")
+    return fb if isinstance(fb, dict) else {}
+
+
+def mempalace() -> dict:
+    fb = firebase_client.get_doc("dashboard", "mempalace")
+    return fb if isinstance(fb, dict) else {}
+
+
+def agent_insights() -> dict:
+    fb = firebase_client.get_doc("dashboard", "agent_insights")
+    return fb if isinstance(fb, dict) else {}
+
+
 def routines() -> list:
     fb = firebase_client.get_doc("dashboard", "routines")
     if isinstance(fb, dict):
