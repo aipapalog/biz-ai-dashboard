@@ -146,6 +146,11 @@ def mempalace() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def mempalace_rooms() -> dict:
+    fb = firebase_client.get_doc("dashboard", "mempalace_rooms")
+    return fb if isinstance(fb, dict) else {}
+
+
 def agent_insights() -> dict:
     fb = firebase_client.get_doc("dashboard", "agent_insights")
     return fb if isinstance(fb, dict) else {}

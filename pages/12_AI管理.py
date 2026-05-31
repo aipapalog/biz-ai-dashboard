@@ -1,0 +1,224 @@
+import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils import data_loader
+
+st.set_page_config(page_title="🧠 AI管理", page_icon="🧠", layout="wide")
+st_autorefresh(interval=120_000, key="ai_refresh")
+st.title("🧠 AI管理")
+
+tab_mem, tab_lv, tab_rule, tab_obsidian = st.tabs([
+    "🧠 mempalace × Obsidian ナレッジ成長", "🚀 レベルアップ", "⚙️ ルールエンジン状態", "📖 エージェント体制サマリー"
+])
+
+# ── mempalace × Obsidian ナレッジ成長 ─────────────────────────────────────────
+with tab_mem:
+    st.subheader("🧠 mempalace × Obsidian ナレッジ成長（直近14日）")
+
+    # mempalace stats（エンティティ数推移）
+    mem = data_loader.mempalace()
+    if mem:
+        rows    = mem.get("rows", [])
+        headers = mem.get("headers", [])
+        if rows:
+            import pandas as pd
+            df_m = pd.DataFrame(rows)
+            # 最新行
+            last = rows[-1] if rows else {}
+            c1, c2, c3 = st.columns(3)
+            with c1: st.metric("ルーム数",      last.get("rooms", "-"))
+            with c2: st.metric("エンティティ数", last.get("entities", "-"))
+            with c3: st.metric("トリプル数",     last.get("triples", "-"))
+            st.subheader("📊 mempalace成長推移")
+            if "date" in df_m.columns:
+                num_cols = [c for c in df_m.columns if c != "date"]
+                try:
+                    for c in num_cols: df_m[c] = pd.to_numeric(df_m[c], errors="coerce")
+                    st.line_chart(df_m.set_index("date")[num_cols])
+                except Exception: pass
+            st.dataframe(df_m, use_container_width=True)
+    else:
+        st.info("mempalaceデータがありません")
+
+    st.divider()
+
+    # ── ルーム別ナレッジ分布 ──────────────────────────────────────────────────
+    st.subheader("📦 mempalace ルーム別ナレッジ分布")
+    rooms_data = data_loader.mempalace_rooms()
+    if rooms_data:
+        rooms      = rooms_data.get("rooms", {})
+        latest_date = rooms_data.get("latest_date", "")
+        history    = rooms_data.get("history", [])
+
+        st.caption(f"最終更新: {latest_date}")
+        if rooms:
+            ROOM_LABELS = {
+                "general":       "汎用メモ（未分類）",
+                "products":      "製品情報",
+                "strategy":      "戦略・計画",
+                "lessons":       "失敗と学び",
+                "branding":      "ブランド・表現",
+                "diary":         "日記・振り返り",
+                "documentation": "ドキュメント",
+            }
+            ROOM_COLORS = {
+                "general": "🔵", "products": "🟢", "strategy": "🟣",
+                "lessons": "🟠", "branding": "🩷", "diary": "🔴", "documentation": "⚫",
+            }
+            total = sum(rooms.values()) if rooms else 0
+            cols = st.columns(min(len(rooms), 4))
+            for i, (room, cnt) in enumerate(sorted(rooms.items(), key=lambda x: -x[1])):
+                pct   = (cnt / total * 100) if total else 0
+                label = ROOM_LABELS.get(room, room)
+                icon  = ROOM_COLORS.get(room, "⬜")
+                with cols[i % 4]:
+                    st.metric(f"{icon} {label}", cnt, help=f"{pct:.1f}%")
+            st.progress(1.0, text=f"合計 {total} ドロワー")
+
+            # 課題分析
+            issues = []
+            if rooms.get("general", 0) / max(total, 1) > 0.8:
+                issues.append("⚠️ general集中度が高い — 製品/戦略/学習カテゴリへの再分類を推奨")
+            for room in ("products", "strategy", "lessons"):
+                if rooms.get(room, 0) < 5:
+                    issues.append(f"⚠️ {ROOM_LABELS.get(room, room)}が{rooms.get(room,0)}件のみ — 構造化ナレッジを優先追加")
+            for iss in issues[:3]:
+                st.warning(iss)
+
+            # 14日推移
+            if history:
+                import pandas as pd
+                st.subheader("📅 ルーム別ドロワー数推移（直近14日）")
+                df_hist = pd.DataFrame(history)
+                if "date" in df_hist.columns:
+                    room_cols = [c for c in df_hist.columns if c != "date"]
+                    try:
+                        for c in room_cols: df_hist[c] = pd.to_numeric(df_hist[c], errors="coerce")
+                        st.line_chart(df_hist.set_index("date")[room_cols])
+                    except Exception: pass
+    else:
+        st.info("ルーム別データがありません。firebase_dashboard_pusher.py を実行してください。")
+
+    st.divider()
+
+    # ── Obsidian ナレッジ ──────────────────────────────────────────────────────
+    st.subheader("📖 Obsidian ナレッジ体系")
+    OBSIDIAN_FOLDERS = [
+        ("MOC",          "🗺️", "ナビゲーション起点。_HOME・Rules-MOC・Projects-MOC"),
+        ("Rules",        "📏", "Claudeへの全行動ルール（ai/system/business/communication）"),
+        ("Rules/ai",     "🤖", "AI振る舞い・Haiku委譲・設計ルール・モデル選択"),
+        ("Rules/system", "⚙️", "ダッシュボード・MS Store・プロセス管理"),
+        ("Rules/business","💼","コンテンツ施策・note・Etsy・LSルール"),
+        ("Reference",    "📚", "ツール・APIキー・場所・チャネル状態の参照情報"),
+        ("Preferences",  "👤", "プロフィール・PC制約・会長/社長呼称・NW環境"),
+        ("Projects",     "🚀", "QA Doctor・claude-p課金対応・TOEIC UP"),
+        ("Knowledge",    "💡", "成長戦略・mempalace設計・プラットフォーム分析"),
+        ("raw",          "📥", "Web記事・メモの投入口（Karpathyパターン）"),
+        ("wiki",         "📖", "コンパイル済み知識（sources/entities/concepts/synthesis）"),
+        ("output",       "📤", "生成されたレポート・成果物"),
+        ("Decisions",    "⚖️", "意思決定の記録"),
+    ]
+    st.markdown("**AI自律層（mempalace）** + **人間管理層（Obsidian）** の2層構造")
+    st.markdown("- 🧠 **mempalace**: Claude セッション間記憶継続・KGグラフ検索・自動集約")
+    st.markdown("- 📓 **Obsidian**: ビジュアルグラフ・手動編集・Web記事クリップ・ルール閲覧")
+    st.markdown("- 📥 **raw/ → wiki/**: Web記事を投入→AIがコンパイル→知識ページ生成（Karpathyパターン）")
+    st.markdown("- 🔄 **週次同期**: Obsidian → mempalace KGバックアップ（毎週日曜 21:27）")
+    st.divider()
+    st.markdown("**フォルダ構成:**")
+    cols = st.columns(3)
+    for i, (folder, icon, desc) in enumerate(OBSIDIAN_FOLDERS):
+        with cols[i % 3]:
+            st.markdown(f"{icon} **{folder}**  \n{desc}")
+
+# ── レベルアップ ──────────────────────────────────────────────────────────────
+with tab_lv:
+    st.subheader("🚀 エージェント レベルアップ状況")
+    status = data_loader.levelup_status()
+    if status:
+        if isinstance(status, dict):
+            for key, val in status.items():
+                if isinstance(val, dict):
+                    with st.expander(f"**{key}**", expanded=False):
+                        for k2, v2 in val.items():
+                            st.write(f"**{k2}:** {v2}")
+                elif isinstance(val, list):
+                    st.markdown(f"**{key}**")
+                    for item in val[:10]: st.write(f"- {item}")
+                else:
+                    st.write(f"**{key}:** {val}")
+    else:
+        st.info("レベルアップ状況データがありません")
+
+    st.divider()
+    st.subheader("📜 レベルアップ履歴")
+    history = data_loader.levelup_history()
+    if history:
+        for h in sorted(history, key=lambda x: x.get("date",""), reverse=True):
+            date    = h.get("date", "?")
+            content = h.get("content", "")
+            with st.expander(f"📅 {date}", expanded=False):
+                if content: st.markdown(content[:2000])
+    else:
+        st.info("レベルアップ履歴がありません")
+
+# ── ルールエンジン状態 ────────────────────────────────────────────────────────
+with tab_rule:
+    rule   = data_loader.rule_engine()
+    budget = data_loader.api_budget()
+    st.subheader("⚙️ ルールエンジン状態")
+    if rule:
+        r1, r2, r3 = st.columns(3)
+        with r1: st.metric("🪝 フック数",      rule.get("hook_count", 0))
+        with r2: st.metric("✅ 許可ルール数",   rule.get("allow_count", 0))
+        with r3: st.metric("🔒 デフォルトモード", rule.get("default_mode", "-"))
+        st.caption(f"最終更新: {rule.get('updated_at','')[:16]}")
+        hook_types = rule.get("hook_types", [])
+        if hook_types:
+            st.subheader("🪝 登録フック")
+            for ht in hook_types: st.write(f"• **{ht}**")
+    else:
+        st.info("ルールエンジンデータがありません")
+    st.divider()
+    st.subheader("📋 主要ルール（CLAUDE.mdより）")
+    rules = [
+        ("🔴 会社NW接続時は完全停止",     "SWing/SWingS 検出→全ツール停止"),
+        ("🔴 自動化スクリプトでOpus禁止",  "claude-haiku-4-5 推奨。Opusは自動化禁止"),
+        ("🔴 subprocess.run直接禁止",       "safe_run/safe_popen に差し替え必須"),
+        ("🔴 AtLogonトリガー禁止",          "BSOD防止。21:00〜21:30の定時スケジューラのみ"),
+        ("🔴 Microsoft Store禁止",          "管理者権限なし。pip/scoopを使う"),
+        ("🔴 新規スクリプトはclaude -pのみ","APIクレジット消費禁止。CLIは無料"),
+        ("🟡 Haiku委譲（閾値9）",           "スコア≤9のタスクは全てHaiku"),
+        ("🟡 ダッシュボードはpython実行必須","mdファイル書き込み≠ダッシュボード反映"),
+        ("🟡 新規スクリプト追加は会長明示指示のみ","システムシンプル化原則"),
+    ]
+    for rule_name, desc in rules:
+        st.markdown(f"**{rule_name}**  \n　{desc}")
+
+# ── エージェント体制サマリー ──────────────────────────────────────────────────
+with tab_obsidian:
+    agents_ctx = data_loader.agents_context()
+    insights   = data_loader.agent_insights()
+    st.subheader("📖 エージェント体制・施策サマリー")
+    if agents_ctx.get("content"):
+        st.markdown(agents_ctx["content"])
+    else:
+        st.info("エージェントコンテキストがありません")
+
+    # 成功パターン
+    patterns = insights.get("success_patterns", {}) if insights else {}
+    if patterns:
+        st.divider()
+        st.subheader("🌟 成功パターンライブラリ")
+        for cat, items in patterns.items():
+            if not isinstance(items, list): continue
+            with st.expander(f"**{cat}** （{len(items)}件）"):
+                for item in items[-5:]:
+                    if isinstance(item, dict):
+                        score   = item.get("score", 0)
+                        summary = item.get("summary", "")
+                        ts      = (item.get("ts") or "")[:10]
+                        color   = "🟢" if score >= 8 else "🟡" if score >= 6 else "🔴"
+                        st.write(f"{color} {ts} スコア{score}: {summary[:100]}")
