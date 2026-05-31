@@ -80,6 +80,48 @@ def bizdev_report() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def cx_report() -> dict:
+    fb = firebase_client.get_doc("dashboard", "cx_report")
+    return fb if isinstance(fb, dict) else {}
+
+
+def risk_report() -> dict:
+    fb = firebase_client.get_doc("dashboard", "risk_report")
+    return fb if isinstance(fb, dict) else {}
+
+
+def health_check() -> dict:
+    fb = firebase_client.get_doc("dashboard", "health_check")
+    return fb if isinstance(fb, dict) else {}
+
+
+def freelance_report() -> dict:
+    fb = firebase_client.get_doc("dashboard", "freelance_report")
+    return fb if isinstance(fb, dict) else {}
+
+
+def api_budget() -> dict:
+    fb = firebase_client.get_doc("dashboard", "api_budget")
+    return fb if isinstance(fb, dict) else {}
+
+
+def execution_times() -> dict:
+    fb = firebase_client.get_doc("dashboard", "execution_times")
+    return fb if isinstance(fb, dict) else {}
+
+
+def levelup_status() -> dict:
+    fb = firebase_client.get_doc("dashboard", "levelup_status")
+    return fb if isinstance(fb, dict) else {}
+
+
+def routines() -> list:
+    fb = firebase_client.get_doc("dashboard", "routines")
+    if isinstance(fb, dict):
+        return fb.get("items", []) if "items" in fb else list(fb.values())
+    return []
+
+
 def datasource() -> dict:
     fb = firebase_client.get_doc("dashboard", "datasource")
     return fb if fb else _local("data/datasource.json", {})

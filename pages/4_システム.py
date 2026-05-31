@@ -15,13 +15,16 @@ ds = data_loader.datasource()
 scheduler = data_loader.scheduler_tasks()
 levelup = data_loader.levelup_history()
 
-tab1, tab2, tab3 = st.tabs(["システム状態", "スケジューラ", "レベルアップ履歴"])
+exec_times = data_loader.execution_times()
+budget = data_loader.api_budget()
+
+tab1, tab2, tab3, tab4 = st.tabs(["システム状態", "スケジューラ", "実行統計", "レベルアップ履歴"])
 
 # ── システム状態 ──────────────────────────────────────────────────────────────
 with tab1:
     if sys_info:
         st.subheader("📊 リソース")
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         with c1:
             battery = sys_info.get("battery_percent", 0)
             charging = sys_info.get("charging", False)
@@ -29,14 +32,22 @@ with tab1:
             st.metric(f"{icon} バッテリー", f"{battery}%")
         with c2:
             cpu = sys_info.get("cpu_percent", 0)
-            color = "🔴" if cpu > 80 else ("🟡" if cpu > 50 else "🟢")
-            st.metric(f"{color} CPU使用率", f"{cpu:.1f}%")
+            st.metric("💻 CPU", f"{cpu:.1f}%")
         with c3:
             mem = sys_info.get("memory_percent", 0)
-            color = "🔴" if mem > 85 else ("🟡" if mem > 70 else "🟢")
-            st.metric(f"{color} メモリ使用率", f"{mem:.1f}%")
+            st.metric("🧠 メモリ", f"{mem:.1f}%")
         with c4:
+            disk_p = sys_info.get("disk_percent", 0)
+            disk_u = sys_info.get("disk_used_gb", 0)
+            disk_t = sys_info.get("disk_total_gb", 0)
+            st.metric("💾 ディスク(C:)", f"{disk_p:.0f}%", help=f"{disk_u}GB / {disk_t}GB")
+        with c5:
             st.metric("🌐 ネットワーク", sys_info.get("ssid", "不明"))
+        with c6:
+            if budget:
+                used = budget.get("anthropic", {}).get("used_usd", budget.get("used_usd", 0))
+                total = budget.get("anthropic", {}).get("budget_usd", budget.get("budget_usd", 0))
+                st.metric("💰 API予算", f"${used:.2f}", help=f"予算: ${total}")
 
         # プロセス情報
         procs = sys_info.get("processes", [])
@@ -100,8 +111,39 @@ with tab2:
         import pandas as pd
         st.dataframe(pd.DataFrame(schedule_data), use_container_width=True)
 
-# ── レベルアップ履歴 ──────────────────────────────────────────────────────────
+# ── 実行統計 ─────────────────────────────────────────────────────────────────
 with tab3:
+    st.subheader("⏱️ パイプライン実行統計")
+    if exec_times:
+        total_runs = exec_times.get("total_runs", 0)
+        last_upd   = exec_times.get("last_updated", "")
+        st.caption(f"累計実行回数: **{total_runs}** 回  ｜  最終更新: {last_upd[:16]}")
+        pipelines = exec_times.get("pipelines", [])
+        if pipelines:
+            import pandas as pd
+            df = pd.DataFrame(pipelines)
+            df = df.rename(columns={
+                "name": "パイプライン", "avg_seconds": "平均秒",
+                "run_count": "実行回数", "last_run": "最終実行", "last_status": "最終状態"
+            })
+            st.dataframe(df, use_container_width=True)
+    else:
+        st.info("実行統計データがありません。")
+
+    if budget:
+        st.divider()
+        st.subheader("💰 API予算")
+        for provider, info in budget.items() if isinstance(budget, dict) else []:
+            if isinstance(info, dict):
+                used  = info.get("used_usd", 0)
+                total = info.get("budget_usd", 0)
+                pct   = (used / total * 100) if total else 0
+                st.progress(min(pct / 100, 1.0), text=f"{provider}: ${used:.3f} / ${total:.2f} ({pct:.1f}%)")
+            else:
+                st.write(f"**{provider}:** {info}")
+
+# ── レベルアップ履歴 ──────────────────────────────────────────────────────────
+with tab4:
     if levelup:
         st.subheader(f"🏆 エージェントレベルアップ履歴 ({len(levelup)} 件)")
         for entry in levelup[:20]:
