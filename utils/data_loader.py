@@ -1,6 +1,7 @@
 """Firestore優先でデータ取得し、未接続時はローカルJSONにフォールバック。"""
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from utils import firebase_client
@@ -20,14 +21,19 @@ def _local(filename: str, default: Any = None) -> Any:
 
 
 def kanban_tasks() -> list:
-    # pusher が毎回更新する kanban_active ドキュメント（全非closed＋直近50closed）
+    # kanban_tasks コレクション優先（書き込みを即時反映）
+    fb = firebase_client.get_collection("kanban_tasks")
+    if fb:
+        tasks = [t for t in fb if isinstance(t, dict)]
+        # name フィールド正規化
+        for t in tasks:
+            if not t.get("name"):
+                t["name"] = t.get("title", "")
+        return tasks
+    # dashboard/kanban_active（pusher が 30 分毎更新）
     fb_doc = firebase_client.get_doc("dashboard", "kanban_active")
     if fb_doc and fb_doc.get("tasks"):
         return [t for t in fb_doc["tasks"] if isinstance(t, dict)]
-    # フォールバック: kanban_tasks コレクション（ページネーション対応済み）
-    fb = firebase_client.get_collection("kanban_tasks")
-    if fb:
-        return [t for t in fb if isinstance(t, dict)]
     data = _local("kanban_tasks.json", {})
     if isinstance(data, dict) and "tasks" in data:
         return [t for t in data["tasks"] if isinstance(t, dict)]
@@ -120,6 +126,51 @@ def routines() -> list:
     if isinstance(fb, dict):
         return fb.get("items", []) if "items" in fb else list(fb.values())
     return []
+
+
+# ── 書き込み関数 ──────────────────────────────────────────────────────────────
+
+def update_task(task_id: str, updates: dict) -> bool:
+    """タスクフィールドを更新する。kanban_tasks/{task_id} に PATCH。"""
+    updates["updated_at"] = datetime.now().isoformat()
+    return firebase_client.patch_doc("kanban_tasks", task_id, updates)
+
+
+def add_task_comment(task_id: str, author: str, text: str, existing_comments: list) -> bool:
+    """タスクにコメントを追加する。"""
+    new_comment = {
+        "author": author,
+        "text": text,
+        "created_at": datetime.now().isoformat(),
+    }
+    updated = list(existing_comments or []) + [new_comment]
+    return firebase_client.patch_doc("kanban_tasks", task_id, {
+        "comments": updated,
+        "updated_at": datetime.now().isoformat(),
+    })
+
+
+def create_task(name: str, assignee: str = "社長", priority: str = "medium",
+                description: str = "", created_by: str = "ダッシュボード") -> tuple:
+    """新規タスクを作成して (ok: bool, new_id: str) を返す。"""
+    tasks = kanban_tasks()
+    nums = []
+    for t in tasks:
+        tid = t.get("id", "")
+        if tid.startswith("KT-") and tid[3:].isdigit():
+            nums.append(int(tid[3:]))
+    new_num = max(nums, default=0) + 1
+    new_id = f"KT-{new_num}"
+    now = datetime.now().isoformat()
+    data = {
+        "id": new_id, "name": name, "status": "open",
+        "priority": priority, "assignee": assignee,
+        "created_by": created_by, "description": description,
+        "result": "", "comments": [],
+        "created_at": now, "updated_at": now,
+    }
+    ok = firebase_client.patch_doc("kanban_tasks", new_id, data)
+    return ok, new_id
 
 
 def datasource() -> dict:

@@ -61,6 +61,36 @@ def get_collection(collection: str, max_docs: int = 1000) -> list:
     return result
 
 
+def _to_fs(obj) -> dict:
+    """Python値をFirestoreフィールド形式に変換（書き込み用）。"""
+    if obj is None: return {"nullValue": None}
+    if isinstance(obj, bool): return {"booleanValue": obj}
+    if isinstance(obj, int): return {"integerValue": str(obj)}
+    if isinstance(obj, float): return {"doubleValue": obj}
+    if isinstance(obj, str): return {"stringValue": obj}
+    if isinstance(obj, list):
+        return {"arrayValue": {"values": [_to_fs(v) for v in obj[:200]]}}
+    if isinstance(obj, dict):
+        return {"mapValue": {"fields": {k: _to_fs(v) for k, v in obj.items()}}}
+    return {"stringValue": str(obj)}
+
+
+def patch_doc(collection: str, doc_id: str, data: dict) -> bool:
+    """指定コレクションのドキュメントを PATCH 更新（新規作成も兼用）。"""
+    fields = {k: _to_fs(v) for k, v in data.items()}
+    url = f"{BASE_URL}/{collection}/{doc_id}?key={API_KEY}"
+    try:
+        r = requests.patch(
+            url,
+            json={"fields": fields},
+            headers={**HEADERS, "Content-Type": "application/json"},
+            timeout=10,
+        )
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 def is_available() -> bool:
     global _ok
     if _ok is not None:
