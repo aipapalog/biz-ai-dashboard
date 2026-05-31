@@ -171,6 +171,16 @@ def agents_context() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def rule_engine() -> dict:
+    fb = firebase_client.get_doc("dashboard", "rule_engine")
+    return fb if isinstance(fb, dict) else {}
+
+
+def bizdev_trend() -> dict:
+    fb = firebase_client.get_doc("dashboard", "bizdev_trend")
+    return fb if isinstance(fb, dict) else {}
+
+
 def routines() -> list:
     fb = firebase_client.get_doc("dashboard", "routines")
     if isinstance(fb, dict):
