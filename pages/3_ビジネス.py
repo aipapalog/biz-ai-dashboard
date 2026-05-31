@@ -103,23 +103,22 @@ with tab2:
 
 # ── Bizdev分析 ────────────────────────────────────────────────────────────────
 with tab3:
-    pl_logs = data_loader.pipeline_logs()
-    bizdev_log = pl_logs.get("daily_bizdev", {})
+    report = data_loader.bizdev_report()
 
-    if bizdev_log:
-        st.subheader("📊 Bizdev直近実行結果")
-        scores = bizdev_log.get("scores", [])
-        if scores:
-            import pandas as pd
-            df = pd.DataFrame(scores)
-            st.line_chart(df.set_index("date")["score"] if "date" in df.columns else df)
+    if report:
+        date_str = report.get("date", "")
+        st.subheader(f"📊 最新 Bizdev レポート（{date_str}）")
 
-        ideas = bizdev_log.get("top_ideas", [])
-        if ideas:
-            st.subheader("💡 直近推奨施策（スコア7以上）")
-            for idea in ideas[:5]:
-                score = idea.get("score", 0)
-                st.markdown(f"**スコア {score}/10** — {idea.get('title', '')}")
-                st.caption(idea.get("reason", ""))
+        # パイプライン実行ステータス
+        pl_logs = data_loader.pipeline_logs()
+        bizdev_log = pl_logs.get("logs", {}).get("daily_bizdev", {})
+        if bizdev_log:
+            status = bizdev_log.get("status", "unknown")
+            icon = "✅" if status == "success" else "❌" if status == "failed" else "❓"
+            st.caption(f"{icon} 最終実行: {bizdev_log.get('last_run', '-')} — {status}")
+
+        content = report.get("content", "")
+        if content:
+            st.markdown(content)
     else:
-        st.info("Bizdevのログデータがまだありません。\nパイプライン実行後にFirebaseから取得されます。")
+        st.info("Bizdevレポートがまだありません。\nパイプライン実行後にFirebaseから取得されます。")
