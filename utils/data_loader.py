@@ -20,6 +20,11 @@ def _local(filename: str, default: Any = None) -> Any:
     return default
 
 
+def kanban_summary() -> dict:
+    fb = firebase_client.get_doc("dashboard", "kanban_summary")
+    return fb if isinstance(fb, dict) else {}
+
+
 def kanban_tasks() -> list:
     # kanban_tasks コレクション優先（書き込みを即時反映）
     fb = firebase_client.get_collection("kanban_tasks")
@@ -143,6 +148,26 @@ def mempalace() -> dict:
 
 def agent_insights() -> dict:
     fb = firebase_client.get_doc("dashboard", "agent_insights")
+    return fb if isinstance(fb, dict) else {}
+
+
+def comments() -> dict:
+    fb = firebase_client.get_doc("dashboard", "comments")
+    return fb if isinstance(fb, dict) else {}
+
+
+def biz_pdca_reports() -> dict:
+    fb = firebase_client.get_doc("dashboard", "biz_pdca_reports")
+    return fb if isinstance(fb, dict) else {}
+
+
+def code_health() -> dict:
+    fb = firebase_client.get_doc("dashboard", "code_health")
+    return fb if isinstance(fb, dict) else {}
+
+
+def agents_context() -> dict:
+    fb = firebase_client.get_doc("dashboard", "agents_context")
     return fb if isinstance(fb, dict) else {}
 
 

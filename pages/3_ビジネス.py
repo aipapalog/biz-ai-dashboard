@@ -10,10 +10,11 @@ st.set_page_config(page_title="ビジネス", page_icon="💼", layout="wide")
 st_autorefresh(interval=60_000, key="biz_refresh")
 st.title("💼 ビジネス・事業分析")
 
-biz = data_loader.business_status()
-pf = data_loader.pf_watch()
+biz          = data_loader.business_status()
+pf           = data_loader.pf_watch()
+pdca_reports = data_loader.biz_pdca_reports()
 
-tab1, tab2, tab3 = st.tabs(["経営目標・製品", "プラットフォーム監視", "Bizdev分析"])
+tab1, tab2, tab3, tab4 = st.tabs(["📊 経営目標・製品", "🔍 プラットフォーム監視", "📈 Bizdev分析", "📋 PDCA週次レポート"])
 
 # ── 経営目標・製品 ────────────────────────────────────────────────────────────
 with tab1:
@@ -122,3 +123,33 @@ with tab3:
             st.markdown(content)
     else:
         st.info("Bizdevレポートがまだありません。\nパイプライン実行後にFirebaseから取得されます。")
+
+# ── PDCA 週次レポート ─────────────────────────────────────────────────────────
+with tab4:
+    reports = pdca_reports.get("reports", []) if isinstance(pdca_reports, dict) else []
+    if not reports:
+        st.info("PDCA週次レポートがありません。")
+    else:
+        st.subheader(f"📋 PDCA週次レポート（最新{len(reports)}件）")
+        for r in reports:
+            if not isinstance(r, dict):
+                continue
+            fname  = r.get("filename", "?")
+            date   = fname[:10] if len(fname) >= 10 else ""
+            # 主要KPIを表示
+            with st.expander(f"📅 {date}  ―  {fname}", expanded=(date == reports[0].get("filename","")[:10] if reports else False)):
+                # よくあるキーを表示
+                for key in ["summary", "result", "monthly_revenue", "action_items", "check", "act", "plan"]:
+                    val = r.get(key)
+                    if val is None:
+                        continue
+                    if isinstance(val, list):
+                        st.markdown(f"**{key}:**")
+                        for item in val[:10]:
+                            st.write(f"- {item}")
+                    elif isinstance(val, dict):
+                        st.markdown(f"**{key}:**")
+                        for k2, v2 in list(val.items())[:10]:
+                            st.write(f"  **{k2}:** {v2}")
+                    else:
+                        st.write(f"**{key}:** {val}")

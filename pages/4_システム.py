@@ -15,13 +15,76 @@ ds = data_loader.datasource()
 scheduler = data_loader.scheduler_tasks()
 levelup = data_loader.levelup_history()
 
-exec_times = data_loader.execution_times()
-budget = data_loader.api_budget()
+exec_times  = data_loader.execution_times()
+budget      = data_loader.api_budget()
+pl_logs     = data_loader.pipeline_logs()
+kanban_sum  = data_loader.kanban_summary() if hasattr(data_loader, "kanban_summary") else {}
+code_health = data_loader.code_health()
 
-tab1, tab2, tab3, tab4 = st.tabs(["システム状態", "スケジューラ", "実行統計", "レベルアップ履歴"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["⚡ リアルタイム", "🖥️ システム状態", "⏰ スケジューラ", "📈 実行統計", "🏆 レベルアップ"])
+
+# ── リアルタイム（30秒更新） ──────────────────────────────────────────────────
+with tab1:
+    st_autorefresh(interval=30_000, key="realtime_refresh")
+    st.caption(f"🔄 30秒毎自動更新  ｜  最終取得: {data_loader.last_updated()}")
+
+    # システムリソース
+    if sys_info:
+        c1, c2, c3, c4, c5 = st.columns(5)
+        bat = sys_info.get("battery_percent", 0)
+        chg = sys_info.get("charging", False)
+        with c1: st.metric("🔋 バッテリー",  f"{bat}%" + (" ⚡" if chg else ""))
+        with c2: st.metric("💻 CPU",         f"{sys_info.get('cpu_percent', 0):.1f}%")
+        with c3: st.metric("🧠 メモリ",      f"{sys_info.get('memory_percent', 0):.1f}%")
+        with c4: st.metric("💾 ディスク(C:)", f"{sys_info.get('disk_percent', 0):.0f}%")
+        with c5: st.metric("🌐 NW",          sys_info.get("ssid", "不明"))
+
+    st.divider()
+
+    # パイプライン状況
+    st.subheader("⚙️ パイプライン最終実行")
+    logs = pl_logs.get("logs", pl_logs) if isinstance(pl_logs, dict) else {}
+    if logs:
+        cols = st.columns(3)
+        for i, (name, info) in enumerate(logs.items()):
+            status = info.get("status", "unknown")
+            icon   = "✅" if status == "success" else "❌" if status == "failed" else "❓"
+            with cols[i % 3]:
+                st.markdown(f"{icon} **{name}**  \n🕐 {info.get('last_run', '-')}")
+    else:
+        st.info("パイプラインログがありません")
+
+    st.divider()
+
+    # Kanban クイックサマリー
+    st.subheader("📋 タスクサマリー")
+    ks = data_loader.kanban_summary() if hasattr(data_loader, "kanban_summary") else {}
+    if not ks:
+        ks = {}
+    kc1, kc2, kc3, kc4 = st.columns(4)
+    with kc1: st.metric("⬜ Open",   ks.get("open", "-"))
+    with kc2: st.metric("🔵 進行中", ks.get("in_progress", "-"))
+    with kc3: st.metric("🟡 確認待ち", ks.get("to_verify", "-"))
+    with kc4: st.metric("✅ 完了",   ks.get("closed", "-"))
+
+    # コードヘルス
+    if code_health:
+        st.divider()
+        st.subheader("🩺 コードヘルス")
+        date = (code_health.get("generated_at") or code_health.get("date") or "")[:10]
+        st.caption(f"最終チェック: {date}")
+        issues = code_health.get("issues", [])
+        highs  = [x for x in issues if isinstance(x, dict) and x.get("severity") in ("high", "critical")]
+        mids   = [x for x in issues if isinstance(x, dict) and x.get("severity") == "medium"]
+        lc1, lc2, lc3 = st.columns(3)
+        with lc1: st.metric("🔴 高度",  len(highs))
+        with lc2: st.metric("🟡 中度",  len(mids))
+        with lc3: st.metric("📁 総件数", len(issues))
+        for iss in highs[:5]:
+            st.warning(f"**{iss.get('file','?')}** — {iss.get('message','')}")
 
 # ── システム状態 ──────────────────────────────────────────────────────────────
-with tab1:
+with tab2:
     if sys_info:
         st.subheader("📊 リソース")
         c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -84,7 +147,7 @@ with tab1:
         st.info("システム情報がありません。firebase_dashboard_pusher.py を実行してデータをFirebaseに送信してください。")
 
 # ── スケジューラ ──────────────────────────────────────────────────────────────
-with tab2:
+with tab3:
     if scheduler:
         st.subheader(f"⏰ 登録タスク ({len(scheduler)} 件)")
         import pandas as pd
@@ -112,7 +175,7 @@ with tab2:
         st.dataframe(pd.DataFrame(schedule_data), use_container_width=True)
 
 # ── 実行統計 ─────────────────────────────────────────────────────────────────
-with tab3:
+with tab4:
     st.subheader("⏱️ パイプライン実行統計")
     if exec_times:
         total_runs = exec_times.get("total_runs", 0)
@@ -143,7 +206,7 @@ with tab3:
                 st.write(f"**{provider}:** {info}")
 
 # ── レベルアップ履歴 ──────────────────────────────────────────────────────────
-with tab4:
+with tab5:
     if levelup:
         st.subheader(f"🏆 エージェントレベルアップ履歴 ({len(levelup)} 件)")
         for entry in levelup[:20]:

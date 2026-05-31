@@ -50,7 +50,9 @@ pl_logs  = data_loader.pipeline_logs()
 exec_t   = data_loader.execution_times()
 exec_map = {p["name"]: p for p in exec_t.get("pipelines", [])}
 
-tab1, tab2 = st.tabs(["⚙️ パイプライン一覧", "👥 エージェント体制"])
+agents_ctx = data_loader.agents_context()
+
+tab1, tab2, tab3 = st.tabs(["⚙️ パイプライン一覧", "👥 エージェント体制", "🗺️ アーキテクチャ図"])
 
 # ── パイプライン一覧 ──────────────────────────────────────────────────────────
 with tab1:
@@ -89,6 +91,65 @@ with tab1:
                 st.code(last_lines, language=None)
 
 # ── エージェント体制 ──────────────────────────────────────────────────────────
+with tab3:
+    st.subheader("🗺️ パイプライン アーキテクチャ図")
+    dot = """
+digraph architecture {
+    rankdir=LR
+    graph [fontname="Helvetica" bgcolor="transparent" pad="0.3"]
+    node  [fontname="Helvetica" style="filled" shape="box" fontsize="11"]
+    edge  [fontsize="9"]
+
+    subgraph cluster_strategy {
+        label="StrategyChain（月・木）" style="dashed" color="#3b82f6"
+        node [fillcolor="#dbeafe"]
+        PR [label="ProductResearcher"]
+        BD [label="DailyBizDev"]
+        RM [label="RiskManager"]
+        BP [label="BizPDCA"]
+        FR [label="FreelanceResearcher"]
+        PR -> BD -> RM
+        BD -> BP
+    }
+    subgraph cluster_content {
+        label="ContentChain（火・金）" style="dashed" color="#22c55e"
+        node [fillcolor="#dcfce7"]
+        CX [label="CXImprover"]
+        QP [label="QiitaPipeline"]
+        PM [label="ProductMonitor"]
+        KW [label="KdpWriter"]
+        CX -> QP
+    }
+    subgraph cluster_system {
+        label="System（毎日/週次）" style="dashed" color="#a855f7"
+        node [fillcolor="#fae8ff"]
+        AL [label="AutonomousLoop"]
+        PI [label="PipelineImprover"]
+        AL -> PI
+    }
+    subgraph cluster_infra {
+        label="Infrastructure（毎日）" style="dashed" color="#f97316"
+        node [fillcolor="#ffedd5"]
+        GB [label="GDriveBackup"]
+        FP [label="FirebasePusher\\n(30min)"]
+    }
+
+    FB  [label="Firebase\\nFirestore" shape="cylinder" fillcolor="#fde68a"]
+    ST  [label="Streamlit\\nDashboard" shape="diamond" fillcolor="#bae6fd"]
+    LF  [label="Local Logs/JSON" shape="parallelogram" fillcolor="#f1f5f9"]
+
+    LF -> FP [label="read"]
+    FP -> FB [label="push" color="#f97316"]
+    FB -> ST [label="read" color="#0ea5e9"]
+}
+"""
+    st.graphviz_chart(dot)
+
+    if agents_ctx.get("content"):
+        st.divider()
+        st.subheader("📋 エージェント コンテキスト")
+        st.markdown(agents_ctx["content"])
+
 with tab2:
     departments = sorted(set(a["department"] for a in AGENTS_DEF))
     for dept in departments:
