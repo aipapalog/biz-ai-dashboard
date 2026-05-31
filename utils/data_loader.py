@@ -20,10 +20,14 @@ def _local(filename: str, default: Any = None) -> Any:
 
 
 def kanban_tasks() -> list:
+    # pusher が毎回更新する kanban_active ドキュメント（全非closed＋直近50closed）
+    fb_doc = firebase_client.get_doc("dashboard", "kanban_active")
+    if fb_doc and fb_doc.get("tasks"):
+        return [t for t in fb_doc["tasks"] if isinstance(t, dict)]
+    # フォールバック: kanban_tasks コレクション（ページネーション対応済み）
     fb = firebase_client.get_collection("kanban_tasks")
     if fb:
         return [t for t in fb if isinstance(t, dict)]
-    # ローカルフォールバック
     data = _local("kanban_tasks.json", {})
     if isinstance(data, dict) and "tasks" in data:
         return [t for t in data["tasks"] if isinstance(t, dict)]

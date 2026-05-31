@@ -40,20 +40,25 @@ def get_doc(collection: str, doc_id: str) -> dict:
     return {}
 
 
-def get_collection(collection: str) -> list:
-    try:
-        r = requests.get(f"{BASE_URL}/{collection}?key={API_KEY}",
-                         headers=HEADERS, timeout=15)
-        if r.status_code == 200:
-            docs = r.json().get("documents", [])
-            result = []
-            for d in docs:
-                fields = d.get("fields", {})
-                result.append({k: _from_firestore(v) for k, v in fields.items()})
-            return result
-    except Exception:
-        pass
-    return []
+def get_collection(collection: str, max_docs: int = 1000) -> list:
+    result, page_token = [], None
+    while len(result) < max_docs:
+        url = f"{BASE_URL}/{collection}?pageSize=300&key={API_KEY}"
+        if page_token:
+            url += f"&pageToken={page_token}"
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            if r.status_code != 200:
+                break
+            data = r.json()
+            for d in data.get("documents", []):
+                result.append({k: _from_firestore(v) for k, v in d.get("fields", {}).items()})
+            page_token = data.get("nextPageToken")
+            if not page_token:
+                break
+        except Exception:
+            break
+    return result
 
 
 def is_available() -> bool:
