@@ -1,9 +1,8 @@
-"""Firebase優先でデータ取得し、未接続時はローカルJSONにフォールバック。"""
+"""Firestore優先でデータ取得し、未接続時はローカルJSONにフォールバック。"""
 import json
 import os
 from pathlib import Path
 from typing import Any
-
 from utils import firebase_client
 
 AGENTS_DIR = Path(r"C:\Users\0000112191\.claude\scripts\agents")
@@ -21,61 +20,39 @@ def _local(filename: str, default: Any = None) -> Any:
 
 
 def kanban_tasks() -> list:
-    """Kanbanタスク一覧を返す。"""
-    fb = firebase_client.get("/dashboard/kanban")
+    fb = firebase_client.get_collection("kanban_tasks")
     if fb:
-        if isinstance(fb, dict):
-            # {"tasks": [...]} 形式
-            if "tasks" in fb:
-                items = fb["tasks"]
-                if isinstance(items, list):
-                    return [t for t in items if isinstance(t, dict)]
-            items = list(fb.values())
-        elif isinstance(fb, list):
-            items = fb
-        else:
-            items = []
-        items = [t for t in items if isinstance(t, dict)]
-        if items:
-            return items
+        return [t for t in fb if isinstance(t, dict)]
+    # ローカルフォールバック
     data = _local("kanban_tasks.json", {})
-    if isinstance(data, dict):
-        # {"tasks": [...]} 形式
-        if "tasks" in data:
-            items = data["tasks"]
-            if isinstance(items, list):
-                return [t for t in items if isinstance(t, dict)]
-        return [t for t in data.values() if isinstance(t, dict)]
-    if isinstance(data, list):
-        return [t for t in data if isinstance(t, dict)]
+    if isinstance(data, dict) and "tasks" in data:
+        return [t for t in data["tasks"] if isinstance(t, dict)]
     return []
 
 
 def business_status() -> dict:
-    fb = firebase_client.get("/dashboard/business")
-    return fb if isinstance(fb, dict) else _local("business_status.json", {})
+    fb = firebase_client.get_doc("dashboard", "business_status")
+    return fb if fb else _local("business_status.json", {})
 
 
 def pf_watch() -> dict:
-    fb = firebase_client.get("/dashboard/pf_watch")
-    return fb if isinstance(fb, dict) else _local("pf_watch.json", {})
+    fb = firebase_client.get_doc("dashboard", "pf_watch")
+    return fb if fb else _local("pf_watch.json", {})
 
 
 def system_info() -> dict:
-    fb = firebase_client.get("/dashboard/system")
-    return fb if isinstance(fb, dict) else {}
+    return firebase_client.get_doc("dashboard", "system_info")
 
 
 def pipeline_logs() -> dict:
-    fb = firebase_client.get("/dashboard/pipeline_logs")
+    fb = firebase_client.get_doc("dashboard", "pipeline_logs")
     return fb if isinstance(fb, dict) else {}
 
 
 def levelup_history() -> list:
-    fb = firebase_client.get("/dashboard/levelup")
+    fb = firebase_client.get_collection("levelup_history")
     if fb:
-        return fb if isinstance(fb, list) else list(fb.values())
-    # ローカルlevelup_logsフォルダから最新10件
+        return fb
     logs_dir = AGENTS_DIR / "levelup_logs"
     if not logs_dir.exists():
         return []
@@ -90,15 +67,15 @@ def levelup_history() -> list:
 
 
 def scheduler_tasks() -> list:
-    fb = firebase_client.get("/dashboard/scheduler")
-    return fb if isinstance(fb, list) else []
+    fb = firebase_client.get_doc("dashboard", "scheduler")
+    return fb.get("tasks", []) if isinstance(fb, dict) else []
 
 
 def datasource() -> dict:
-    fb = firebase_client.get("/dashboard/datasource")
-    return fb if isinstance(fb, dict) else _local("data/datasource.json", {})
+    fb = firebase_client.get_doc("dashboard", "datasource")
+    return fb if fb else _local("data/datasource.json", {})
 
 
 def last_updated() -> str:
-    fb = firebase_client.get("/dashboard/last_updated", "")
-    return fb if fb else ""
+    fb = firebase_client.get_doc("dashboard", "meta")
+    return fb.get("last_updated", "") if fb else ""
