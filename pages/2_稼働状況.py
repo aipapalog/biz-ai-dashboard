@@ -10,10 +10,10 @@ style.inject()
 st.title("📊 稼働状況")
 st.caption(f"🔄 30秒毎自動更新  ｜  最終Push: {data_loader.last_updated()}")
 
-sys_info  = data_loader.system_info()
-pl_logs   = data_loader.pipeline_logs()
-loop_data = data_loader.autonomous_loop()
-ds        = data_loader.datasource()
+sys_info   = data_loader.system_info()
+pl_status  = data_loader.pipeline_status()   # PIPELINES_DEF×スケジューラ×ログ統合
+loop_data  = data_loader.autonomous_loop()
+ds         = data_loader.datasource()
 
 # ── システムリソース ───────────────────────────────────────────────────────────
 if sys_info:
@@ -45,24 +45,55 @@ else:
     st.success("✓ 実施中タスクなし（待機中）")
 st.divider()
 
-# ── パイプライン最終実行状況 ───────────────────────────────────────────────────
-st.subheader("⚙️ パイプライン最終実行状況")
-logs = pl_logs.get("logs", pl_logs) if isinstance(pl_logs, dict) else {}
-if logs:
-    sorted_logs = sorted(logs.items(), key=lambda x: x[1].get("last_run","") if isinstance(x[1],dict) else "", reverse=True)
-    cols = st.columns(3)
-    for i, (name, info) in enumerate(sorted_logs):
-        if not isinstance(info, dict): continue
-        status = info.get("status", "unknown")
-        icon   = "✅" if status == "success" else "❌" if status == "failed" else "❓"
-        last   = info.get("last_run", "-")
-        with cols[i % 3]:
-            with st.expander(f"{icon} **{name}**  🕐{last}", expanded=False):
-                last_lines = info.get("last_lines", "")
-                if last_lines:
-                    st.code(last_lines[-300:], language=None)
-else:
-    st.info("パイプラインログがありません")
+# ── パイプライン統合ステータス（PIPELINES_DEF×スケジューラ×ログ自動突合）────────
+st.subheader("⚙️ パイプライン稼働状況")
+pipelines = pl_status.get("pipelines", [])
+counts    = pl_status.get("counts", {})
+upd       = pl_status.get("updated_at", "")
+if upd:
+    st.caption(f"自動突合: {upd[:16]}  ｜  PIPELINES_DEF定義数: {pl_status.get('total',0)}")
+
+if counts:
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("✅ 正常",    counts.get("ok", 0))
+    c2.metric("❌ 失敗",    counts.get("failed", 0))
+    c3.metric("🆕 未実行",  counts.get("never_ran", 0) + counts.get("not_registered", 0))
+    c4.metric("⏸ 停止中",  counts.get("stopped", 0))
+st.divider()
+
+ICON = {"ok":"✅","failed":"❌","never_ran":"🆕","not_registered":"⚠️",
+        "stopped":"⏸","integrated":"🔗","unknown":"❓"}
+
+# カテゴリ絞り込み
+categories = sorted({p.get("category","") for p in pipelines if p.get("category")})
+sel_cat = st.selectbox("カテゴリ絞込", ["すべて"] + categories, key="pl_cat")
+filtered = [p for p in pipelines if sel_cat == "すべて" or p.get("category") == sel_cat]
+filtered_sorted = sorted(filtered,
+    key=lambda p: p.get("log_last_run") or p.get("sched_last_run") or "", reverse=True)
+
+cols = st.columns(3)
+for i, p in enumerate(filtered_sorted):
+    overall = p.get("overall", "unknown")
+    icon    = ICON.get(overall, "❓")
+    last    = p.get("log_last_run") or p.get("sched_last_run") or "-"
+    with cols[i % 3]:
+        with st.expander(f"{icon} **{p['name']}**  🕐{last}", expanded=False):
+            st.caption(f"カテゴリ: {p.get('category','')}  ｜  スケジュール: {p.get('schedule','')}")
+            # スクリプト・スケジューラ状態
+            script_ok = "✅" if p.get("script_exists") else "❌"
+            sched_ok  = {"ok":"✅","never":"🆕","not_registered":"⚠️","integrated":"🔗"}.get(
+                         p.get("sched_status",""), "❓")
+            log_ok    = {"success":"✅","failed":"❌","no_log":"—","unknown":"❓"}.get(
+                         p.get("log_status",""), "❓")
+            st.write(f"スクリプト{script_ok}  スケジューラ{sched_ok}({p.get('sched_state','')})  ログ{log_ok}")
+            if p.get("next_run"):
+                st.caption(f"次回: {p['next_run']}")
+            if p.get("stop_reason"):
+                st.warning(p["stop_reason"])
+            if p.get("last_lines"):
+                st.code(p["last_lines"][-300:], language=None)
+if not filtered:
+    st.info("該当するパイプラインがありません")
 st.divider()
 
 # ── 自律ループ実行ログ ─────────────────────────────────────────────────────────

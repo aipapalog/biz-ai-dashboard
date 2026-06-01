@@ -124,23 +124,24 @@ if to_verify >= 5:
     st.warning(f"⚠️ 確認待ち {to_verify} 件 — タスクボードページで対応してください")
 st.divider()
 
-# ── パイプライン ───────────────────────────────────────────────────────────────
-st.subheader("⚙️ パイプライン実行状況")
-if logs_map:
-    sorted_logs = sorted(
-        logs_map.items(),
-        key=lambda x: (x[1].get("last_run","") if isinstance(x[1],dict) else ""),
-        reverse=True
-    )
-    cols = st.columns(3)
-    for i, (name, info) in enumerate(sorted_logs[:12]):
-        if not isinstance(info, dict):
-            continue
-        status = info.get("status","unknown")
-        icon = "✅" if status == "success" else "❌" if status == "failed" else "❓"
-        cols[i % 3].markdown(f"{icon} **{name}**  \n🕐 {info.get('last_run','-')}")
+# ── パイプライン（サマリーのみ・詳細は「稼働状況」ページへ）──────────────────────
+st.subheader("⚙️ パイプライン")
+pl_s = data_loader.pipeline_status()
+counts = pl_s.get("counts", {})
+if counts:
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("✅ 正常",   counts.get("ok", 0))
+    c2.metric("❌ 失敗",   counts.get("failed", 0))
+    c3.metric("🆕 未実行", counts.get("never_ran", 0) + counts.get("not_registered", 0))
+    c4.metric("⏸ 停止",   counts.get("stopped", 0))
+    st.caption("詳細は「📊 稼働状況」ページで確認できます")
+elif logs_map:
+    # フォールバック: pipeline_status 未取得時
+    ok  = sum(1 for v in logs_map.values() if isinstance(v,dict) and v.get("status")=="success")
+    ng  = sum(1 for v in logs_map.values() if isinstance(v,dict) and v.get("status")=="failed")
+    st.metric("✅ 正常 / ❌ 失敗", f"{ok} / {ng}")
 else:
-    st.info("パイプラインログ取得中...")
+    st.info("パイプラインデータ取得中...")
 st.divider()
 
 # ── API使用量 ──────────────────────────────────────────────────────────────────

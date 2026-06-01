@@ -59,7 +59,14 @@ def system_info() -> dict:
     return firebase_client.get_doc("dashboard", "system_info")
 
 
+def pipeline_status() -> dict:
+    """PIPELINES_DEF×スケジューラ×ログ×ファイルを自動突合した統合ステータス（推奨）。"""
+    fb = firebase_client.get_doc("dashboard", "pipeline_status")
+    return fb if isinstance(fb, dict) else {}
+
+
 def pipeline_logs() -> dict:
+    """後方互換用。新規ページは pipeline_status() を使うこと。"""
     fb = firebase_client.get_doc("dashboard", "pipeline_logs")
     return fb if isinstance(fb, dict) else {}
 
