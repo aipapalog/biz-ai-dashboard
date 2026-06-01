@@ -211,42 +211,54 @@ with tab4:
     st.markdown("""
 市場調査 → BizDev → MAB最適化 → 先行指標 → リスク確認 → PDCA
 
-| ステップ | スクリプト | 役割 |
-|---|---|---|
-| 🧠 KG抽出 | extract_chain_context.py | now.md/brand/learningから抽出 |
-| 🔍 市場調査 | product_researcher | ToT3経路で市場分析・競合ベンチマーク |
-| 💡 BizDev | daily_bizdev | bizdev→marketing→reviewerの3連鎖 |
-| 📊 MAB最適化 | bizdev_optimizer | パターン抽出→MABスコア更新 |
-| 📈 先行指標 | leading_indicators | プロセス指標の日次集計 |
-| 🛡 リスク確認 | risk_manager | 法的・ToS・セキュリティ評価 |
-| 🔄 PDCA | biz_pdca | Check→Act→Planの3フェーズ |
+| ステップ | スクリプト | 役割 | 出力ファイル |
+|---|---|---|---|
+| 🧠 KG抽出 | extract_chain_context.py | now.md/brand/learningから抽出 | chain_context.md |
+| 🔍 市場調査 | product_researcher | ToT3経路で市場分析・競合ベンチマーク | market_analysis.md |
+| 💡 BizDev | daily_bizdev | bizdev→marketing→reviewerの3連鎖 | bizdev_report.md（State経由） |
+| 📊 MAB最適化 | bizdev_optimizer | パターン抽出→MABスコア更新 | mab_recommendation.json |
+| 📈 先行指標 | leading_indicators | プロセス指標の日次集計 | leading_indicators.json |
+| 🛡 リスク確認 | risk_manager | 法的・ToS・セキュリティ評価 | risk_assessment.md |
+| 🔄 PDCA | biz_pdca | Check→Act→Planの3フェーズ | — |
 """)
 
     st.subheader("🟢 コンテンツチェーン（火・金 21:03）")
     st.markdown("""
 メトリクス収集 → 戦略立案 → コンテンツ生成 → CX品質レビュー → 各PF公開
 
-| ステップ | スクリプト | 役割 |
-|---|---|---|
-| 📊 メトリクス収集 | metrics_collector | note/Qiita/KDP売上を一元収集 |
-| 🗺 戦略立案 | content_strategist | 3プラットフォームの戦略プラン立案 |
-| ✍ コンテンツ生成 | content_writer | qiita/note/kdp/gumroad向け一括生成 |
-| ✅ 品質レビュー | cx_improver | CXトレンド調査→全製品評価 |
-| 🔄 CX改善ループ | cx_publisher_base | 改善コピー生成→各PF適用 |
-| 📢 各PF公開 | qiita/note/kdp/gumroad publisher | 各プラットフォームへ投稿 |
+| ステップ | スクリプト | 役割 | 出力ファイル |
+|---|---|---|---|
+| 📊 メトリクス収集 | metrics_collector | note/Qiita/KDP売上を一元収集 | unified_metrics.json |
+| 🗺 戦略立案 | content_strategist | 3プラットフォームの戦略プラン立案 | content_plan.json |
+| ✍ コンテンツ生成 | content_writer | qiita/note/kdp/gumroad向け一括生成 | content_drafts.json |
+| ✅ 品質レビュー | cx_improver | CXトレンド調査→全製品評価 | cx評価+quick_wins |
+| 🔄 CX改善ループ | cx_publisher_base | 改善コピー生成→各PF適用 | 改善コピー（英語） |
+| 📢 各PF公開 | qiita/note/kdp/gumroad publisher | 各プラットフォームへ投稿 | 各PF適用完了 |
 """)
 
     st.subheader("🟣 システム改善ループ（水・土 21:06）")
     st.markdown("""
 インフラ監視 → 改善案生成 → 評価 → eval_reportが次週のインフラ監視インプットに戻る（フィードバックループ）
 
-| ステップ | スクリプト | 役割 |
-|---|---|---|
-| 🧠 KG抽出 | extract_chain_context.py | failures/learning/eval_reportから抽出 |
-| 🔍 インフラ監視 | system_health | ログERROR/リソース/スケジューラ整合性 |
-| 🛠 改善案生成 | pipeline_improver | ログ解析・コード健全性・自動修正 |
-| 📊 評価 | system_evaluator | 環境監査・パフォーマンス分析・改善提案 |
-| ↻ フィードバック | — | eval_report.md → system_health へ |
+| ステップ | スクリプト | 役割 | 出力ファイル |
+|---|---|---|---|
+| 🧠 KG抽出 | extract_chain_context.py | failures/learning/eval_reportから抽出 | chain_context.md |
+| 🔍 インフラ監視 | system_health | ログERROR/リソース/スケジューラ整合性 | health_report.md |
+| 🛠 改善案生成 | pipeline_improver | ログ解析・コード健全性・自動修正 | improvement.md |
+| 📊 評価 | system_evaluator | 環境監査・パフォーマンス分析・改善提案 | eval_report.md |
+| ↻ フィードバック | — | eval_report.md → system_health へ（次週） | — |
+""")
+
+    st.divider()
+    st.subheader("🔗 チェーン間連携ルール")
+    st.markdown("""
+**送信（戦略 → コンテンツ）**
+- ✅ `extract_chain_context.py` が `market_analysis_*.md` を要約 → `chain_context_content.md` に書き出し → コンテンツチェーンの各ノードへ注入
+- ✅ `market_score < 4.0` の日: `route_after_research()` が BizDev 2本をスキップ、`route_before_publish()` が `note_publisher` をスキップ（低品質日のLLM節約）
+- ✅ `experience_log.md`（体験談・Zenn/note記事素材）→ `chain_context_content.md` に注入 → 各コンテンツノードへ
+
+**受信（コンテンツ ← 戦略）**
+- ✅ `node_context` が `chain_context_content.md` を読み込み → ContentState に `market_score` / `market_summary` を格納 → 各エージェントへ渡す
 """)
 
     st.divider()
