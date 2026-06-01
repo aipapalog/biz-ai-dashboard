@@ -4,10 +4,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import data_loader
+from utils import data_loader, style
 
 st.set_page_config(page_title="📊 概要KPI", page_icon="📊", layout="wide")
 st_autorefresh(interval=60_000, key="kpi_refresh")
+style.inject()
 st.title("📊 概要KPI")
 
 ks     = data_loader.kanban_summary()

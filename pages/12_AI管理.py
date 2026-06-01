@@ -4,10 +4,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import data_loader
+from utils import data_loader, style
 
 st.set_page_config(page_title="🧠 AI管理", page_icon="🧠", layout="wide")
 st_autorefresh(interval=120_000, key="ai_refresh")
+style.inject()
 st.title("🧠 AI管理")
 
 tab_mem, tab_lv, tab_rule, tab_obsidian = st.tabs([

@@ -4,10 +4,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import data_loader
+from utils import data_loader, style
 
 st.set_page_config(page_title="💼 事業状況", page_icon="💼", layout="wide")
 st_autorefresh(interval=60_000, key="biz_refresh")
+style.inject()
 st.title("💼 事業状況・経営目標・利益予測")
 
 biz = data_loader.business_status()

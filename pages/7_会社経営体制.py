@@ -4,10 +4,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import data_loader
+from utils import data_loader, style
 
 st.set_page_config(page_title="🏗️ 会社経営体制", page_icon="🏗️", layout="wide")
 st_autorefresh(interval=60_000, key="arch_refresh")
+style.inject()
 st.title("🏗️ 会社経営体制・アーキテクチャ")
 
 pl_logs    = data_loader.pipeline_logs()

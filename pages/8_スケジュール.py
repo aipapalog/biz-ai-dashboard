@@ -4,15 +4,63 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import data_loader
+from utils import data_loader, style
+from datetime import datetime, date, timedelta
 
 st.set_page_config(page_title="⏱️ スケジュール", page_icon="⏱️", layout="wide")
 st_autorefresh(interval=120_000, key="schedule_refresh")
+style.inject()
 st.title("⏱️ パイプライン実行スケジュール")
 
 scheduler  = data_loader.scheduler_tasks()
 exec_times = data_loader.execution_times()
 pl_logs    = data_loader.pipeline_logs()
+
+
+def _parse_next(val):
+    """next_run 文字列を date に変換（失敗時 None）。"""
+    if not val:
+        return None
+    s = str(val).strip()
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y/%m/%d %H:%M:%S", "%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(s[:len(fmt) + 2] if "%H" in fmt else s[:10], fmt).date()
+        except Exception:
+            continue
+    return None
+
+
+# ── 今日 / 明日 / 今週（next_run ベース）─────────────────────────────────────
+st.subheader("📅 直近の実行予定")
+today = date.today()
+tomorrow = today + timedelta(days=1)
+week_end = today + timedelta(days=7)
+buckets = {"🔹 今日": [], "🔹 明日": [], "🔹 今週": []}
+for t in (scheduler or []):
+    if not isinstance(t, dict):
+        continue
+    d = _parse_next(t.get("next_run"))
+    if d is None:
+        continue
+    label = f"{t.get('name','?')}  🕐 {str(t.get('next_run',''))[:16]}"
+    if d == today:
+        buckets["🔹 今日"].append(label)
+    elif d == tomorrow:
+        buckets["🔹 明日"].append(label)
+    elif today < d <= week_end:
+        buckets["🔹 今週"].append(label)
+if any(buckets.values()):
+    cols = st.columns(3)
+    for col, (head, items) in zip(cols, buckets.items()):
+        with col:
+            st.markdown(f"**{head}（{len(items)}件）**")
+            for it in sorted(items)[:15]:
+                st.write(f"• {it}")
+            if not items:
+                st.caption("（予定なし）")
+else:
+    st.info("次回実行予定データがありません（scheduler の next_run 未取得）")
+st.divider()
 
 # ── タスクスケジューラ実データ ────────────────────────────────────────────────
 st.subheader("🖥️ タスクスケジューラ（実データ）")

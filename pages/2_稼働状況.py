@@ -4,10 +4,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import data_loader
+from utils import data_loader, style
 
 st.set_page_config(page_title="📊 稼働状況", page_icon="📊", layout="wide")
 st_autorefresh(interval=30_000, key="status_refresh")
+style.inject()
 st.title("📊 稼働状況")
 st.caption(f"🔄 30秒毎自動更新  ｜  最終Push: {data_loader.last_updated()}")
 
