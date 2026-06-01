@@ -1,5 +1,4 @@
-import streamlit as st
-from streamlit_autorefresh import st_autorefresh
+﻿import streamlit as st
 import sys
 from pathlib import Path
 
@@ -8,7 +7,6 @@ from utils import data_loader, style
 from datetime import datetime, date, timedelta
 
 st.set_page_config(page_title="⏱️ スケジュール", page_icon="⏱️", layout="wide")
-st_autorefresh(interval=120_000, key="schedule_refresh")
 style.inject()
 st.title("⏱️ パイプライン実行スケジュール")
 

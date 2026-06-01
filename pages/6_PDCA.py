@@ -1,5 +1,4 @@
-import streamlit as st
-from streamlit_autorefresh import st_autorefresh
+﻿import streamlit as st
 import sys
 from pathlib import Path
 
@@ -7,7 +6,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils import data_loader, style
 
 st.set_page_config(page_title="🔄 PDCA", page_icon="🔄", layout="wide")
-st_autorefresh(interval=120_000, key="pdca_refresh")
 style.inject()
 st.title("🔄 ビジネスPDCA")
 st.caption("戦略立案 — 施策立案→評価→task_queue追加→自律ループが実行")
