@@ -73,7 +73,7 @@ if search:
 st.caption(f"表示中: **{len(filtered)} 件** / 全 {len(tasks)} 件")
 
 
-def task_card(t: dict):
+def task_card(t: dict, ctx: str = ""):
     status    = t.get("status", "open")
     priority  = t.get("priority", "")
     name      = t.get("name", "(無題)")
@@ -112,21 +112,22 @@ def task_card(t: dict):
                 st.markdown(f"**{author}** ({ts}): {text}")
         if not task_id: return
         st.markdown("---"); st.markdown("**✏️ 更新**")
-        with st.form(f"edit_{task_id}", clear_on_submit=False):
+        _k = f"{task_id}_{ctx}" if ctx else task_id
+        with st.form(f"edit_{_k}", clear_on_submit=False):
             ec1, ec2, ec3 = st.columns(3)
             with ec1:
                 cur_idx = STATUSES.index(status) if status in STATUSES else 0
-                new_status = st.selectbox("ステータス", STATUSES, index=cur_idx, key=f"st_{task_id}")
+                new_status = st.selectbox("ステータス", STATUSES, index=cur_idx, key=f"st_{_k}")
             with ec2:
                 priorities = ["high", "medium", "low", ""]
                 cur_p = priorities.index(priority) if priority in priorities else 1
-                new_priority = st.selectbox("優先度", priorities[:3], index=min(cur_p, 2), key=f"pr_{task_id}")
+                new_priority = st.selectbox("優先度", priorities[:3], index=min(cur_p, 2), key=f"pr_{_k}")
             with ec3:
                 opts = assignees if assignees else ["社長", "会長"]
                 idx  = opts.index(assignee) if assignee in opts else 0
-                new_assignee = st.selectbox("担当者", opts, index=idx, key=f"as_{task_id}")
-            new_result  = st.text_area("結果（上書き）", value=result, key=f"re_{task_id}", height=80)
-            new_comment = st.text_area("コメント追加", placeholder="新しいコメントを入力", key=f"co_{task_id}", height=60)
+                new_assignee = st.selectbox("担当者", opts, index=idx, key=f"as_{_k}")
+            new_result  = st.text_area("結果（上書き）", value=result, key=f"re_{_k}", height=80)
+            new_comment = st.text_area("コメント追加", placeholder="新しいコメントを入力", key=f"co_{_k}", height=60)
             if st.form_submit_button("💾 更新する", use_container_width=True):
                 updates = {"status": new_status, "priority": new_priority, "assignee": new_assignee, "result": new_result}
                 ok = data_loader.update_task(task_id, updates)
@@ -159,7 +160,7 @@ with tab_list:
     sorted_tasks = sorted([t for t in filtered if t.get("status") != "closed"], key=lambda t: PRIORITY_ORDER.get(t.get("priority",""),3)) + \
                    sorted([t for t in filtered if t.get("status") == "closed"], key=lambda t: (t.get("updated_at") or ""), reverse=True)
     for t in sorted_tasks:
-        task_card(t)
+        task_card(t, ctx="list")
 
 with tab_assignee:
     for a in assignees:
@@ -167,4 +168,4 @@ with tab_assignee:
         if group:
             st.subheader(f"👤 {a}（{len(group)} 件）")
             for t in group[:20]:
-                task_card(t)
+                task_card(t, ctx=f"a_{a}")
