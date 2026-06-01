@@ -15,8 +15,31 @@ if not funnel:
     st.stop()
 
 st.caption(f"最終更新: {funnel.get('last_updated', '-')[:16]}")
-if funnel.get("warning"):
-    st.warning(funnel["warning"])
+warn = funnel.get("warning")
+if warn:
+    # warning は dict（message/implementation_status 等）または文字列
+    if isinstance(warn, dict):
+        msg = warn.get("message", "ファネルメトリクスは参考値です")
+        st.info(f"ℹ️ {msg}")
+        details = warn.get("details", "")
+        if details:
+            st.caption(details)
+        impl = warn.get("implementation_status", {})
+        if isinstance(impl, dict) and impl:
+            with st.expander("📋 各メトリクスのデータ収集状況", expanded=False):
+                LABELS = {
+                    "note_views":          "note記事ビュー数",
+                    "purchase_data":       "購入データ",
+                    "checkout_data":       "チェックアウトデータ",
+                    "product_page_clicks": "製品ページクリック",
+                }
+                for k, v in impl.items():
+                    # 「❌ 取得不可」等を「近日対応予定」に置換してユーザーを不安にさせない
+                    label = LABELS.get(k, k)
+                    state = "🟡 近日対応予定（外部API連携待ち）" if "❌" in str(v) else str(v)
+                    st.write(f"• **{label}**: {state}")
+    else:
+        st.info(f"ℹ️ {warn}")
 
 # ── ステップ別メトリクス ───────────────────────────────────────────────────────
 metrics = funnel.get("metrics", {})
@@ -39,10 +62,16 @@ if metrics:
 dropoff = funnel.get("dropoff_analysis", {})
 if dropoff:
     st.subheader("📉 ステップ間 脱落率")
+    DROPOFF_LABELS = {
+        "note_to_product":      "①記事 → ②製品ページ",
+        "product_to_checkout":  "②製品ページ → ③チェックアウト",
+        "checkout_to_purchase": "③チェックアウト → ④購入完了",
+    }
     for step, rate in dropoff.items():
         pct = rate if isinstance(rate, (int, float)) else 0
         color = "🔴" if pct > 80 else "🟡" if pct > 50 else "🟢"
-        st.write(f"{color} **{step}**: {pct:.1f}% 脱落")
+        label = DROPOFF_LABELS.get(step, step)
+        st.write(f"{color} **{label}**: {pct:.1f}% 脱落")
     st.divider()
 
 # ── プラットフォーム別 ────────────────────────────────────────────────────────

@@ -57,16 +57,21 @@ if any(buckets.values()):
             if not items:
                 st.caption("（予定なし）")
 else:
-    st.info("次回実行予定データがありません（scheduler の next_run 未取得）")
+    st.info("ℹ️ 次回実行予定の時刻は取得対象外です。各タスクの実行時刻は下の「スケジュール定義」表を参照してください。")
 st.divider()
 
 # ── タスクスケジューラ実データ ────────────────────────────────────────────────
 st.subheader("🖥️ タスクスケジューラ（実データ）")
 if scheduler:
     import pandas as pd
+    STATE_LABELS = {"0": "不明", "1": "無効", "2": "キュー", "3": "✅ 待機中", "4": "🔵 実行中"}
     df = pd.DataFrame(scheduler)
-    display_cols = [c for c in ["name", "schedule", "state", "last_run", "next_run", "status"] if c in df.columns]
-    st.dataframe(df[display_cols] if display_cols else df, use_container_width=True)
+    if "state" in df.columns:
+        df["state"] = df["state"].astype(str).map(lambda s: STATE_LABELS.get(s, s))
+        df = df.rename(columns={"name": "タスク名", "state": "状態"})
+    display_cols = [c for c in ["タスク名", "状態", "schedule", "last_run", "next_run", "status"] if c in df.columns]
+    st.caption(f"登録タスク数: {len(scheduler)} 件")
+    st.dataframe(df[display_cols] if display_cols else df, use_container_width=True, hide_index=True)
 else:
     st.info("スケジューラ情報がありません")
 st.divider()

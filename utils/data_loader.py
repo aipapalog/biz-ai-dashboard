@@ -238,6 +238,11 @@ def create_task(name: str, assignee: str = "社長", priority: str = "medium",
     return ok, new_id
 
 
+def obsidian_stats() -> dict:
+    fb = firebase_client.get_doc("dashboard", "obsidian_stats")
+    return fb if isinstance(fb, dict) else {}
+
+
 def datasource() -> dict:
     fb = firebase_client.get_doc("dashboard", "datasource")
     return fb if fb else _local("data/datasource.json", {})

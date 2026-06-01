@@ -111,23 +111,24 @@ st.divider()
 # ── プラットフォーム監視 ──────────────────────────────────────────────────────
 st.subheader("🔍 プラットフォーム監視（待ち状態）")
 if pf:
-    watches = pf.get("watches", pf) if isinstance(pf, dict) else []
+    # pf_watch ドキュメントは services リストを持つ（watches は旧キー）
+    watches = pf.get("services") or pf.get("watches") or []
     if isinstance(watches, dict): watches = list(watches.values())
     if isinstance(watches, list) and watches:
+        def _pf_icon(s):
+            return "✅" if s in ("ok", "active", "normal", "completed") else "⏳" if s == "pending" else "❌"
         cols = st.columns(min(len(watches), 4))
         for i, item in enumerate(watches[:4]):
             if not isinstance(item, dict): continue
             plat   = item.get("platform", item.get("name", "?"))
             status = item.get("status", "?")
-            icon   = "✅" if status in ("ok", "active", "normal") else "⚠️" if status == "pending" else "❌"
             with cols[i % 4]:
-                st.metric(f"{icon} {plat}", status)
+                st.metric(f"{_pf_icon(status)} {plat}", status)
         for item in watches[4:]:
             if isinstance(item, dict):
                 plat   = item.get("platform", item.get("name", "?"))
                 status = item.get("status", "?")
-                icon   = "✅" if status in ("ok", "active", "normal") else "⚠️" if status == "pending" else "❌"
-                st.write(f"{icon} **{plat}**: {status}")
+                st.write(f"{_pf_icon(status)} **{plat}**: {status}")
     else:
         for k, v in (pf.items() if isinstance(pf, dict) else []):
             if isinstance(v, dict):

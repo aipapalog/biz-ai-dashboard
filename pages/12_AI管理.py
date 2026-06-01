@@ -125,6 +125,19 @@ with tab_mem:
     st.markdown("- 📓 **Obsidian**: ビジュアルグラフ・手動編集・Web記事クリップ・ルール閲覧")
     st.markdown("- 📥 **raw/ → wiki/**: Web記事を投入→AIがコンパイル→知識ページ生成（Karpathyパターン）")
     st.markdown("- 🔄 **週次同期**: Obsidian → mempalace KGバックアップ（毎週日曜 21:27）")
+
+    obs = data_loader.obsidian_stats()
+    if obs:
+        o1, o2 = st.columns(2)
+        o1.metric("📝 総ノート数", obs.get("total_notes", 0))
+        o2.metric("🆕 直近14日追加", obs.get("recent_14d", 0))
+        folders = obs.get("folders", {})
+        if folders:
+            st.subheader("📁 Vault フォルダ構成")
+            rows = [{"フォルダ": k, "件数": v} for k, v in sorted(folders.items(), key=lambda x: -x[1])]
+            import pandas as pd
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
     st.divider()
     st.markdown("**フォルダ構成:**")
     cols = st.columns(3)
