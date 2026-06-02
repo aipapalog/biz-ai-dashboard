@@ -245,6 +245,23 @@ def create_task(name: str, assignee: str = "社長", priority: str = "medium",
     return ok, new_id
 
 
+def pipeline_token_usage() -> dict:
+    fb = firebase_client.get_doc("dashboard", "pipeline_token_usage")
+    return fb if isinstance(fb, dict) else {}
+
+
+def send_pipeline_command(pipeline_name: str, task_name: str) -> bool:
+    """Firestore commands コレクションに実行コマンドを書き込む。"""
+    now = datetime.now().isoformat()
+    return firebase_client.patch_doc("commands", pipeline_name, {
+        "action": "run",
+        "task_name": task_name,
+        "pipeline_name": pipeline_name,
+        "status": "pending",
+        "created_at": now,
+    })
+
+
 def sync_brain() -> dict:
     fb = firebase_client.get_doc("dashboard", "sync_brain")
     return fb if isinstance(fb, dict) else {}

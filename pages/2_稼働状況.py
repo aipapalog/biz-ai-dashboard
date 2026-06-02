@@ -10,10 +10,13 @@ style.inject()
 st.title("📊 稼働状況")
 st.caption(f"🔄 30秒毎自動更新  ｜  最終Push: {data_loader.last_updated()}")
 
-sys_info   = data_loader.system_info()
-pl_status  = data_loader.pipeline_status()   # PIPELINES_DEF×スケジューラ×ログ統合
-loop_data  = data_loader.autonomous_loop()
-ds         = data_loader.datasource()
+sys_info    = data_loader.system_info()
+pl_status   = data_loader.pipeline_status()   # PIPELINES_DEF×スケジューラ×ログ統合
+loop_data   = data_loader.autonomous_loop()
+ds          = data_loader.datasource()
+token_usage = data_loader.pipeline_token_usage()
+all_tasks   = data_loader.kanban_tasks()
+all_outputs = data_loader.sync_outputs()
 
 # ── システムリソース ───────────────────────────────────────────────────────────
 if sys_info:
@@ -71,27 +74,89 @@ filtered = [p for p in pipelines if sel_cat == "すべて" or p.get("category") 
 filtered_sorted = sorted(filtered,
     key=lambda p: p.get("log_last_run") or p.get("sched_last_run") or "", reverse=True)
 
+# 成果物ファイルリスト（パイプライン名マッチ用）
+output_files = (all_outputs or {}).get("files", [])
+
 cols = st.columns(3)
 for i, p in enumerate(filtered_sorted):
-    overall = p.get("overall", "unknown")
-    icon    = ICON.get(overall, "❓")
-    last    = p.get("log_last_run") or p.get("sched_last_run") or "-"
+    overall   = p.get("overall", "unknown")
+    icon      = ICON.get(overall, "❓")
+    last      = p.get("log_last_run") or p.get("sched_last_run") or "-"
+    pname     = p.get("name", "")
+    task_name = p.get("task_name", "")
+
+    # パイプライン別トークン情報
+    tok = token_usage.get(pname, {}) if token_usage else {}
+
+    # 関連タスク（kanban から直近3件）
+    related_tasks = [
+        t for t in (all_tasks or [])
+        if pname and (
+            pname in (t.get("description") or "").lower()
+            or pname in (t.get("name") or "").lower()
+        )
+    ]
+    related_tasks = sorted(related_tasks, key=lambda t: t.get("updated_at",""), reverse=True)[:3]
+
+    # 関連成果物（ファイル名にpname含む、最新3件）
+    related_outputs = [f for f in output_files if pname and pname.replace("_","-") in f["name"].lower() or pname in f["name"].lower()][:3]
+
     with cols[i % 3]:
-        with st.expander(f"{icon} **{p['name']}**  🕐{last}", expanded=False):
+        with st.expander(f"{icon} **{pname}**  🕐{last}", expanded=False):
             st.caption(f"カテゴリ: {p.get('category','')}  ｜  スケジュール: {p.get('schedule','')}")
+
             # スクリプト・スケジューラ状態
             script_ok = "✅" if p.get("script_exists") else "❌"
-            sched_ok  = {"ok":"✅","never":"🆕","not_registered":"⚠️","integrated":"🔗"}.get(
-                         p.get("sched_status",""), "❓")
-            log_ok    = {"success":"✅","failed":"❌","no_log":"—","unknown":"❓"}.get(
-                         p.get("log_status",""), "❓")
+            sched_ok  = {"ok":"✅","never":"🆕","not_registered":"⚠️","integrated":"🔗"}.get(p.get("sched_status",""), "❓")
+            log_ok    = {"success":"✅","failed":"❌","no_log":"—","unknown":"❓"}.get(p.get("log_status",""), "❓")
             st.write(f"スクリプト{script_ok}  スケジューラ{sched_ok}({p.get('sched_state','')})  ログ{log_ok}")
+
+            # 次回実行
             if p.get("next_run"):
-                st.caption(f"次回: {p['next_run']}")
+                st.caption(f"⏰ 次回: **{p['next_run']}**")
+
+            # 直近トークン・推定従量課金
+            if tok and tok.get("total", 0) > 0:
+                cost = tok.get("cost_usd", 0)
+                model = tok.get("model", "")
+                ts    = (tok.get("ts","") or "")[:10]
+                st.caption(
+                    f"🪙 直近トークン: {tok.get('total',0):,}  "
+                    f"（in:{tok.get('input',0):,} / out:{tok.get('output',0):,}）"
+                    f"  💰 推定課金: ${cost:.4f}  ｜  {ts} {model}"
+                )
+
+            # 直近起票タスク
+            if related_tasks:
+                st.markdown("**📋 直近起票タスク**")
+                for t in related_tasks:
+                    tid    = t.get("id","")
+                    tname  = t.get("name","")[:40]
+                    status = t.get("status","")
+                    s_icon = {"open":"🔵","in_progress":"🟡","to_verify":"🟠","closed":"✅"}.get(status,"⬜")
+                    st.write(f"{s_icon} [{tid}] {tname}")
+
+            # 直近の成果物
+            if related_outputs:
+                st.markdown("**📦 直近の成果物**")
+                for f in related_outputs:
+                    st.write(f"📝 {f['name']} ({f['size_kb']}KB  {f['modified']})")
+
+            # ログ末尾
             if p.get("stop_reason"):
                 st.warning(p["stop_reason"])
             if p.get("last_lines"):
                 st.code(p["last_lines"][-300:], language=None)
+
+            # ▶ 実施ボタン
+            if task_name and overall not in ("stopped",):
+                if st.button(f"▶ 今すぐ実施", key=f"run_{pname}"):
+                    ok = data_loader.send_pipeline_command(pname, task_name)
+                    if ok:
+                        st.success(f"✅ コマンド送信完了。次回pusher実行時に {task_name} を起動します。")
+                    else:
+                        st.error("❌ コマンド送信失敗")
+
 if not filtered:
     st.info("該当するパイプラインがありません")
 st.divider()
