@@ -9,8 +9,9 @@ st.set_page_config(page_title="🧠 AI管理", page_icon="🧠", layout="wide")
 style.inject()
 st.title("🧠 AI管理")
 
-tab_mem, tab_lv, tab_rule, tab_obsidian = st.tabs([
-    "🧠 mempalace × Obsidian ナレッジ成長", "🚀 レベルアップ", "⚙️ ルールエンジン状態", "📖 エージェント体制サマリー"
+tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs = st.tabs([
+    "🧠 mempalace × Obsidian ナレッジ成長", "🚀 レベルアップ", "⚙️ ルールエンジン状態",
+    "📖 エージェント体制サマリー", "📋 Sync/ai コンテキスト", "🛡️ 4層学習システム", "📦 生成物一覧"
 ])
 
 # ── mempalace × Obsidian ナレッジ成長 ─────────────────────────────────────────
@@ -234,3 +235,139 @@ with tab_obsidian:
                         ts      = (item.get("ts") or "")[:10]
                         color   = "🟢" if score >= 8 else "🟡" if score >= 6 else "🔴"
                         st.write(f"{color} {ts} スコア{score}: {summary[:100]}")
+
+# ── Sync/ai コンテキスト ───────────────────────────────────────────────────────
+with tab_ctx:
+    brain = data_loader.sync_brain()
+    tasks = data_loader.sync_tasks()
+    ll    = data_loader.lessons_learned()
+
+    st.subheader("📋 Sync/ai コンテキスト")
+    st.caption(f"最終更新: {brain.get('updated_at', '')[:16]}")
+
+    sub_now, sub_so, sub_ctx, sub_me, sub_brand, sub_oss, sub_ll = st.tabs([
+        "🟢 now.md", "📌 Standing Orders", "🧩 コンテキスト",
+        "👤 me.md", "🎨 brand_memory", "🏗️ OSS移行計画", "📚 lessons_learned"
+    ])
+
+    with sub_now:
+        now_content = brain.get("now", "")
+        if now_content:
+            st.markdown(now_content)
+        else:
+            st.info("now.mdデータがありません。firebase_dashboard_pusher.pyを実行してください。")
+
+    with sub_so:
+        so_content = tasks.get("standing_orders", "")
+        if so_content:
+            st.markdown(so_content)
+        else:
+            st.info("standing_ordersデータがありません。")
+
+    with sub_ctx:
+        ctx_content = tasks.get("claude_context", "")
+        ws          = tasks.get("work_status", {})
+        if ctx_content:
+            st.markdown(ctx_content)
+        if ws:
+            st.divider()
+            st.subheader("📊 work_status")
+            for k, v in ws.items():
+                st.write(f"**{k}:** {v}")
+
+    with sub_me:
+        me_content = brain.get("me", "")
+        if me_content:
+            st.markdown(me_content)
+        else:
+            st.info("me.mdデータがありません。")
+
+    with sub_brand:
+        brand_content = brain.get("brand_memory", "")
+        if brand_content:
+            st.markdown(brand_content)
+        else:
+            st.info("brand_memoryデータがありません。")
+
+    with sub_oss:
+        oss_content = brain.get("oss_migration_plan", "")
+        if oss_content:
+            st.markdown(oss_content)
+        else:
+            st.info("OSS移行計画データがありません。")
+
+    with sub_ll:
+        ll_content = ll.get("content", "")
+        if ll_content:
+            st.markdown(ll_content)
+        else:
+            st.info("lessons_learnedデータがありません。")
+
+# ── 4層学習システム ───────────────────────────────────────────────────────────
+with tab_learn:
+    ls = data_loader.learning_system()
+    st.subheader("🛡️ エラー再発防止・自律学習システム：4層の多層防御")
+    st.caption("失敗パターンの再発を防止 + 自律学習フィードバック実装")
+
+    if ls:
+        active_count = ls.get("active_count", 0)
+        total        = ls.get("total", 4)
+        overall      = ls.get("overall", "")
+        flow         = ls.get("flow", "")
+
+        # サマリーメトリクス
+        c1, c2 = st.columns(2)
+        c1.metric("有効レイヤー", f"{active_count}/{total}層",
+                  delta="正常" if active_count == total else f"⚠ {total - active_count}層未設定")
+        c2.markdown(f"**全体状態:** {overall}")
+
+        st.divider()
+
+        # 各レイヤーカード
+        layers = ls.get("layers", [])
+        for la in layers:
+            icon        = "🟢" if la.get("active") else "⚪"
+            status_tag  = f"✓ {la['status']}" if la.get("active") else la["status"]
+            with st.expander(f"{icon} **Layer {la['layer']}: {la['name']}** — {status_tag}", expanded=la.get("active", False)):
+                st.markdown(f"**コンポーネント:** {la.get('components','')}")
+                st.markdown(f"**動作内容:** {la.get('desc','')}")
+                st.markdown(f"**ステータス:** `{la.get('status','')}`")
+
+        st.divider()
+        st.markdown(f"**学習フロー:** {flow}")
+        st.caption(f"最終更新: {ls.get('updated_at','')[:16]}")
+    else:
+        st.info("学習システムデータがありません。firebase_dashboard_pusher.pyを実行してください。")
+
+# ── 生成物一覧 ─────────────────────────────────────────────────────────────────
+with tab_outputs:
+    outputs = data_loader.sync_outputs()
+    st.subheader("📦 Sync/ai/outputs/ 生成物一覧")
+
+    if outputs:
+        files = outputs.get("files", [])
+        total = outputs.get("total", 0)
+        st.caption(f"合計 {total} ファイル（最新40件表示）| 最終更新: {outputs.get('updated_at','')[:16]}")
+
+        if files:
+            import pandas as pd
+            EXT_ICON = {".md": "📝", ".json": "📊", ".txt": "📄"}
+            df = pd.DataFrame([{
+                "種類": EXT_ICON.get(f["ext"], "📁"),
+                "ファイル名": f["name"],
+                "サイズ(KB)": f["size_kb"],
+                "更新日": f["modified"],
+            } for f in files])
+            st.dataframe(df, use_container_width=True, hide_index=True)
+
+            # カテゴリ分け
+            note_files = [f for f in files if f["name"].startswith("note_")]
+            kdp_files  = [f for f in files if f["name"].startswith("kdp_") or f["name"].startswith("chapter")]
+            x_files    = [f for f in files if f["name"].startswith("x_")]
+
+            cols = st.columns(3)
+            cols[0].metric("📝 note下書き", len(note_files))
+            cols[1].metric("📚 KDP原稿", len(kdp_files))
+            cols[2].metric("🐦 X投稿", len(x_files))
+    else:
+        st.info("生成物データがありません。firebase_dashboard_pusher.pyを実行してください。")

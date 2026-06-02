@@ -245,6 +245,31 @@ def create_task(name: str, assignee: str = "社長", priority: str = "medium",
     return ok, new_id
 
 
+def sync_brain() -> dict:
+    fb = firebase_client.get_doc("dashboard", "sync_brain")
+    return fb if isinstance(fb, dict) else {}
+
+
+def sync_tasks() -> dict:
+    fb = firebase_client.get_doc("dashboard", "sync_tasks")
+    return fb if isinstance(fb, dict) else {}
+
+
+def learning_system() -> dict:
+    fb = firebase_client.get_doc("dashboard", "learning_system")
+    return fb if isinstance(fb, dict) else {}
+
+
+def sync_outputs() -> dict:
+    fb = firebase_client.get_doc("dashboard", "sync_outputs")
+    return fb if isinstance(fb, dict) else {}
+
+
+def lessons_learned() -> dict:
+    fb = firebase_client.get_doc("dashboard", "lessons_learned")
+    return fb if isinstance(fb, dict) else {}
+
+
 def obsidian_stats() -> dict:
     fb = firebase_client.get_doc("dashboard", "obsidian_stats")
     return fb if isinstance(fb, dict) else {}
