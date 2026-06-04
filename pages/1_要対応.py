@@ -59,26 +59,27 @@ ssid     = str(sys_info.get("ssid", "")) if sys_info else ""
 is_co    = "SWing" in ssid
 
 # 致命度の高い順に「要対応アラート」を組み立てる
+# ※ 確認待ちタスクは独立メトリクス（👀）として表示するため alerts には含めない
 alerts = []   # (重要度: "critical"/"warn", 文言, 誘導先ページ)
 if is_co:
     alerts.append(("critical", "🏢 会社ネットワーク接続中 — エージェント・パイプラインは自動停止します", "📊 稼働状況"))
 if fail_n:
     alerts.append(("critical", f"⚙️ パイプライン失敗 {fail_n} 本 — ログを確認してください", "📊 稼働状況"))
 if risk_high:
-    alerts.append(("critical", "⚠️ Highリスクあり — リスクレポートを確認してください", "😊 CX・品質"))
+    alerts.append(("critical", f"⚠️ Highリスク {risk_high_n} 件 — リスクレポートを確認してください", "😊 CX・品質"))
 if api_ratio > 0.8:
     alerts.append(("critical", f"💰 API予算 {api_ratio*100:.0f}% 消費 — 呼び出し削減が急務", "😊 CX・品質"))
-if tv >= 5:
-    alerts.append(("warn", f"👀 確認待ちタスク {tv} 件 — 承認・差し戻しを判断してください", "🗂️ タスクボード"))
 if high_iss:
     alerts.append(("warn", f"🔴 コード高度問題 {len(high_iss)} 件", "😊 CX・品質"))
 if cx_issue:
-    alerts.append(("warn", "🎯 CXに要改善あり", "😊 CX・品質"))
+    alerts.append(("warn", f"🎯 CX要改善 {cx_fail_n} 件", "😊 CX・品質"))
 if api_ratio > 0.5 and api_ratio <= 0.8:
     alerts.append(("warn", f"💰 API予算 {api_ratio*100:.0f}% 消費", "😊 CX・品質"))
 
-n_critical = sum(1 for a in alerts if a[0] == "critical")
-hdr_status = "err" if n_critical else ("warn" if alerts else "ok")
+# 件数は「実際の問題数」で計算（カテゴリ数ではなく）
+n_critical = (risk_high_n if risk_high else 0) + fail_n + (1 if api_ratio > 0.8 else 0) + (1 if is_co else 0)
+n_warn     = cx_fail_n + len(high_iss) + (1 if 0.5 < api_ratio <= 0.8 else 0)
+hdr_status = "err" if n_critical else ("warn" if n_warn or tv >= 5 else "ok")
 
 style.page_header("🚨 要対応サマリー",
                   subtitle="今すぐ判断・対応が必要な項目だけを集約",
@@ -87,17 +88,16 @@ style.page_header("🚨 要対応サマリー",
 
 # ── 要対応カウント（数字を先頭に）──────────────────────────────────────────────
 style.section_card_start("🚦 対応必要件数",
-                         "要対応あり" if alerts else "クリア",
-                         "err" if n_critical else ("warn" if alerts else "ok"))
+                         "要対応あり" if (n_critical or n_warn or tv >= 5) else "クリア",
+                         "err" if n_critical else ("warn" if (n_warn or tv >= 5) else "ok"))
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     style.kpi_wrap_start("critical" if n_critical else "ok")
-    st.metric("🔴 緊急", n_critical)
+    st.metric("🔴 緊急（実件数）", n_critical)
     style.kpi_wrap_end()
 with c2:
-    warn_n = len(alerts) - n_critical
-    style.kpi_wrap_start("warn" if warn_n else "ok")
-    st.metric("🟡 要確認", warn_n)
+    style.kpi_wrap_start("warn" if n_warn else "ok")
+    st.metric("🟡 要確認（実件数）", n_warn)
     style.kpi_wrap_end()
 with c3:
     style.kpi_wrap_start("warn" if tv >= 5 else "ok")
@@ -112,7 +112,7 @@ style.section_card_end()
 # ── アラート一覧（最大表示・重要度順）──────────────────────────────────────────
 style.section_card_start("📣 アラート",
                          f"{len(alerts)}件" if alerts else "なし",
-                         "err" if n_critical else ("warn" if alerts else "ok"))
+                         "err" if n_critical else ("warn" if (alerts or tv >= 5) else "ok"))
 if not alerts:
     st.success("✅ 現在、緊急の対応が必要な項目はありません。")
 else:
