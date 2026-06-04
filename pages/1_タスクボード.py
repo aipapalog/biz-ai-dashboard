@@ -17,8 +17,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🗂️ タスクボード（Kanban）")
-
 tasks = data_loader.kanban_tasks()
 for t in tasks:
     if not t.get("name"):
@@ -29,22 +27,31 @@ PRIORITY_ICONS  = {"high": "⚡", "medium": "🔴", "low": "⚪"}
 PRIORITY_ORDER  = {"high": 0, "medium": 1, "low": 2}
 STATUSES        = ["open", "in_progress", "to_verify", "closed"]
 
-# ── KPI ──────────────────────────────────────────────────────────────────────
+# ── KPI 集計 ──────────────────────────────────────────────────────────────────
 counts = {s: 0 for s in STATUSES}
 counts["cancel"] = 0
 for t in tasks:
     s = t.get("status", "open")
     if s in counts:
         counts[s] += 1
+tv = counts["to_verify"]
+
+# ── ヘッダー（確認待ち過多で warn）────────────────────────────────────────────
+style.page_header("🗂️ タスクボード（Kanban）",
+                  status="warn" if tv >= 5 else "ok")
+
+# ── KPI（優先度カラー付き section_card）────────────────────────────────────────
+style.section_card_start("📋 タスクサマリー")
 c1, c2, c3, c4, c5 = st.columns(5)
 with c1: st.metric("⬜ Open",    counts["open"])
 with c2: st.metric("🔵 進行中",  counts["in_progress"])
 with c3:
-    tv = counts["to_verify"]
+    style.kpi_wrap_start("warn" if tv >= 5 else "ok")
     st.metric("👀 確認待ち", tv, delta="要対応" if tv >= 5 else None, delta_color="inverse" if tv >= 5 else "normal")
+    style.kpi_wrap_end()
 with c4: st.metric("✅ 完了",    counts["closed"])
 with c5: st.metric("合計",       len(tasks))
-st.divider()
+style.section_card_end()
 
 # ── セクション絞り込み ────────────────────────────────────────────────────────
 sections = sorted({t.get("section", "") for t in tasks if t.get("section", "")})
@@ -127,7 +134,6 @@ tab_board, tab_list, tab_new = st.tabs(["📌 ボード", "✏️ 編集・詳�
 
 with tab_board:
     st.markdown(board_html, unsafe_allow_html=True)
-    st.divider()
     with st.expander(f"✅ 完了済み（{len(closed_tasks)} 件）", expanded=False):
         for t in closed_tasks[:50]:
             st.markdown(make_card(t), unsafe_allow_html=True)
