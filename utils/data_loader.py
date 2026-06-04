@@ -71,6 +71,30 @@ def pipeline_logs() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def pipeline_merged() -> dict:
+    """pipeline_status + pipeline_token_usage を統合した per-pipeline dict。
+    key: pipeline_name, value: status フィールド + token_total/cost_usd/token_ts を追加。
+    新規ページはこの関数を使うこと。各ドキュメントを個別に参照する必要はない。"""
+    status_doc = pipeline_status()
+    token_doc  = pipeline_token_usage()
+    result = {}
+    for p in status_doc.get("pipelines", []):
+        name = p.get("name", "")
+        if not name:
+            continue
+        tok = token_doc.get(name, {})
+        result[name] = {
+            **p,
+            "token_total":  tok.get("total", 0),
+            "token_input":  tok.get("input", 0),
+            "token_output": tok.get("output", 0),
+            "cost_usd":     tok.get("cost_usd", 0),
+            "token_model":  tok.get("model", ""),
+            "token_ts":     (tok.get("ts", "") or "")[:10],
+        }
+    return result
+
+
 def levelup_history() -> list:
     fb = firebase_client.get_collection("levelup_history")
     if fb:
