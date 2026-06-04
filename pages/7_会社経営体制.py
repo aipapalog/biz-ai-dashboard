@@ -9,10 +9,11 @@ st.set_page_config(page_title="🏗️ 会社経営体制", page_icon="🏗️",
 style.inject()
 st.title("🏗️ 会社経営体制・アーキテクチャ")
 
-pl_logs    = data_loader.pipeline_logs() or {}
-exec_t     = data_loader.execution_times() or {}
-agents_ctx = data_loader.agents_context() or {}
-exec_map   = {p["name"]: p for p in exec_t.get("pipelines", [])}
+pl_logs     = data_loader.pipeline_logs() or {}
+exec_t      = data_loader.execution_times() or {}
+agents_ctx  = data_loader.agents_context() or {}
+token_usage = data_loader.pipeline_token_usage() or {}
+exec_map    = {p["name"]: p for p in exec_t.get("pipelines", [])}
 
 # ── エージェント定義（使用パイプライン含む）────────────────────────────────────
 AGENTS_DEF = [
@@ -153,8 +154,10 @@ with tab1:
         status    = logs_entry.get("status", "unknown")
         last_run  = logs_entry.get("last_run", "—")
         last_lines= logs_entry.get("last_lines", "")
-        tokens    = logs_entry.get("tokens", "")
-        cost      = logs_entry.get("cost_usd", "")
+        tok_entry = token_usage.get(p["name"], {})
+        tokens    = tok_entry.get("total", 0)
+        cost      = tok_entry.get("cost_usd", 0)
+        tok_ts    = (tok_entry.get("ts", "") or "")[:10]
         stopped   = "停止" in p["schedule"] or "⏸" in p["schedule"]
         廃止     = "廃止" in p["desc"] or "統合済み" in p["desc"]
         icon = "⏸" if stopped else ("🗑" if 廃止 else ("✅" if status == "success" else "❌" if status == "failed" else "⬜"))
@@ -168,8 +171,11 @@ with tab1:
                 st.write(f"**最終実行:** {last_run}")
                 st.write(f"**状態:** {status}")
             with c3:
-                if tokens: st.write(f"**トークン:** {tokens}")
-                if cost:   st.write(f"**課金:** ${cost}")
+                if tokens:
+                    st.write(f"**トークン:** {tokens:,}")
+                    st.caption(f"${cost:.4f}  {tok_ts}")
+                else:
+                    st.caption("トークン: —")
             with c4:
                 ei = exec_map.get(p["name"], {})
                 if ei:

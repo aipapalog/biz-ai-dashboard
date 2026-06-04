@@ -101,8 +101,13 @@ for i, p in enumerate(filtered_sorted):
     # 関連成果物（ファイル名にpname含む、最新3件）
     related_outputs = [f for f in output_files if pname and pname.replace("_","-") in f["name"].lower() or pname in f["name"].lower()][:3]
 
+    # カードヘッダーにトークン実績を表示（展開不要で確認できる）
+    tok_summary = ""
+    if tok and tok.get("total", 0) > 0:
+        tok_summary = f"  🪙{tok['total']:,} (${tok.get('cost_usd',0):.3f})"
+
     with cols[i % 3]:
-        with st.expander(f"{icon} **{pname}**  🕐{last}", expanded=False):
+        with st.expander(f"{icon} **{pname}**  🕐{last}{tok_summary}", expanded=False):
             st.caption(f"カテゴリ: {p.get('category','')}  ｜  スケジュール: {p.get('schedule','')}")
 
             # スクリプト・スケジューラ状態
@@ -115,32 +120,40 @@ for i, p in enumerate(filtered_sorted):
             if p.get("next_run"):
                 st.caption(f"⏰ 次回: **{p['next_run']}**")
 
-            # 直近トークン・推定従量課金
+            # 直近トークン・推定従量課金（常時表示）
             if tok and tok.get("total", 0) > 0:
-                cost = tok.get("cost_usd", 0)
+                cost  = tok.get("cost_usd", 0)
                 model = tok.get("model", "")
-                ts    = (tok.get("ts","") or "")[:10]
+                ts    = (tok.get("ts", "") or "")[:10]
                 st.caption(
                     f"🪙 直近トークン: {tok.get('total',0):,}  "
                     f"（in:{tok.get('input',0):,} / out:{tok.get('output',0):,}）"
                     f"  💰 推定課金: ${cost:.4f}  ｜  {ts} {model}"
                 )
+            else:
+                ts_raw = tok.get("ts", "") if tok else ""
+                ts_str = (ts_raw or "")[:10]
+                st.caption(f"🪙 直近トークン: —（計測なし）" + (f"  ｜  {ts_str}" if ts_str else ""))
 
-            # 直近起票タスク
+            # 直近起票タスク（常時表示）
+            st.markdown("**📋 直近起票タスク**")
             if related_tasks:
-                st.markdown("**📋 直近起票タスク**")
                 for t in related_tasks:
                     tid    = t.get("id","")
                     tname  = t.get("name","")[:40]
                     status = t.get("status","")
                     s_icon = {"open":"🔵","in_progress":"🟡","to_verify":"🟠","closed":"✅"}.get(status,"⬜")
                     st.write(f"{s_icon} [{tid}] {tname}")
+            else:
+                st.caption("— なし")
 
-            # 直近の成果物
+            # 直近の成果物（常時表示）
+            st.markdown("**📦 直近の成果物**")
             if related_outputs:
-                st.markdown("**📦 直近の成果物**")
                 for f in related_outputs:
                     st.write(f"📝 {f['name']} ({f['size_kb']}KB  {f['modified']})")
+            else:
+                st.caption("— なし")
 
             # ログ末尾
             if p.get("stop_reason"):
