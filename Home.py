@@ -3,51 +3,55 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from utils import data_loader, firebase_client
+from utils import data_loader, firebase_client, style
 
 st.set_page_config(page_title="経営ダッシュボード", page_icon="🏠", layout="wide")
 
-st.markdown("""
-<style>
-  .block-container { padding-top: 1.8rem; }
-  div[data-testid="stMetric"] {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 12px 16px;
-  }
-  div[data-testid="stMetricValue"] { font-size: 1.8rem !important; font-weight: 700; }
-</style>
-""", unsafe_allow_html=True)
-
-st.title("🏠 経営ダッシュボード")
-
-# ── 接続状態 ───────────────────────────────────────────────────────────────────
-fb_ok    = firebase_client.is_available()
-last_upd = data_loader.last_updated()
-if fb_ok:
-    st.success(f"🔥 Firebase 接続中　｜　最終更新: {last_upd or '不明'}")
-else:
-    st.warning("⚠️ ローカルデータ使用中")
-st.divider()
+# ── 共通スタイル適用 ───────────────────────────────────────────────────────────
+style.inject()
 
 # ── 全データ取得 ───────────────────────────────────────────────────────────────
+fb_ok    = firebase_client.is_available()
+last_upd = data_loader.last_updated()
 biz      = data_loader.business_status() or {}
 ks       = data_loader.kanban_summary()  or {}
 pl       = data_loader.pipeline_logs()   or {}
 sys_info = data_loader.system_info()     or {}
 budget   = data_loader.api_budget()      or {}
 
-# ── システム状態 ───────────────────────────────────────────────────────────────
-st.subheader("🖥️ システム状態")
+# ── 集計（先に算出してヘッダーのステータス判定に使う）─────────────────────────
+logs_map = {}
+if isinstance(pl, dict):
+    tmp = pl.get("logs") or pl
+    logs_map = tmp if isinstance(tmp, dict) else {}
+pl_total = sum(1 for v in logs_map.values() if isinstance(v, dict))
+pl_fail  = sum(1 for v in logs_map.values()
+               if isinstance(v, dict) and v.get("status") == "failed")
+pl_rate  = round((pl_total - pl_fail) / pl_total * 100) if pl_total else 0
+
+ssid  = str(sys_info.get("ssid") or "不明")
+is_co = "SWing" in ssid
+
+# ── ページヘッダー（会社NW or 失敗時に右端ステータスバッジ）───────────────────
+hdr_status = "err" if (is_co or pl_fail) else "ok"
+style.page_header("🏠 経営ダッシュボード", status=hdr_status)
+
+# ── Firebase接続バナー（横1行・コンパクト）─────────────────────────────────────
+if fb_ok:
+    st.success(f"🔥 Firebase 接続中　｜　最終更新: {last_upd or '不明'}")
+else:
+    st.warning("⚠️ ローカルデータ使用中")
+
+# ── システム状態カード ─────────────────────────────────────────────────────────
+style.section_card_start("🖥️ システム状態",
+                         "会社NW" if is_co else "正常",
+                         "err" if is_co else "ok")
 if sys_info:
     bat  = int(sys_info.get("battery_percent") or 0)
     chg  = bool(sys_info.get("charging"))
     cpu  = float(sys_info.get("cpu_percent") or 0)
     mem  = float(sys_info.get("memory_percent") or 0)
     disk = float(sys_info.get("disk_percent") or 0)
-    ssid = str(sys_info.get("ssid") or "不明")
-    is_co = "SWing" in ssid
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("🔋 バッテリー", f"{bat}%" + (" ⚡" if chg else ""))
     c2.metric("💻 CPU", f"{cpu:.0f}%")
@@ -58,11 +62,9 @@ if sys_info:
         st.error("⛔ 会社ネットワーク接続中")
 else:
     st.info("システム情報取得中...")
-st.divider()
+style.section_card_end()
 
-# ── 主要KPI ────────────────────────────────────────────────────────────────────
-st.subheader("📊 主要KPI")
-
+# ── 主要KPI算出 ────────────────────────────────────────────────────────────────
 monthly_actual = int(biz.get("monthly_actual") or 0)
 monthly_target = int(biz.get("monthly_target") or 20000)
 products       = biz.get("products") or []
@@ -74,89 +76,111 @@ closed_tasks = int(ks.get("closed") or 0)
 to_verify    = int(ks.get("to_verify") or 0)
 completion   = round(closed_tasks / total_tasks * 100) if total_tasks else 0
 
-logs_map = {}
-if isinstance(pl, dict):
-    tmp = pl.get("logs") or pl
-    logs_map = tmp if isinstance(tmp, dict) else {}
-pl_total = sum(1 for v in logs_map.values() if isinstance(v, dict))
-pl_fail  = sum(1 for v in logs_map.values()
-               if isinstance(v, dict) and v.get("status") == "failed")
-pl_rate  = round((pl_total - pl_fail) / pl_total * 100) if pl_total else 0
+# ── 3カラムレイアウト（左4: KPI+タスク / 右2: API+パイプライン）──────────────────
+left, right = st.columns([4, 2])
 
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("💰 今月収益",
-          f"¥{monthly_actual:,}",
-          f"目標比 {round(monthly_actual/monthly_target*100) if monthly_target else 0}%")
-k2.metric("📦 稼働製品", f"{active_p} / {len(products)}")
-k3.metric("✅ タスク完了率", f"{completion}%",
-          f"確認待ち {to_verify}件" if to_verify >= 5 else None)
-k4.metric("⚙️ パイプライン稼働", f"{pl_rate}%",
-          f"失敗 {pl_fail}本" if pl_fail else None)
-st.divider()
+# ── 左カラム: 主要KPI + タスクサマリー（1カードに統合して重複排除）─────────────
+with left:
+    style.section_card_start("📊 主要KPI ＆ タスクボード")
 
-# ── タスクボード ───────────────────────────────────────────────────────────────
-st.subheader("📋 タスクボード")
-t1, t2, t3, t4, t5 = st.columns(5)
-t1.metric("⬜ Open",     str(ks.get("open") or 0))
-t2.metric("🔵 進行中",   str(ks.get("in_progress") or 0))
-t3.metric("🟡 確認待ち", str(to_verify))
-t4.metric("✅ 完了",     str(closed_tasks))
-t5.metric("📦 合計",     str(total_tasks))
+    # KPI 4指標（重要度クラス適用）
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        style.kpi_wrap_start("info")  # 収益は info
+        k1.metric("💰 今月収益", f"¥{monthly_actual:,}",
+                  f"目標比 {round(monthly_actual/monthly_target*100) if monthly_target else 0}%")
+        style.kpi_wrap_end()
+    with k2:
+        style.kpi_wrap_start("ok")
+        k2.metric("📦 稼働製品", f"{active_p} / {len(products)}")
+        style.kpi_wrap_end()
+    with k3:
+        style.kpi_wrap_start("ok")  # タスク完了は ok
+        k3.metric("✅ タスク完了率", f"{completion}%",
+                  f"確認待ち {to_verify}件" if to_verify >= 5 else None)
+        style.kpi_wrap_end()
+    with k4:
+        # パイプライン失敗時は err、正常時は ok
+        style.kpi_wrap_start("err" if pl_fail else "ok")
+        k4.metric("⚙️ パイプライン稼働", f"{pl_rate}%",
+                  f"失敗 {pl_fail}本" if pl_fail else None)
+        style.kpi_wrap_end()
 
-active_top = list(ks.get("active_top5") or [])[:3]
-verify_top = list(ks.get("verify_top5") or [])[:3]
-ta1, ta2 = st.columns(2)
-with ta1:
-    st.markdown("**🔵 進行中（上位3件）**")
-    for t in active_top:
-        if isinstance(t, dict):
-            st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:40]}")
-    if not active_top:
-        st.caption("（なし）")
-with ta2:
-    st.markdown("**🟡 確認待ち（上位3件）**")
-    for t in verify_top:
-        if isinstance(t, dict):
-            st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:40]}")
-    if not verify_top:
-        st.caption("（なし）")
-if to_verify >= 5:
-    st.warning(f"⚠️ 確認待ち {to_verify} 件 — タスクボードページで対応してください")
-st.divider()
+    # タスクボード（5指標を同じカード内に統合 = 重複排除）
+    style.section_title("📋 タスクボード")
+    t1, t2, t3, t4, t5 = st.columns(5)
+    t1.metric("⬜ Open",     str(ks.get("open") or 0))
+    t2.metric("🔵 進行中",   str(ks.get("in_progress") or 0))
+    t3.metric("🟡 確認待ち", str(to_verify))
+    t4.metric("✅ 完了",     str(closed_tasks))
+    t5.metric("📦 合計",     str(total_tasks))
 
-# ── パイプライン（サマリーのみ・詳細は「稼働状況」ページへ）──────────────────────
-st.subheader("⚙️ パイプライン")
-pl_s = data_loader.pipeline_status()
-counts = pl_s.get("counts", {})
-if counts:
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("✅ 正常",   counts.get("ok", 0))
-    c2.metric("❌ 失敗",   counts.get("failed", 0))
-    c3.metric("🆕 未実行", counts.get("never_ran", 0) + counts.get("not_registered", 0))
-    c4.metric("⏸ 停止",   counts.get("stopped", 0))
-    st.caption("詳細は「📊 稼働状況」ページで確認できます")
-elif logs_map:
-    # フォールバック: pipeline_status 未取得時
-    ok  = sum(1 for v in logs_map.values() if isinstance(v,dict) and v.get("status")=="success")
-    ng  = sum(1 for v in logs_map.values() if isinstance(v,dict) and v.get("status")=="failed")
-    st.metric("✅ 正常 / ❌ 失敗", f"{ok} / {ng}")
-else:
-    st.info("パイプラインデータ取得中...")
-st.divider()
+    # 進行中・確認待ち上位リスト
+    active_top = list(ks.get("active_top5") or [])[:3]
+    verify_top = list(ks.get("verify_top5") or [])[:3]
+    ta1, ta2 = st.columns(2)
+    with ta1:
+        st.markdown("**🔵 進行中（上位3件）**")
+        for t in active_top:
+            if isinstance(t, dict):
+                st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:40]}")
+        if not active_top:
+            st.caption("（なし）")
+    with ta2:
+        st.markdown("**🟡 確認待ち（上位3件）**")
+        for t in verify_top:
+            if isinstance(t, dict):
+                st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:40]}")
+        if not verify_top:
+            st.caption("（なし）")
+    if to_verify >= 5:
+        st.warning(f"⚠️ 確認待ち {to_verify} 件 — タスクボードページで対応してください")
+    style.section_card_end()
 
-# ── API使用量 ──────────────────────────────────────────────────────────────────
-st.subheader("💰 API使用量")
-used  = float(budget.get("used_usd") or
-              (budget.get("anthropic") or {}).get("used_usd") or 0)
-limit = float(budget.get("budget_usd") or
-              (budget.get("anthropic") or {}).get("budget_usd") or 0)
-icon  = "🔴" if (limit and used/limit > 0.8) else "🟡" if (limit and used/limit > 0.5) else "🟢"
-a1, a2 = st.columns(2)
-a1.metric(f"{icon} API消費", f"${used:.3f}", help=f"予算: ${limit:.1f}")
-if limit:
-    a1.progress(min(used/limit, 1.0), text=f"{used/limit*100:.1f}%")
-a2.info("⚠️ 2026-06-15 から claude -p が従量課金へ移行。パイプライン呼び出し削減が急務。")
+# ── 右カラム: API使用量 + パイプラインサマリー ─────────────────────────────────
+with right:
+    # API使用量（progress + metric コンパクト表示）
+    used  = float(budget.get("used_usd") or
+                  (budget.get("anthropic") or {}).get("used_usd") or 0)
+    limit = float(budget.get("budget_usd") or
+                  (budget.get("anthropic") or {}).get("budget_usd") or 0)
+    ratio = (used / limit) if limit else 0
+    api_status = "err" if ratio > 0.8 else "warn" if ratio > 0.5 else "ok"
+    api_badge  = "高負荷" if ratio > 0.8 else "中" if ratio > 0.5 else "正常"
+    style.section_card_start("💰 API使用量", api_badge, api_status)
+    st.metric("API消費", f"${used:.3f}", f"予算 ${limit:.1f}")
+    if limit:
+        st.progress(min(ratio, 1.0), text=f"{ratio*100:.1f}%")
+    st.caption("⚠️ 2026-06-15 から claude -p が従量課金へ移行。呼び出し削減が急務。")
+    style.section_card_end()
 
+    # パイプラインサマリー（counts の4指標のみ・詳細はリンク）
+    pl_s   = data_loader.pipeline_status()
+    counts = pl_s.get("counts", {}) if pl_s else {}
+    pl_badge_status = "err" if counts.get("failed", 0) else "ok"
+    style.section_card_start("⚙️ パイプライン",
+                             "失敗あり" if counts.get("failed", 0) else "正常",
+                             pl_badge_status)
+    if counts:
+        p1, p2 = st.columns(2)
+        p1.metric("✅ 正常", counts.get("ok", 0))
+        p2.metric("❌ 失敗", counts.get("failed", 0))
+        p3, p4 = st.columns(2)
+        p3.metric("🆕 未実行",
+                  counts.get("never_ran", 0) + counts.get("not_registered", 0))
+        p4.metric("⏸ 停止", counts.get("stopped", 0))
+        st.caption("詳細は「📊 稼働状況」ページで確認できます")
+    elif logs_map:
+        ok = sum(1 for v in logs_map.values()
+                 if isinstance(v, dict) and v.get("status") == "success")
+        ng = sum(1 for v in logs_map.values()
+                 if isinstance(v, dict) and v.get("status") == "failed")
+        st.metric("✅ 正常 / ❌ 失敗", f"{ok} / {ng}")
+    else:
+        st.info("パイプラインデータ取得中...")
+    style.section_card_end()
+
+# ── フッター ───────────────────────────────────────────────────────────────────
 st.caption(
     f"📡 Firebase Pusher 30分毎自動実行  ｜  "
     f"最終Push: {(firebase_client.get_doc('dashboard','meta') or {}).get('last_updated','-')}"
