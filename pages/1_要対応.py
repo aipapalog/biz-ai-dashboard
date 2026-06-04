@@ -24,8 +24,28 @@ counts   = pl.get("counts", {}) if pl else {}
 fail_n   = counts.get("failed", 0)
 tv       = ks.get("to_verify", 0) if ks else 0
 
-risk_high = "HIGH" in (risk.get("content", "") or "").upper() if risk else False
-cx_issue  = ("要改善" in (cx.get("content", "") or "")) if cx else False
+import re as _re
+
+def _extract_count(text, *patterns):
+    """レポート本文から「○○: N件」形式の件数を抽出する。見つからなければ 0。"""
+    for pat in patterns:
+        m = _re.search(pat, text or "")
+        if m:
+            try:
+                return int(m.group(1))
+            except (ValueError, IndexError):
+                continue
+    return 0
+
+# レポートのラベル文字列（「Highリスク」「fail（要改善）」など）は件数 0 でも
+# 常に本文に含まれるため、単純な部分一致では false-positive になる。
+# 実際の件数を抽出し、1件以上ある場合のみアラート対象とする。
+risk_txt  = (risk.get("content", "") or "") if risk else ""
+cx_txt    = (cx.get("content", "") or "") if cx else ""
+risk_high_n = _extract_count(risk_txt, r"High[:：]\s*(\d+)\s*件", r"High[:：]\s*(\d+)")
+cx_fail_n   = _extract_count(cx_txt, r"fail（要改善）[:：]\s*(\d+)\s*件", r"要改善[:：]\s*(\d+)\s*件")
+risk_high = risk_high_n > 0
+cx_issue  = cx_fail_n > 0
 
 used_api = budget.get("used_usd", (budget.get("anthropic", {}) or {}).get("used_usd", 0)) if budget else 0
 lim_api  = budget.get("budget_usd", (budget.get("anthropic", {}) or {}).get("budget_usd", 0)) if budget else 0
