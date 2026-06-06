@@ -267,6 +267,22 @@ with tab3:
         cols[2].write(writer)
     style.section_card_end()
 
+    # 削除候補スクリプト（AGENTS_MAPより）
+    DEPRECATED_SCRIPTS = [
+        ("generate_dashboard.py",        "廃止済み",  "firebase_dashboard_pusher.py に移行済み"),
+        ("task_queue_protector.py",      "廃止済み",  "task_queue.json 廃止・Kanban移行完了"),
+        ("mempalace_session_update.py",  "廃止済み",  "conversation_logger.py に統合済み"),
+    ]
+    style.section_card_start("🗑️ 削除候補スクリプト（AGENTS_MAP.md 参照）",
+                              f"{len(DEPRECATED_SCRIPTS)}件", "warn")
+    st.caption("機能は移行済み。削除しても影響なし。会長確認後に削除可。")
+    for fname, status, reason in DEPRECATED_SCRIPTS:
+        cols = st.columns([3, 1, 4])
+        cols[0].code(fname)
+        cols[1].write(f"🔴 {status}")
+        cols[2].write(reason)
+    style.section_card_end()
+
     # コスト分析サマリー
     if cost_report and cost_report.get("pipelines"):
         reduction_candidates = [
