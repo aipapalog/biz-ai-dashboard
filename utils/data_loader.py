@@ -331,6 +331,11 @@ def datasource() -> dict:
     return fb if fb else _local("data/datasource.json", {})
 
 
+def eval_status() -> dict:
+    fb = firebase_client.get_doc("dashboard", "eval_status")
+    return fb if isinstance(fb, dict) else {}
+
+
 def last_updated() -> str:
     fb = firebase_client.get_doc("dashboard", "meta")
     return fb.get("last_updated", "") if fb else ""
