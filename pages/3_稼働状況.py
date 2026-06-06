@@ -9,13 +9,15 @@ from datetime import datetime, date, timedelta
 st.set_page_config(page_title="📊 稼働状況", page_icon="📊", layout="wide")
 style.inject()
 
-sys_info    = data_loader.system_info()
-pl_status   = data_loader.pipeline_status()   # PIPELINES_DEF×スケジューラ×ログ統合
-loop_data   = data_loader.autonomous_loop()
-ds          = data_loader.datasource()
-token_usage = data_loader.pipeline_token_usage()
-all_tasks   = data_loader.kanban_tasks()
-all_outputs = data_loader.sync_outputs()
+sys_info       = data_loader.system_info()
+pl_status      = data_loader.pipeline_status()
+cost_report    = data_loader.pipeline_cost_report()
+loop_data      = data_loader.autonomous_loop()
+ds             = data_loader.datasource()
+token_usage    = data_loader.pipeline_token_usage()
+all_tasks      = data_loader.kanban_tasks()
+all_outputs    = data_loader.sync_outputs()
+agent_run_data = data_loader.agent_run_stats()
 
 # ── ヘッダー（失敗有無でステータスバッジ）──────────────────────────────────────
 _counts_pre = pl_status.get("counts", {}) if pl_status else {}
@@ -26,8 +28,8 @@ style.page_header("📊 稼働状況",
                   status=hdr_status)
 
 # ── タブ構成（パイプライン／ループログ／リソース／スケジュール）────────────────
-tab_pl, tab_loop, tab_res, tab_sched = st.tabs([
-    "⚙️ パイプライン", "🔄 ループログ", "💾 リソース", "⏱️ スケジュール"
+tab_pl, tab_loop, tab_res, tab_sched, tab_agent = st.tabs([
+    "⚙️ パイプライン", "🔄 ループログ", "💾 リソース", "⏱️ スケジュール", "🤖 エージェント実績"
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -181,6 +183,34 @@ with tab_pl:
                             else:
                                 st.error("❌ コマンド送信失敗")
     style.section_card_end()
+
+    # ── 削減候補（KT-649）─────────────────────────────────────────────────────
+    if cost_report:
+        reduction = cost_report.get("reduction_candidates", [])
+        high_cost = cost_report.get("high_cost_pipelines", [])
+        upd_cr    = cost_report.get("updated", "")
+        if reduction or high_cost:
+            style.section_card_start("🔻 削減候補・高コストパイプライン", "要確認", "warn")
+            st.caption(f"分析日: {upd_cr}  ｜  対象パイプライン: {cost_report.get('total', 0)}本")
+            if reduction:
+                st.markdown(f"**⚠️ 削減候補（直近30日アクティビティなし・非収益系）: {len(reduction)}件**")
+                import pandas as pd
+                df_red = pd.DataFrame([{
+                    "パイプライン名": r["name"],
+                    "カテゴリ":       r["category"],
+                    "スケジュール":   r["schedule"],
+                } for r in reduction])
+                st.dataframe(df_red, use_container_width=True, hide_index=True)
+            if high_cost:
+                st.markdown(f"**🔥 高コスト（直近30日50回以上のclaude呼び出し）: {len(high_cost)}件**")
+                df_hc = pd.DataFrame([{
+                    "パイプライン名":       h["name"],
+                    "claude呼び出し(30d)": h["claude_calls_30d"],
+                    "カテゴリ":             h["category"],
+                    "収益貢献":             "✅" if h["revenue_contrib"] else "❌",
+                } for h in high_cost])
+                st.dataframe(df_hc, use_container_width=True, hide_index=True)
+            style.section_card_end()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 🔄 ループログ
@@ -391,3 +421,78 @@ with tab_sched:
     else:
         st.info("実行統計データがありません")
     style.section_card_end()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 🤖 エージェント実績（Langfuse代替ローカルログ）
+# ══════════════════════════════════════════════════════════════════════════════
+with tab_agent:
+    import pandas as pd
+
+    s24 = agent_run_data.get("last_24h", {})
+    s7d = agent_run_data.get("last_7d", {})
+    upd = agent_run_data.get("updated_at", "")
+
+    if not s24 or s24.get("error"):
+        st.info("エージェント実行ログがまだありません。次回パイプライン実行後に反映されます。")
+    else:
+        style.section_card_start("🤖 エージェント実績（直近24h）", "", "ok")
+        if upd:
+            st.caption(f"最終更新: {upd[:16]}")
+
+        # サマリーメトリクス
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("総呼び出し",   s24.get("total", 0))
+        c2.metric("スキップ",     s24.get("skipped", 0))
+        c3.metric("エラー",       s24.get("errors", 0),
+                  delta=None if not s24.get("errors") else f"要確認",
+                  delta_color="inverse")
+        c4.metric("平均レイテンシ", f"{s24.get('avg_latency_ms', 0):,} ms")
+        c5.metric("合計コスト",    f"${s24.get('total_cost_usd', 0):.4f}")
+
+        # エージェント別テーブル
+        by_agent_24 = s24.get("by_agent", {})
+        if by_agent_24:
+            rows = []
+            for ag, v in by_agent_24.items():
+                err_rate = v["errors"] / v["count"] if v["count"] else 0
+                rows.append({
+                    "エージェント":   ag,
+                    "呼び出し回数":   v["count"],
+                    "平均レイテンシ(ms)": v["avg_latency_ms"],
+                    "エラー率":       f"{err_rate:.0%}",
+                    "コスト($)":      f"{v['cost_usd']:.5f}",
+                    "⚠️":            "🔴" if err_rate > 0.2 or v["avg_latency_ms"] > 30000 else "",
+                })
+            df24 = pd.DataFrame(rows)
+            st.dataframe(df24, use_container_width=True)
+
+            # 要改善エージェントをハイライト
+            problems = [r for r in rows if r["⚠️"]]
+            if problems:
+                st.warning(f"**自動改善対象**: {', '.join(r['エージェント'] for r in problems)}  "
+                           f"（エラー率>20% または 平均レイテンシ>30s → 次回 mempalace_maintenance で自動改善）")
+        style.section_card_end()
+
+        # 7日間サマリー
+        if s7d and not s7d.get("error"):
+            style.section_card_start("📅 直近7日間サマリー", "", "ok")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("総呼び出し(7d)", s7d.get("total", 0))
+            c2.metric("エラー(7d)",     s7d.get("errors", 0))
+            c3.metric("平均レイテンシ(7d)", f"{s7d.get('avg_latency_ms', 0):,} ms")
+            c4.metric("合計コスト(7d)", f"${s7d.get('total_cost_usd', 0):.4f}")
+
+            by_agent_7d = s7d.get("by_agent", {})
+            if by_agent_7d:
+                rows7 = []
+                for ag, v in by_agent_7d.items():
+                    err_rate = v["errors"] / v["count"] if v["count"] else 0
+                    rows7.append({
+                        "エージェント": ag,
+                        "呼び出し回数": v["count"],
+                        "平均レイテンシ(ms)": v["avg_latency_ms"],
+                        "エラー率": f"{err_rate:.0%}",
+                        "コスト($)": f"{v['cost_usd']:.5f}",
+                    })
+                st.dataframe(pd.DataFrame(rows7), use_container_width=True)
+            style.section_card_end()

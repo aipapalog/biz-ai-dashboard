@@ -8,10 +8,11 @@ from utils import data_loader, style
 st.set_page_config(page_title="💡 BizDev", page_icon="💡", layout="wide")
 style.inject()
 
-trend    = data_loader.bizdev_trend()
-insights = data_loader.agent_insights()
-report   = data_loader.bizdev_report()
-freelance = data_loader.freelance_report()
+trend      = data_loader.bizdev_trend()
+insights   = data_loader.agent_insights()
+report     = data_loader.bizdev_report()
+freelance  = data_loader.freelance_report()
+biz_status = data_loader.business_status()
 
 style.page_header("💡 ビジネスアイデア・BizDev", status="info")
 
@@ -49,6 +50,33 @@ with tab1:
 
 # ── 新規候補 ──────────────────────────────────────────────────────────────────
 with tab2:
+    # ── business_status.json の idea_candidates（手動管理・TOEIC UP等） ──
+    idea_candidates = biz_status.get("idea_candidates", []) if biz_status else []
+    status_col = {"検討中": "blue", "検証中": "orange", "開発中": "green", "保留": "gray", "未着手": "gray"}
+    if idea_candidates:
+        style.section_card_start(f"💡 新規ビジネス候補（{len(idea_candidates)}件）")
+        for c in idea_candidates:
+            sc     = c.get("bizdev_score")
+            st_val = c.get("status", "未着手")
+            sc_str = f"AI評価 {sc}/10 " if sc else ""
+            prog   = c.get("progress", 0)
+            col    = status_col.get(st_val, "gray")
+            with st.expander(f"{'🤖' if c.get('micro_saas') else '👤'} **{c['title']}** — {sc_str}[:{col}[{st_val}]]"):
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.metric("自動化率", f"{c.get('automation_rate', 0)}%")
+                    st.caption(c.get("automation_note", "")[:80])
+                with c2:
+                    st.metric("進捗", f"{prog}%")
+                    st.progress(prog / 100)
+                st.write(f"**実現性:** {c.get('feasibility','')}  ｜  **リスク:** {c.get('risk','')[:80]}")
+                st.write(f"**次のアクション:** {c.get('next_action','')}")
+                if c.get("revenue_model"):
+                    st.caption(f"収益モデル: {c['revenue_model'][:100]}")
+        style.section_card_end()
+    else:
+        st.info("business_status.json に idea_candidates がありません")
+
     patterns = insights.get("success_patterns", {}) if insights else {}
     all_ideas = []
     if isinstance(patterns, dict):
@@ -71,6 +99,26 @@ with tab2:
         style.section_card_end()
     else:
         st.info("成功パターンデータがありません")
+
+    # AIエージェント提案履歴（bizdev_trend.records）
+    records = trend.get("records", []) if trend else []
+    if records:
+        with st.expander(f"📋 AIエージェント提案履歴（直近{len(records)}日）"):
+            import pandas as pd
+            rows = []
+            for r in records:
+                sc = r.get("score")
+                verdict = r.get("verdict", "?")
+                v_color = {"推奨": "🟢", "保留": "🟡", "却下": "🔴"}.get(verdict, "⚪")
+                rows.append({
+                    "日付":         r.get("date", ""),
+                    "最優秀アイデア": (r.get("idea") or "")[:60],
+                    "スコア":       f"{sc}/10" if sc else "?",
+                    "判定":         f"{v_color} {verdict}",
+                    "なぜ今":       (r.get("why_now") or "")[:80],
+                })
+            df = pd.DataFrame(rows)
+            st.dataframe(df, use_container_width=True)
 
     # note記事
     note_articles = insights.get("note_articles", []) if insights else []

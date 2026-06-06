@@ -217,6 +217,11 @@ def bizdev_trend() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def pipeline_cost_report() -> dict:
+    fb = firebase_client.get_doc("dashboard", "pipeline_cost_report")
+    return fb if isinstance(fb, dict) else {}
+
+
 def routines() -> list:
     fb = firebase_client.get_doc("dashboard", "routines")
     if isinstance(fb, dict):
@@ -271,6 +276,11 @@ def create_task(name: str, assignee: str = "社長", priority: str = "medium",
 
 def pipeline_token_usage() -> dict:
     fb = firebase_client.get_doc("dashboard", "pipeline_token_usage")
+    return fb if isinstance(fb, dict) else {}
+
+
+def agent_run_stats() -> dict:
+    fb = firebase_client.get_doc("dashboard", "agent_run_stats")
     return fb if isinstance(fb, dict) else {}
 
 
