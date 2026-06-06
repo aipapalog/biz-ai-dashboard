@@ -336,6 +336,11 @@ def eval_status() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def failure_patterns() -> dict:
+    fb = firebase_client.get_doc("dashboard", "failure_patterns")
+    return fb if isinstance(fb, dict) else {}
+
+
 def last_updated() -> str:
     fb = firebase_client.get_doc("dashboard", "meta")
     return fb.get("last_updated", "") if fb else ""

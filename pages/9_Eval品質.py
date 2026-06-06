@@ -9,8 +9,9 @@ st.set_page_config(page_title="🧪 Eval品質", page_icon="🧪", layout="wide"
 style.inject()
 
 # ─── データ取得 ──────────────────────────────────────────────────────────────
-eval_data   = data_loader.eval_status()
-updated     = data_loader.last_updated()
+eval_data        = data_loader.eval_status()
+failure_data     = data_loader.failure_patterns()
+updated          = data_loader.last_updated()
 
 by_agent    = eval_data.get("by_agent", [])    if eval_data else []
 total_exp   = eval_data.get("total_experiments", 0) if eval_data else 0
@@ -203,30 +204,47 @@ with tab2:
 # ⚠️ エラーパターン
 # ══════════════════════════════════════════════════════════════════════════════
 with tab3:
-    error_patterns = eval_data.get("error_patterns", []) if eval_data else []
-    total_runs_db  = eval_data.get("total_runs", 0)    if eval_data else 0
+    fp_patterns = failure_data.get("patterns", {}) if failure_data else {}
+    total_runs_db = eval_data.get("total_runs", 0) if eval_data else 0
 
-    if error_patterns or by_agent:
-        style.section_card_start("⚠️ エラー種別サマリー", "", "warn")
+    # 失敗パターン分類結果（failure_patterns.json から）
+    if fp_patterns:
+        style.section_card_start("🔍 失敗パターン分類（mempalace phase3b が自動解析）", "", "warn")
+        cols_h = st.columns([2, 2, 1, 3])
+        cols_h[0].markdown("**エージェント**")
+        cols_h[1].markdown("**エラー種別**")
+        cols_h[2].markdown("**件数**")
+        cols_h[3].markdown("**自動対処内容**")
+        AUTO_FIX = {
+            "json_parse_failed": "プロンプトに「JSONのみ出力」制約を自動注入",
+            "claude_cli_error":  "プロンプト短縮・トークン削減を改善に反映",
+            "timeout":           "出力簡潔化指示を改善に反映",
+        }
+        for agent_name, err_counts in sorted(fp_patterns.items()):
+            if not isinstance(err_counts, dict):
+                continue
+            for err_type, count in sorted(err_counts.items(), key=lambda x: -x[1]):
+                cols = st.columns([2, 2, 1, 3])
+                cols[0].code(agent_name)
+                cols[1].write(f"`{err_type}`")
+                cols[2].write(f"{'🔴' if count >= 3 else '🟡'} {count}")
+                cols[3].write(AUTO_FIX.get(err_type, "次回phase3bで分析・改善"))
+        style.section_card_end()
 
-        # by_agent からエラー情報を再集計して表示
+    elif by_agent:
+        style.section_card_start("⚠️ エラー率サマリー（agent_runs.jsonl）", "", "warn")
         error_agents = [a for a in by_agent if a.get("error_rate_pct", 0) > 0]
         if error_agents:
-            cols_h = st.columns([2, 1, 2])
+            cols_h = st.columns([2, 1, 3])
             cols_h[0].markdown("**エージェント**")
             cols_h[1].markdown("**エラー率**")
-            cols_h[2].markdown("**既知エラー種別**")
-            KNOWN_ERRORS = {
-                "bizdev":   "json_parse_failed（出力形式不正）",
-                "reviewer": "json_parse_failed（評価JSON不正）",
-                "cx_expert": "claude_cli_error（CLI実行失敗）",
-            }
+            cols_h[2].markdown("**状態**")
             for a in sorted(error_agents, key=lambda x: -x.get("error_rate_pct", 0)):
-                cols = st.columns([2, 1, 2])
+                cols = st.columns([2, 1, 3])
                 cols[0].code(a["agent"])
                 rate = a.get("error_rate_pct", 0)
                 cols[1].write(f"{'🔴' if rate > 20 else '🟡'} {rate:.0f}%")
-                cols[2].write(KNOWN_ERRORS.get(a["agent"], "調査中"))
+                cols[2].write("phase3b次回実行時に自動分類・改善")
         style.section_card_end()
     else:
         st.info("Firebase にデータがまだありません。`firebase_dashboard_pusher.py` を実行してください。")
