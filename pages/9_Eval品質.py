@@ -13,9 +13,9 @@ def _safe(fn, default=None):
     try: return fn()
     except Exception: return default
 
-eval_data        = _safe(data_loader.eval_status, {})
-failure_data     = _safe(data_loader.failure_patterns, {})
-updated          = _safe(data_loader.last_updated, "")
+eval_data        = _safe(lambda: data_loader.eval_status(), {})
+failure_data     = _safe(lambda: data_loader.failure_patterns(), {})
+updated          = _safe(lambda: data_loader.last_updated(), "")
 
 by_agent    = eval_data.get("by_agent", [])    if eval_data else []
 total_exp   = eval_data.get("total_experiments", 0) if eval_data else 0

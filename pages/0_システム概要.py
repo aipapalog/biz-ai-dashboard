@@ -13,11 +13,11 @@ def _safe(fn, default=None):
     try: return fn()
     except Exception: return default
 
-pl_status    = _safe(data_loader.pipeline_status, {})
-agent_stats  = _safe(data_loader.agent_run_stats, {})
-sched_data   = _safe(data_loader.scheduler_tasks, [])
-cost_report  = _safe(data_loader.pipeline_cost_report, {})
-updated      = _safe(data_loader.last_updated, "")
+pl_status    = _safe(lambda: data_loader.pipeline_status(), {})
+agent_stats  = _safe(lambda: data_loader.agent_run_stats(), {})
+sched_data   = _safe(lambda: data_loader.scheduler_tasks(), [])
+cost_report  = _safe(lambda: data_loader.pipeline_cost_report(), {})
+updated      = _safe(lambda: data_loader.last_updated(), "")
 
 counts = pl_status.get("counts", {}) if pl_status else {}
 hdr_status = "err" if counts.get("failed", 0) else "ok"
