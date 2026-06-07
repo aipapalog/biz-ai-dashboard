@@ -133,8 +133,81 @@ board_html = (
 # ── タブ ──────────────────────────────────────────────────────────────────────
 tab_board, tab_list, tab_new = st.tabs(["📌 ボード", "✏️ 編集・詳細", "➕ 新規起票"])
 
+def _show_task_detail(t: dict, all_assignees: list, form_prefix: str = "bd"):
+    """タスク詳細表示＋編集フォーム（board/listタブ共用）"""
+    task_id  = t.get("id", "")
+    status   = t.get("status", "open")
+    priority = t.get("priority", "")
+    assignee = t.get("assignee", "-")
+    mc1, mc2, mc3 = st.columns(3)
+    with mc1:
+        st.write(f"**ID:** `{task_id}`")
+        st.write(f"**ステータス:** {status}")
+        st.write(f"**優先度:** {priority or '-'}")
+    with mc2:
+        st.write(f"**担当者:** {assignee}")
+        st.write(f"**起票者:** {t.get('created_by','-')}")
+    with mc3:
+        st.write(f"**作成:** {(t.get('created_at') or '')[:10] or '-'}")
+        st.write(f"**更新:** {(t.get('updated_at') or '')[:10] or '-'}")
+    if t.get("description"):
+        st.markdown("---"); st.markdown(f"**説明:** {t['description']}")
+    if t.get("result"):
+        st.markdown("---"); st.success(f"**結果:** {t['result']}")
+    comments = t.get("comments") or []
+    if comments:
+        st.markdown("---"); st.caption(f"💬 コメント（{len(comments)} 件）")
+        for c in (comments[-3:] if isinstance(comments, list) else []):
+            if not isinstance(c, dict): continue
+            st.markdown(f"**{c.get('author','?')}** ({(c.get('created_at') or '')[:10]}): {c.get('text') or c.get('content','')}")
+    if not task_id: return
+    st.markdown("---"); st.markdown("**✏️ 更新**")
+    opts = all_assignees if all_assignees else ["社長", "会長"]
+    with st.form(f"{form_prefix}_edit_{task_id}", clear_on_submit=False):
+        ec1, ec2, ec3 = st.columns(3)
+        with ec1:
+            new_status = st.selectbox("ステータス", STATUSES,
+                                      index=STATUSES.index(status) if status in STATUSES else 0,
+                                      key=f"{form_prefix}_st_{task_id}")
+        with ec2:
+            priorities = ["high", "medium", "low"]
+            new_priority = st.selectbox("優先度", priorities,
+                                        index=priorities.index(priority) if priority in priorities else 1,
+                                        key=f"{form_prefix}_pr_{task_id}")
+        with ec3:
+            new_assignee = st.selectbox("担当者", opts,
+                                        index=opts.index(assignee) if assignee in opts else 0,
+                                        key=f"{form_prefix}_as_{task_id}")
+        new_result  = st.text_area("結果（上書き）", value=t.get("result") or "", key=f"{form_prefix}_re_{task_id}", height=80)
+        new_comment = st.text_area("コメント追加", placeholder="新しいコメントを入力", key=f"{form_prefix}_co_{task_id}", height=60)
+        if st.form_submit_button("💾 更新する", use_container_width=True):
+            ok = data_loader.update_task(task_id, {"status": new_status, "priority": new_priority,
+                                                   "assignee": new_assignee, "result": new_result})
+            if new_comment.strip() and ok:
+                ok = data_loader.add_task_comment(task_id, "ダッシュボード", new_comment.strip(), comments)
+            if ok:
+                st.success("✅ 更新しました"); st.rerun()
+            else:
+                st.error("❌ 更新失敗（Firebase接続を確認）")
+
+
+_all_assignees_global = sorted({t.get("assignee","") for t in tasks if t.get("assignee","")})
+
 with tab_board:
     st.markdown(board_html, unsafe_allow_html=True)
+
+    # ── タスク詳細パネル（ボードカードはHTML静的のためここで開く）────────────────
+    st.divider()
+    st.markdown("#### 🔍 タスク詳細を開く")
+    board_opts_map = {
+        f"{t.get('id','')} [{t.get('status','')}] {(t.get('name') or t.get('title',''))[:45]}": t
+        for t in sorted(active, key=lambda x: (x.get("assignee",""), x.get("status",""), PRIORITY_ORDER.get(x.get("priority",""),3)))
+    }
+    sel_label = st.selectbox("タスクを選択", ["（選択してください）"] + list(board_opts_map.keys()), key="bd_sel_task")
+    if sel_label != "（選択してください）" and sel_label in board_opts_map:
+        with st.container(border=True):
+            _show_task_detail(board_opts_map[sel_label], _all_assignees_global, form_prefix="bd")
+
     with st.expander(f"✅ 完了済み（{len(closed_tasks)} 件）", expanded=False):
         for t in closed_tasks[:50]:
             st.markdown(make_card(t), unsafe_allow_html=True)
@@ -142,13 +215,14 @@ with tab_board:
             st.caption(f"…他 {len(closed_tasks)-50} 件")
 
 with tab_list:
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
     with col1: sf = st.selectbox("ステータス", ["すべて"] + STATUSES, key="lf_st")
     with col2: pf = st.selectbox("優先度",    ["すべて", "high", "medium", "low"], key="lf_pr")
     with col3:
-        all_assignees = sorted({t.get("assignee","") for t in tasks if t.get("assignee","")})
+        all_assignees = _all_assignees_global
         af = st.selectbox("担当者", ["すべて"] + all_assignees, key="lf_as")
     with col4: kw = st.text_input("キーワード", placeholder="タイトル・説明", key="lf_kw")
+    with col5: sort_by = st.selectbox("ソート", ["優先度", "セクション", "作成日↑", "作成日↓", "更新日↓"], key="lf_sort")
 
     list_tasks = tasks[:]
     if sf != "すべて": list_tasks = [t for t in list_tasks if t.get("status") == sf]
@@ -157,71 +231,38 @@ with tab_list:
     if kw:
         kw_l = kw.lower()
         list_tasks = [t for t in list_tasks if kw_l in (t.get("name","") + " " + (t.get("description") or "")).lower()]
-    list_tasks = sorted([t for t in list_tasks if t.get("status") != "closed"],
-                        key=lambda t: PRIORITY_ORDER.get(t.get("priority",""), 3)) + \
-                 sorted([t for t in list_tasks if t.get("status") == "closed"],
-                        key=lambda t: t.get("updated_at",""), reverse=True)
+
+    if sort_by == "セクション":
+        list_tasks = sorted(list_tasks, key=lambda t: (t.get("section",""), PRIORITY_ORDER.get(t.get("priority",""), 3)))
+    elif sort_by == "作成日↑":
+        list_tasks = sorted(list_tasks, key=lambda t: t.get("created_at",""))
+    elif sort_by == "作成日↓":
+        list_tasks = sorted(list_tasks, key=lambda t: t.get("created_at",""), reverse=True)
+    elif sort_by == "更新日↓":
+        list_tasks = sorted(list_tasks, key=lambda t: t.get("updated_at",""), reverse=True)
+    else:  # 優先度（デフォルト）
+        list_tasks = sorted([t for t in list_tasks if t.get("status") != "closed"],
+                            key=lambda t: PRIORITY_ORDER.get(t.get("priority",""), 3)) + \
+                     sorted([t for t in list_tasks if t.get("status") == "closed"],
+                            key=lambda t: t.get("updated_at",""), reverse=True)
     st.caption(f"表示: **{len(list_tasks)} 件**")
 
+    prev_section = None
     for t in list_tasks:
         status   = t.get("status", "open")
         priority = t.get("priority", "")
         name     = t.get("name", "(無題)")
         assignee = t.get("assignee", "-")
         task_id  = t.get("id", "")
+        section  = t.get("section", "")
         s_icon   = {"open":"⬜","in_progress":"🔵","to_verify":"👀","closed":"✅"}.get(status,"⬜")
         p_icon   = PRIORITY_ICONS.get(priority, "⚪")
+        # セクションソート時はセクション見出しを挿入
+        if sort_by == "セクション" and section != prev_section:
+            st.markdown(f"##### 📂 {section or '未分類'}")
+            prev_section = section
         with st.expander(f"{s_icon} {p_icon} **{name}** — 👤 {assignee}", expanded=False):
-            mc1, mc2, mc3 = st.columns(3)
-            with mc1:
-                st.write(f"**ID:** `{task_id}`")
-                st.write(f"**ステータス:** {status}")
-                st.write(f"**優先度:** {priority or '-'}")
-            with mc2:
-                st.write(f"**担当者:** {assignee}")
-                st.write(f"**起票者:** {t.get('created_by','-')}")
-            with mc3:
-                st.write(f"**作成:** {(t.get('created_at') or '')[:10] or '-'}")
-                st.write(f"**更新:** {(t.get('updated_at') or '')[:10] or '-'}")
-            if t.get("description"):
-                st.markdown("---"); st.markdown(f"**説明:** {t['description']}")
-            if t.get("result"):
-                st.markdown("---"); st.success(f"**結果:** {t['result']}")
-            comments = t.get("comments") or []
-            if comments:
-                st.markdown("---"); st.caption(f"💬 コメント（{len(comments)} 件）")
-                for c in (comments[-3:] if isinstance(comments, list) else []):
-                    if not isinstance(c, dict): continue
-                    st.markdown(f"**{c.get('author','?')}** ({(c.get('created_at') or '')[:10]}): {c.get('text') or c.get('content','')}")
-            if not task_id: continue
-            st.markdown("---"); st.markdown("**✏️ 更新**")
-            with st.form(f"edit_{task_id}", clear_on_submit=False):
-                ec1, ec2, ec3 = st.columns(3)
-                with ec1:
-                    new_status = st.selectbox("ステータス", STATUSES,
-                                              index=STATUSES.index(status) if status in STATUSES else 0,
-                                              key=f"st_{task_id}")
-                with ec2:
-                    priorities = ["high", "medium", "low"]
-                    new_priority = st.selectbox("優先度", priorities,
-                                                index=priorities.index(priority) if priority in priorities else 1,
-                                                key=f"pr_{task_id}")
-                with ec3:
-                    opts = all_assignees if all_assignees else ["社長", "会長"]
-                    new_assignee = st.selectbox("担当者", opts,
-                                                index=opts.index(assignee) if assignee in opts else 0,
-                                                key=f"as_{task_id}")
-                new_result  = st.text_area("結果（上書き）", value=t.get("result") or "", key=f"re_{task_id}", height=80)
-                new_comment = st.text_area("コメント追加", placeholder="新しいコメントを入力", key=f"co_{task_id}", height=60)
-                if st.form_submit_button("💾 更新する", use_container_width=True):
-                    ok = data_loader.update_task(task_id, {"status": new_status, "priority": new_priority,
-                                                           "assignee": new_assignee, "result": new_result})
-                    if new_comment.strip() and ok:
-                        ok = data_loader.add_task_comment(task_id, "ダッシュボード", new_comment.strip(), comments)
-                    if ok:
-                        st.success("✅ 更新しました"); st.rerun()
-                    else:
-                        st.error("❌ 更新失敗（Firebase接続を確認）")
+            _show_task_detail(t, all_assignees, form_prefix="ls")
 
 with tab_new:
     with st.form("new_task_form", clear_on_submit=True):
