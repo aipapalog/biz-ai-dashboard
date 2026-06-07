@@ -9,9 +9,13 @@ st.set_page_config(page_title="🧪 Eval品質", page_icon="🧪", layout="wide"
 style.inject()
 
 # ─── データ取得 ──────────────────────────────────────────────────────────────
-eval_data        = data_loader.eval_status()
-failure_data     = data_loader.failure_patterns()
-updated          = data_loader.last_updated()
+def _safe(fn, default=None):
+    try: return fn()
+    except Exception: return default
+
+eval_data        = _safe(data_loader.eval_status, {})
+failure_data     = _safe(data_loader.failure_patterns, {})
+updated          = _safe(data_loader.last_updated, "")
 
 by_agent    = eval_data.get("by_agent", [])    if eval_data else []
 total_exp   = eval_data.get("total_experiments", 0) if eval_data else 0
