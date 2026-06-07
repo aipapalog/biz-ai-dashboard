@@ -9,11 +9,15 @@ st.set_page_config(page_title="🗺️ システム概要", page_icon="🗺️",
 style.inject()
 
 # ─── データ取得 ─────────────────────────────────────────────────────────────
-pl_status    = data_loader.pipeline_status()
-agent_stats  = data_loader.agent_run_stats()
-sched_data   = data_loader.scheduler_tasks()
-cost_report  = data_loader.pipeline_cost_report()
-updated      = data_loader.last_updated()
+def _safe(fn, default=None):
+    try: return fn()
+    except Exception: return default
+
+pl_status    = _safe(data_loader.pipeline_status, {})
+agent_stats  = _safe(data_loader.agent_run_stats, {})
+sched_data   = _safe(data_loader.scheduler_tasks, [])
+cost_report  = _safe(data_loader.pipeline_cost_report, {})
+updated      = _safe(data_loader.last_updated, "")
 
 counts = pl_status.get("counts", {}) if pl_status else {}
 hdr_status = "err" if counts.get("failed", 0) else "ok"

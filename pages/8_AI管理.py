@@ -8,7 +8,7 @@ from utils import data_loader, style
 st.set_page_config(page_title="🧠 AI管理", page_icon="🧠", layout="wide")
 style.inject()
 
-style.page_header("🧠 AI管理")
+style.page_header("🧠 AI管理", updated=data_loader.last_updated())
 
 tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs = st.tabs([
     "🧠 mempalace × Obsidian", "🚀 レベルアップ", "⚙️ ルールエンジン",

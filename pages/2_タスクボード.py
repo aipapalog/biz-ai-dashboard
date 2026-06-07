@@ -38,6 +38,7 @@ tv = counts["to_verify"]
 
 # ── ヘッダー（確認待ち過多で warn）────────────────────────────────────────────
 style.page_header("🗂️ タスクボード（Kanban）",
+                  updated=data_loader.last_updated(),
                   status="warn" if tv >= 5 else "ok")
 
 # ── KPI（優先度カラー付き section_card）────────────────────────────────────────

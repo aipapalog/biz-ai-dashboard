@@ -10,7 +10,7 @@ st.set_page_config(page_title="😊 CX・品質", page_icon="😊", layout="wide
 # リスク有無を先に判定してヘッダーバッジに反映
 risk = data_loader.risk_report()
 _risk_high = "HIGH" in (risk.get("content", "") or "").upper() if risk else False
-style.page_header("😊 CX・品質・リスク", status="err" if _risk_high else "ok")
+style.page_header("😊 CX・品質・リスク", updated=data_loader.last_updated(), status="err" if _risk_high else "ok")
 
 tab_cx, tab_risk, tab_health, tab_token, tab_comments = st.tabs([
     "🎯 顧客体験(CX)", "⚠️ リスク", "🩺 ヘルスチェック", "🪙 トークン管理", "💬 コメント"

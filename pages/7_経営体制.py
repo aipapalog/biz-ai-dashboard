@@ -85,7 +85,7 @@ SKILLS_DEF = [
 n_pl = len(PIPELINES_DEF)
 n_ag = len(AGENTS_DEF)
 
-style.page_header("🏗️ 会社経営体制・アーキテクチャ")
+style.page_header("🏗️ 会社経営体制・アーキテクチャ", updated=data_loader.last_updated())
 
 # ── 体制概要 ───────────────────────────────────────────────────────────────────
 style.section_card_start("📊 組織体制・AI最高経営責任者")

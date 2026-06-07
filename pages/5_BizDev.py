@@ -14,7 +14,7 @@ report     = data_loader.bizdev_report()
 freelance  = data_loader.freelance_report()
 biz_status = data_loader.business_status()
 
-style.page_header("💡 ビジネスアイデア・BizDev", status="info")
+style.page_header("💡 ビジネスアイデア・BizDev", updated=data_loader.last_updated(), status="info")
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📈 スコア推移", "💡 新規候補", "🎰 MAB評価", "📊 レポート", "🔍 案件リサーチ"

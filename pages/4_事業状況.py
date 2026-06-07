@@ -19,7 +19,7 @@ _monthly_actual = biz.get("monthly_actual", 0) if biz else 0
 _monthly_target = biz.get("monthly_target", 20000) if biz else 20000
 _prog = (_monthly_actual / _monthly_target) if _monthly_target else 0
 _hdr_status = "ok" if _prog >= 0.8 else "warn" if _prog >= 0.3 else "err"
-style.page_header("💼 事業状況・経営目標・利益予測", status=_hdr_status)
+style.page_header("💼 事業状況・経営目標・利益予測", updated=data_loader.last_updated(), status=_hdr_status)
 
 # ── タブ構成（事業状況／ファネル／PDCA）────────────────────────────────────────
 tab_biz, tab_funnel, tab_pdca = st.tabs(["💼 事業状況", "🔀 ファネル", "🔄 PDCA"])
