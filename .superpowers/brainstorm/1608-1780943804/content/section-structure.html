@@ -1,0 +1,76 @@
+<h2>セクション構成：どの方向が合いますか？</h2>
+<p class="subtitle">現在11ページ → 再構築後の候補3案。「シンプル・見やすい・モダン」を優先しています。</p>
+
+<div class="section">
+  <div class="label">現状（参考）</div>
+  <div style="background:#1e1e2e;border:1px solid #444;border-radius:8px;padding:16px;margin-bottom:24px;font-family:monospace;font-size:13px;color:#cdd6f4;">
+    Home &nbsp;|&nbsp; 0_システム概要 &nbsp;|&nbsp; 1_要対応 &nbsp;|&nbsp; 2_タスクボード<br>
+    3_稼働状況 &nbsp;|&nbsp; 4_事業状況 &nbsp;|&nbsp; 5_BizDev &nbsp;|&nbsp; 6_CX品質<br>
+    7_経営体制 &nbsp;|&nbsp; 8_AI管理 &nbsp;|&nbsp; 9_Eval品質<br>
+    <span style="color:#f38ba8;">→ 11ページ、データソース45件分散、反映確認困難</span>
+  </div>
+</div>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>4ページ集約型（推奨）</h3>
+      <p>ページ数を大幅削減。関連情報を1か所に集め、スクロールで全体把握できる構成。</p>
+      <div style="margin-top:12px;background:#1e1e2e;border-radius:6px;padding:12px;font-size:12px;color:#cdd6f4;font-family:monospace;">
+        📊 <b>ホーム</b> — システム健全性 + 要対応アラート + KPIサマリー<br>
+        ✅ <b>タスク</b> — Kanbanボード + 要対応一覧<br>
+        📈 <b>ビジネス</b> — 事業状況 + BizDev + CX品質<br>
+        🤖 <b>AI・システム</b> — 稼働状況 + AI管理 + Eval品質 + 経営体制
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="background:#a6e3a1;color:#1e1e2e;padding:3px 8px;border-radius:4px;font-size:11px;">ページ数 −64%</span>
+        <span style="background:#a6e3a1;color:#1e1e2e;padding:3px 8px;border-radius:4px;font-size:11px;">反映確認が一元化</span>
+        <span style="background:#a6e3a1;color:#1e1e2e;padding:3px 8px;border-radius:4px;font-size:11px;">ナビ往復が減る</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>6ページ整理型</h3>
+      <p>現状の粒度感を維持しつつ、重複・類似ページを統合。慣れた構成を大きく変えない。</p>
+      <div style="margin-top:12px;background:#1e1e2e;border-radius:6px;padding:12px;font-size:12px;color:#cdd6f4;font-family:monospace;">
+        🏠 <b>概要</b> — システム健全性 + アラート<br>
+        ✅ <b>アクション</b> — 要対応 + タスクボード<br>
+        ⚙️ <b>稼働</b> — パイプライン稼働 + AI管理<br>
+        📊 <b>事業</b> — BizDev + 事業状況<br>
+        🎯 <b>品質</b> — CX品質 + Eval品質<br>
+        🏢 <b>管理</b> — 経営体制 + システム設定
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="background:#89b4fa;color:#1e1e2e;padding:3px 8px;border-radius:4px;font-size:11px;">ページ数 −45%</span>
+        <span style="background:#89b4fa;color:#1e1e2e;padding:3px 8px;border-radius:4px;font-size:11px;">段階的変更</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>シングルダッシュボード型</h3>
+      <p>ページ遷移ゼロ。1画面にカード形式で全セクションを並べ、折りたたみで詳細表示。</p>
+      <div style="margin-top:12px;background:#1e1e2e;border-radius:6px;padding:12px;font-size:12px;color:#cdd6f4;font-family:monospace;">
+        ┌─────────────────────────────────────┐<br>
+        │ 🔴 要対応  ✅ 健全性  📊 KPI  🤖 AI  │<br>
+        │ [Kanban] [稼働] [BizDev] [Eval]     │<br>
+        └─────────────────────────────────────┘<br>
+        <span style="color:#a6e3a1;">全情報が1スクロールで確認可能</span>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="background:#f9e2af;color:#1e1e2e;padding:3px 8px;border-radius:4px;font-size:11px;">最大シンプル</span>
+        <span style="background:#f38ba8;color:#1e1e2e;padding:3px 8px;border-radius:4px;font-size:11px;">Streamlit制約あり</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:20px;color:#6c7086;font-size:13px;">クリックで選択 → ターミナルで確認を押してください</p>

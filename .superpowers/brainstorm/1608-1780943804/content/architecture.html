@@ -1,0 +1,73 @@
+<h2>設計 Section 1：全体アーキテクチャ</h2>
+<p class="subtitle">現状 vs 再構築後の比較。「削除」が不具合削減の核心です。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">❌ 現状（複雑・不具合多）</div>
+    <div class="mockup-body" style="font-family:monospace;font-size:11px;line-height:1.8;">
+      <div style="color:#f38ba8;">【データ生成層】</div>
+      ローカルJSON 44個<br>
+      ↓<br>
+      <span style="color:#fab387;">generate_dashboard.py</span><br>
+      <span style="color:#fab387;">dashboard_sections.py (400KB!)</span><br>
+      <span style="color:#fab387;">generate_dashboard_safe.py</span><br>
+      ↓<br>
+      <span style="color:#f38ba8;">firebase_dashboard_pusher.py<br>（45ドキュメント一括push）</span><br>
+      ↓<br>
+      <div style="color:#f38ba8;">【Firestore】45ドキュメント分散</div>
+      ↓<br>
+      <span style="color:#fab387;">data_loader.py（40関数）</span><br>
+      ↓<br>
+      <div style="color:#f38ba8;">【Streamlit】11ページ</div>
+      <br>
+      <span style="color:#f38ba8;">+ Firebase Hosting（HTML）← 廃止済みだが残存</span><br>
+      <br>
+      <span style="color:#f38ba8;">⚠️ 失敗が見えない・どこで止まるか不明</span>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">✅ 再構築後（シンプル・追跡可能）</div>
+    <div class="mockup-body" style="font-family:monospace;font-size:11px;line-height:1.8;">
+      <div style="color:#a6e3a1;">【データ生成層】</div>
+      ローカルJSON（整理後）<br>
+      ↓<br>
+      <span style="color:#a6e3a1;">firebase_pusher_v2.py</span><br>
+      <span style="color:#a6e3a1;">（10ドキュメント統合push）</span><br>
+      <span style="color:#a6e3a1;">（失敗ログ + _push_log書き込み）</span><br>
+      ↓<br>
+      <div style="color:#a6e3a1;">【Firestore】10ドキュメント統合</div>
+      ↓<br>
+      <span style="color:#a6e3a1;">data_loader_v2.py（10関数）</span><br>
+      <span style="color:#a6e3a1;">（全関数がデフォルト値返却）</span><br>
+      ↓<br>
+      <div style="color:#a6e3a1;">【Streamlit】4ページ + 鮮度バナー</div>
+      <br>
+      <span style="color:#cba6f7;">🗑️ 削除: generate_dashboard.py</span><br>
+      <span style="color:#cba6f7;">🗑️ 削除: dashboard_sections.py</span><br>
+      <span style="color:#cba6f7;">🗑️ 削除: generate_dashboard_safe.py</span><br>
+      <br>
+      <span style="color:#a6e3a1;">✅ _push_logで反映状況が一目瞭然</span>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <div style="background:#1e1e2e;border-radius:8px;padding:16px;">
+    <div style="color:#cba6f7;font-size:13px;margin-bottom:12px;">📦 Firestoreドキュメント統合（45 → 10）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;font-family:monospace;">
+      <div style="color:#a6e3a1;">system_health → パイプライン+スケジューラ+健全性</div>
+      <div style="color:#a6e3a1;">tasks → Kanban要約+アクティブ</div>
+      <div style="color:#a6e3a1;">business → 事業+BizDev+フリーランス</div>
+      <div style="color:#a6e3a1;">cx_quality → CX+Eval+LevelUp</div>
+      <div style="color:#a6e3a1;">ai_ops → ループ+エージェント+実行時間</div>
+      <div style="color:#a6e3a1;">finance → API予算+コスト</div>
+      <div style="color:#a6e3a1;">content → mempalace+obsidian+brain同期</div>
+      <div style="color:#a6e3a1;">meta → リスク+障害パターン+コード健全性</div>
+      <div style="color:#a6e3a1;">pdca → PDCA+BizPDCA</div>
+      <div style="color:#cba6f7;">_push_log → 最終push時刻+成功/失敗数</div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;color:#6c7086;font-size:12px;">このアーキテクチャでよければ「ok」と返してください。次はページ構成の詳細に進みます。</p>

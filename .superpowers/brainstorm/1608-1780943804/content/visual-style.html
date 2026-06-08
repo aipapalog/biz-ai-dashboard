@@ -1,0 +1,107 @@
+<h2>ビジュアルスタイル：どの雰囲気が合いますか？</h2>
+<p class="subtitle">「モダン」の方向性を決めます。機能は同じ、見た目の違いです。</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="dark" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f0f17;border-radius:8px;padding:16px;font-family:monospace;font-size:12px;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <span style="color:#cba6f7;font-size:14px;font-weight:700;">● BizDash</span>
+          <span style="margin-left:auto;background:#1e1e2e;color:#a6e3a1;padding:2px 8px;border-radius:20px;font-size:10px;">● Live</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div style="background:#1e1e2e;border-radius:6px;padding:8px;border-left:3px solid #f38ba8;">
+            <div style="color:#f38ba8;font-size:10px;">要対応</div>
+            <div style="color:#cdd6f4;font-size:18px;font-weight:700;">3</div>
+          </div>
+          <div style="background:#1e1e2e;border-radius:6px;padding:8px;border-left:3px solid #a6e3a1;">
+            <div style="color:#a6e3a1;font-size:10px;">健全性</div>
+            <div style="color:#cdd6f4;font-size:18px;font-weight:700;">OK</div>
+          </div>
+        </div>
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px;">
+          <div style="color:#6c7086;font-size:10px;margin-bottom:6px;">パイプライン稼働</div>
+          <div style="display:flex;gap:4px;">
+            <span style="background:#a6e3a1;color:#1e1e2e;padding:2px 6px;border-radius:3px;font-size:10px;">Strategy ✓</span>
+            <span style="background:#a6e3a1;color:#1e1e2e;padding:2px 6px;border-radius:3px;font-size:10px;">Content ✓</span>
+            <span style="background:#f38ba8;color:#1e1e2e;padding:2px 6px;border-radius:3px;font-size:10px;">Daily ✗</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>ダークモダン</h3>
+      <p>Catppuccin系の濃いダーク。目に優しく、ステータス色が映える。現状に近いが洗練。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="clean" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f8f9fa;border-radius:8px;padding:16px;font-family:system-ui;font-size:12px;border:1px solid #e0e0e0;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <span style="color:#1a1a2e;font-size:14px;font-weight:700;">BizDash</span>
+          <span style="margin-left:auto;background:#d4edda;color:#155724;padding:2px 8px;border-radius:20px;font-size:10px;">● Live</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div style="background:#fff;border-radius:6px;padding:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);border-top:3px solid #e74c3c;">
+            <div style="color:#999;font-size:10px;">要対応</div>
+            <div style="color:#1a1a2e;font-size:18px;font-weight:700;">3</div>
+          </div>
+          <div style="background:#fff;border-radius:6px;padding:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);border-top:3px solid #27ae60;">
+            <div style="color:#999;font-size:10px;">健全性</div>
+            <div style="color:#1a1a2e;font-size:18px;font-weight:700;">OK</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:6px;padding:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+          <div style="color:#999;font-size:10px;margin-bottom:6px;">パイプライン稼働</div>
+          <div style="display:flex;gap:4px;">
+            <span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:3px;font-size:10px;">Strategy ✓</span>
+            <span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:3px;font-size:10px;">Content ✓</span>
+            <span style="background:#f8d7da;color:#721c24;padding:2px 6px;border-radius:3px;font-size:10px;">Daily ✗</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>クリーンライト</h3>
+      <p>白ベース・影付きカード。データが読みやすく、ビジネス向けの清潔感。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="glass" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:8px;padding:16px;font-family:system-ui;font-size:12px;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <span style="color:#e0e0ff;font-size:14px;font-weight:700;">BizDash</span>
+          <span style="margin-left:auto;background:rgba(166,227,161,0.2);color:#a6e3a1;padding:2px 8px;border-radius:20px;font-size:10px;border:1px solid rgba(166,227,161,0.4);">● Live</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div style="background:rgba(255,255,255,0.07);backdrop-filter:blur(4px);border-radius:6px;padding:8px;border:1px solid rgba(255,255,255,0.12);">
+            <div style="color:#f38ba8;font-size:10px;">要対応</div>
+            <div style="color:#e0e0ff;font-size:18px;font-weight:700;">3</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);backdrop-filter:blur(4px);border-radius:6px;padding:8px;border:1px solid rgba(255,255,255,0.12);">
+            <div style="color:#a6e3a1;font-size:10px;">健全性</div>
+            <div style="color:#e0e0ff;font-size:18px;font-weight:700;">OK</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.07);border-radius:6px;padding:8px;border:1px solid rgba(255,255,255,0.12);">
+          <div style="color:rgba(255,255,255,0.4);font-size:10px;margin-bottom:6px;">パイプライン稼働</div>
+          <div style="display:flex;gap:4px;">
+            <span style="background:rgba(166,227,161,0.2);color:#a6e3a1;padding:2px 6px;border-radius:3px;font-size:10px;border:1px solid rgba(166,227,161,0.3);">Strategy ✓</span>
+            <span style="background:rgba(166,227,161,0.2);color:#a6e3a1;padding:2px 6px;border-radius:3px;font-size:10px;border:1px solid rgba(166,227,161,0.3);">Content ✓</span>
+            <span style="background:rgba(243,139,168,0.2);color:#f38ba8;padding:2px 6px;border-radius:3px;font-size:10px;border:1px solid rgba(243,139,168,0.3);">Daily ✗</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>グラスモーフィズム</h3>
+      <p>濃紺グラデ背景 + 半透明カード。最もモダン。視覚的インパクト大。</p>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:20px;color:#6c7086;font-size:13px;">クリックで選択 → ターミナルで教えてください</p>

@@ -1,0 +1,124 @@
+<h2>設計 Section 2：4ページ詳細レイアウト</h2>
+<p class="subtitle">グラスモーフィズムUIのモックアップ。各ページの構成と配置です。</p>
+
+<!-- 共通ナビバー -->
+<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 16px;margin-bottom:20px;display:flex;gap:16px;align-items:center;font-size:12px;font-family:system-ui;">
+  <span style="color:#cba6f7;font-weight:700;font-size:13px;">BizDash</span>
+  <span style="color:#a6e3a1;background:rgba(166,227,161,0.15);padding:3px 10px;border-radius:5px;border:1px solid rgba(166,227,161,0.3);">🏠 ホーム</span>
+  <span style="color:#89dceb;padding:3px 10px;border-radius:5px;">✅ タスク</span>
+  <span style="color:#89dceb;padding:3px 10px;border-radius:5px;">📈 ビジネス</span>
+  <span style="color:#89dceb;padding:3px 10px;border-radius:5px;">🤖 AI・システム</span>
+  <span style="margin-left:auto;color:#a6e3a1;font-size:11px;background:rgba(166,227,161,0.1);padding:2px 8px;border-radius:12px;border:1px solid rgba(166,227,161,0.2);">● 更新: 3分前</span>
+</div>
+
+<!-- PAGE 1: ホーム -->
+<div style="margin-bottom:28px;">
+  <div style="color:#cba6f7;font-size:12px;font-family:monospace;margin-bottom:8px;">📄 PAGE 1 — ホーム</div>
+  <div style="background:linear-gradient(135deg,rgba(26,26,46,0.9),rgba(22,33,62,0.9));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px;">
+
+    <!-- アラートバナー -->
+    <div style="background:rgba(243,139,168,0.15);border:1px solid rgba(243,139,168,0.4);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:#f38ba8;font-family:system-ui;">
+      🔴 要対応 3件 &nbsp;|&nbsp; Daily Flow ✗ &nbsp;|&nbsp; Kanban High 2件
+    </div>
+
+    <!-- KPIカード行 -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px;text-align:center;font-family:system-ui;">
+        <div style="color:#6c7086;font-size:9px;margin-bottom:4px;">パイプライン</div>
+        <div style="color:#a6e3a1;font-size:20px;font-weight:700;">3/4</div>
+        <div style="color:#a6e3a1;font-size:9px;">稼働中</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px;text-align:center;font-family:system-ui;">
+        <div style="color:#6c7086;font-size:9px;margin-bottom:4px;">Kanban</div>
+        <div style="color:#89b4fa;font-size:20px;font-weight:700;">12</div>
+        <div style="color:#89b4fa;font-size:9px;">進行中</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px;text-align:center;font-family:system-ui;">
+        <div style="color:#6c7086;font-size:9px;margin-bottom:4px;">API予算</div>
+        <div style="color:#f9e2af;font-size:20px;font-weight:700;">68%</div>
+        <div style="color:#f9e2af;font-size:9px;">残余</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px;text-align:center;font-family:system-ui;">
+        <div style="color:#6c7086;font-size:9px;margin-bottom:4px;">Eval品質</div>
+        <div style="color:#cba6f7;font-size:20px;font-weight:700;">94%</div>
+        <div style="color:#cba6f7;font-size:9px;">成功率</div>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px;font-size:11px;font-family:system-ui;">
+      <div style="color:#6c7086;font-size:9px;margin-bottom:6px;">SYSTEM HEALTH</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <span style="background:rgba(166,227,161,0.15);color:#a6e3a1;padding:3px 8px;border-radius:4px;border:1px solid rgba(166,227,161,0.3);">StrategyFlow ✓</span>
+        <span style="background:rgba(166,227,161,0.15);color:#a6e3a1;padding:3px 8px;border-radius:4px;border:1px solid rgba(166,227,161,0.3);">ContentFlow ✓</span>
+        <span style="background:rgba(243,139,168,0.15);color:#f38ba8;padding:3px 8px;border-radius:4px;border:1px solid rgba(243,139,168,0.3);">DailyFlow ✗</span>
+        <span style="background:rgba(166,227,161,0.15);color:#a6e3a1;padding:3px 8px;border-radius:4px;border:1px solid rgba(166,227,161,0.3);">Maintenance ✓</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: タスク -->
+<div style="margin-bottom:28px;">
+  <div style="color:#cba6f7;font-size:12px;font-family:monospace;margin-bottom:8px;">📄 PAGE 2 — タスク</div>
+  <div style="background:linear-gradient(135deg,rgba(26,26,46,0.9),rgba(22,33,62,0.9));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px;">
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;font-size:11px;font-family:system-ui;">
+      <div>
+        <div style="color:#f38ba8;font-size:9px;margin-bottom:6px;">🔴 要対応</div>
+        <div style="background:rgba(243,139,168,0.1);border:1px solid rgba(243,139,168,0.2);border-radius:6px;padding:8px;margin-bottom:6px;">
+          <div style="color:#f38ba8;font-size:10px;">DailyFlow停止 (2h)</div>
+        </div>
+        <div style="background:rgba(243,139,168,0.1);border:1px solid rgba(243,139,168,0.2);border-radius:6px;padding:8px;margin-bottom:6px;">
+          <div style="color:#f38ba8;font-size:10px;">API予算 32%超過</div>
+        </div>
+        <div style="background:rgba(249,226,175,0.1);border:1px solid rgba(249,226,175,0.2);border-radius:6px;padding:8px;">
+          <div style="color:#f9e2af;font-size:10px;">KT-900 レビュー待ち</div>
+        </div>
+      </div>
+      <div>
+        <div style="color:#89b4fa;font-size:9px;margin-bottom:6px;">📋 KANBAN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <div style="background:rgba(255,255,255,0.05);border-radius:6px;padding:8px;">
+            <div style="color:#6c7086;font-size:9px;margin-bottom:4px;">TODO (8)</div>
+            <div style="background:rgba(255,255,255,0.07);border-radius:4px;padding:4px;margin-bottom:3px;font-size:9px;color:#cdd6f4;">KT-901</div>
+            <div style="background:rgba(255,255,255,0.07);border-radius:4px;padding:4px;font-size:9px;color:#cdd6f4;">KT-902</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.05);border-radius:6px;padding:8px;">
+            <div style="color:#f9e2af;font-size:9px;margin-bottom:4px;">IN PROGRESS (4)</div>
+            <div style="background:rgba(249,226,175,0.1);border-radius:4px;padding:4px;margin-bottom:3px;font-size:9px;color:#f9e2af;">KT-898</div>
+            <div style="background:rgba(249,226,175,0.1);border-radius:4px;padding:4px;font-size:9px;color:#f9e2af;">KT-899</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.05);border-radius:6px;padding:8px;">
+            <div style="color:#a6e3a1;font-size:9px;margin-bottom:4px;">DONE (12)</div>
+            <div style="background:rgba(166,227,161,0.1);border-radius:4px;padding:4px;margin-bottom:3px;font-size:9px;color:#a6e3a1;">KT-895</div>
+            <div style="background:rgba(166,227,161,0.1);border-radius:4px;padding:4px;font-size:9px;color:#a6e3a1;">KT-896</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3 & 4 summary -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div>
+    <div style="color:#cba6f7;font-size:12px;font-family:monospace;margin-bottom:8px;">📄 PAGE 3 — ビジネス</div>
+    <div style="background:linear-gradient(135deg,rgba(26,26,46,0.8),rgba(22,33,62,0.8));border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;font-size:10px;font-family:system-ui;color:#cdd6f4;">
+      📊 事業状況KPI<br>
+      🚀 BizDevレポート<br>
+      🎯 CX品質スコア<br>
+      🔄 PDCAサイクル状況
+    </div>
+  </div>
+  <div>
+    <div style="color:#cba6f7;font-size:12px;font-family:monospace;margin-bottom:8px;">📄 PAGE 4 — AI・システム</div>
+    <div style="background:linear-gradient(135deg,rgba(26,26,46,0.8),rgba(22,33,62,0.8));border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;font-size:10px;font-family:system-ui;color:#cdd6f4;">
+      🤖 自律ループ稼働状況<br>
+      📊 Eval品質・エラー率<br>
+      🧠 Mempalace / Brain同期<br>
+      🏢 経営体制・エージェント一覧
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:20px;color:#6c7086;font-size:12px;">このページ構成でよければ「ok」で次（pusher・data_loader の設計）へ進みます。</p>
