@@ -180,6 +180,35 @@ with right:
         st.info("パイプラインデータ取得中...")
     style.section_card_end()
 
+# ── SYSTEM HEALTH（フローステータス）──────────────────────────────────────────
+@st.fragment(run_every=60)
+def _system_health_section():
+    st.subheader("🖥️ SYSTEM HEALTH")
+    try:
+        from utils.flow_status_reader import get_flow_status, format_last_run, status_icon
+        import pandas as pd
+        flow_data = get_flow_status(firebase_client)
+        rows = [
+            {"フロー": "MaintenanceFlow", "スケジュール": "毎日 21:00",   **flow_data.get("maintenance", {})},
+            {"フロー": "StrategyFlow",    "スケジュール": "月・木 21:22", **flow_data.get("strategy",    {})},
+            {"フロー": "ContentFlow",     "スケジュール": "火・金 21:22", **flow_data.get("content",     {})},
+            {"フロー": "DailyFlow",       "スケジュール": "毎日 21:23",   **flow_data.get("daily",       {})},
+        ]
+        df = pd.DataFrame([{
+            "フロー":       r["フロー"],
+            "スケジュール": r["スケジュール"],
+            "ステータス":   f'{status_icon(r.get("status"))} {r.get("status", "unknown")}',
+            "最終実行":     format_last_run(r.get("last_run")),
+            "所要時間":     f'{r.get("duration_seconds")}秒' if r.get("duration_seconds") else "--",
+        } for r in rows])
+        st.dataframe(df, hide_index=True, use_container_width=True)
+        import datetime as _dt
+        st.caption(f"最終更新: {_dt.datetime.now().strftime('%H:%M:%S')} (60秒ごと自動更新)")
+    except Exception as e:
+        st.warning(f"System Health 読み込みエラー: {e}")
+
+_system_health_section()
+
 # ── フッター ───────────────────────────────────────────────────────────────────
 st.caption(
     f"📡 Firebase Pusher 30分毎自動実行  ｜  "
