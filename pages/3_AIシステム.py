@@ -784,13 +784,992 @@ with tab2:
                 style.section_card_end()
 
 # ══════════════════════════════════════════════════════════════════════════════
-# tab3〜tab5: 準備中
+# 🏢 経営体制（旧 7_経営体制.py）
 # ══════════════════════════════════════════════════════════════════════════════
 with tab3:
-    st.info("経営体制 - 準備中")
+    AGENTS_DEF = [
+        {"name": "bizdev",            "dept": "事業開発部",   "purpose": "ビジネスアイデア生成",          "pipelines": "daily_bizdev"},
+        {"name": "marketing",         "dept": "事業開発部",   "purpose": "マーケティング戦略",            "pipelines": "daily_bizdev, bizdev_optimizer, product_monitor, product_researcher"},
+        {"name": "opensource_analyst","dept": "事業開発部",   "purpose": "OSS収益化分析",                 "pipelines": "daily_opensource"},
+        {"name": "copywriter",        "dept": "コンテンツ部", "purpose": "コピーライティング改善",        "pipelines": "product_monitor"},
+        {"name": "cx_expert",         "dept": "コンテンツ部", "purpose": "CXリサーチ→製品評価（統合）",   "pipelines": "cx_improver, gumroad_publisher, cx_publisher_base"},
+        {"name": "reviewer",          "dept": "コンテンツ部", "purpose": "ビジネス/コンテンツ品質評価",  "pipelines": "daily_bizdev, doc_sync"},
+        {"name": "content_pipeline",  "dept": "コンテンツ部", "purpose": "Qiita/note・KDP・コンテンツ生成", "pipelines": "kdp_writer, metrics_collector, content_strategist, content_writer, qiita_publisher, note_publisher, zenn_publisher"},
+        {"name": "risk_assessor",     "dept": "品質管理部",   "purpose": "法的・セキュリティリスク評価",  "pipelines": "risk_manager"},
+        {"name": "quality_gater",     "dept": "経営管理部",   "purpose": "システム/パイプライン品質評価", "pipelines": "system_evaluator, bizdev_optimizer, monthly_optimizer, name_consistency_check, pipeline_improver, self_audit_engine, mempalace_maintenance"},
+        {"name": "biz_pdca_planner",  "dept": "財務部",       "purpose": "PDCA施策立案（先行指標→施策生成）", "pipelines": "biz_pdca, freelance_researcher, leading_indicators"},
+        {"name": "social_growth",     "dept": "集客部",       "purpose": "SNS投稿評価・A/Bテスト",        "pipelines": "note_analytics, x_post_qa_doctor"},
+        {"name": "infra_ops",         "dept": "IT部",         "purpose": "コアインフラ・自律ループ・タスク調整", "pipelines": "autonomous_loop, system_health, realtime_kg_feed, dashboard_issue_resolver"},
+        {"name": "monitoring_agent",  "dept": "IT部",         "purpose": "システム監視・ヘルスチェック",  "pipelines": "system_health, system_evaluator"},
+        {"name": "backup_agent",      "dept": "IT部",         "purpose": "バックアップ・環境保全・同期",  "pipelines": "gdrive_backup, doc_sync"},
+    ]
 
+    PIPELINES_DEF3 = [
+        {"name": "strategy_chain",        "cat": "収益生成",  "schedule": "月・木 21:07",                    "agents": "biz_pdca_planner, marketing",    "desc": "KG抽出→product_researcher→daily_bizdev→bizdev_optimizer→leading_indicators→risk_manager→biz_pdcaをLangGraphで実行"},
+        {"name": "biz_pdca",              "cat": "収益生成",  "schedule": "StrategyChain（月・木）経由",     "agents": "biz_pdca_planner",              "desc": "Check→Act→Planの3フェーズ週2回自動実行。施策TOP3をAI生成してtask_queueに追加"},
+        {"name": "daily_bizdev",          "cat": "収益生成",  "schedule": "StrategyChain（月・木）",         "agents": "bizdev marketing reviewer",     "desc": "bizdev→marketing→reviewerの3エージェント連鎖。7点以上を『推奨』として翌日の行動候補に昇格"},
+        {"name": "daily_driver",          "cat": "収益生成",  "schedule": "毎日 21:26",                      "agents": "infra_ops",                     "desc": "【統合オーケストレーター】毎日21:26実行。市場調査+戦略チェーン→各種パイプラインを逐次実行"},
+        {"name": "daily_opensource",      "cat": "収益生成",  "schedule": "週次（月）21:05",                 "agents": "opensource_analyst",            "desc": "GitHubトレンド・Hacker News・Product Huntから週次収集。OSSの収益化パターンを分析"},
+        {"name": "freelance_researcher",  "cat": "収益生成",  "schedule": "ContentChain（火・金）",          "agents": "biz_pdca_planner",              "desc": "【ToT：3経路】クラウドワークス・ランサーズ・Coconalaのフリーランス案件を3視点で並列調査"},
+        {"name": "gumroad_publisher",     "cat": "収益生成",  "schedule": "ContentChain（火・金）",          "agents": "cx_expert content_pipeline",    "desc": "CXスコアが低い製品を優先評価→改善英語コピー生成→Gumroad製品ページに適用"},
+        {"name": "content_chain",         "cat": "コンテンツ","schedule": "火・金 21:03",                    "agents": "content_pipeline social_growth","desc": "metrics→content_strategist→content_writer→cx_improver→qiita/note/zenn/kdp/gumroad publisherを逐次実行"},
+        {"name": "content_strategist",    "cat": "コンテンツ","schedule": "ContentChain（火・金）",          "agents": "content_pipeline",              "desc": "unified_metrics+brand_memory+now.mdを統合分析し3プラットフォームのコンテンツ戦略プランを立案"},
+        {"name": "content_writer",        "cat": "コンテンツ","schedule": "ContentChain（火・金）",          "agents": "content_pipeline",              "desc": "content_plan.jsonに基づきqiita/note/kdp/gumroad向けコンテンツを一括生成"},
+        {"name": "cx_improver",           "cat": "コンテンツ","schedule": "ContentChain（火・金）",          "agents": "cx_expert",                     "desc": "CXトレンド調査→全製品評価→即効改善案最大5件自動生成"},
+        {"name": "metrics_collector",     "cat": "コンテンツ","schedule": "ContentChain（火・金）",          "agents": "content_pipeline",              "desc": "note/Qiita/KDP売上を一元収集しunified_metrics.jsonに保存。旧note_analyticsを統合"},
+        {"name": "note_publisher",        "cat": "コンテンツ","schedule": "ContentChain（火・金）",          "agents": "cx_expert content_pipeline",    "desc": "content_drafts.jsonの最新noteドラフトを投稿するthin adapter"},
+        {"name": "product_monitor",       "cat": "コンテンツ","schedule": "週次（水）23:03",                 "agents": "marketing copywriter",          "desc": "競合価格・レビュー監視／タイトル・説明文コピー改善をweekly統合実行"},
+        {"name": "qiita_publisher",       "cat": "コンテンツ","schedule": "ContentChain（火・金）",          "agents": "content_pipeline",              "desc": "content_drafts.jsonの最新QiitaドラフトをPlaywright経由でQiitaに投稿"},
+        {"name": "zenn_publisher",        "cat": "コンテンツ","schedule": "ContentChain（火・金）",          "agents": "content_pipeline",              "desc": "experience_log.mdの実体験を素材にZenn技術記事を生成・保存"},
+        {"name": "autonomous_loop",       "cat": "自己改善",  "schedule": "週次（日）22:48",                 "agents": "infra_ops",                     "desc": "目標達成まで自動タスク探索→実装→完了→次タスクを繰り返す"},
+        {"name": "bizdev_optimizer",      "cat": "自己改善",  "schedule": "StrategyChain / ContentChain",    "agents": "quality_gater marketing",       "desc": "bizdev_report→パターン抽出→MABスコア更新→mab_recommendation.json生成"},
+        {"name": "mempalace_maintenance", "cat": "自己改善",  "schedule": "毎日 21:20",                      "agents": "quality_gater",                 "desc": "5フェーズ構成。Kanban/会話記録/CLI履歴収集→claude -pで判断→mempalace記録→agent_levelup実行"},
+        {"name": "monthly_optimizer",     "cat": "自己改善",  "schedule": "月次 15日 21:29",                 "agents": "quality_gater",                 "desc": "skills_optimizer+token_optimizer統合版。スキル使用状況・トークン消費量を収集後に統合改善提案を生成"},
+        {"name": "name_consistency_check","cat": "自己改善",  "schedule": "週次（日）21:24",                 "agents": "quality_gater",                 "desc": "変数名・ファイル名・エージェント名・タスク名の命名一貫性を週次チェック"},
+        {"name": "pipeline_improver",     "cat": "自己改善",  "schedule": "SystemLoop（水・土）",            "agents": "quality_gater",                 "desc": "ログ解析・コード健全性・類似パイプライン検出・自動修正・Claude改善提案を週次実行"},
+        {"name": "realtime_kg_feed",      "cat": "自己改善",  "schedule": "タスク完了時",                    "agents": "infra_ops",                     "desc": "autonomous_loopのタスク実行完了/失敗直後に呼ばれるKGフィード。失敗パターンをmempalace KGにリアルタイム記録"},
+        {"name": "self_audit_engine",     "cat": "自己改善",  "schedule": "SystemLoop（水・土）経由",        "agents": "quality_gater",                 "desc": "経営コンサルタント視点で自問自答を5問生成。課題があればKanbanタスクに自動投入"},
+        {"name": "system_loop",           "cat": "自己改善",  "schedule": "水・土 21:06",                    "agents": "monitoring_agent quality_gater","desc": "KG抽出→self_audit_engine→system_health→pipeline_improver→system_evaluatorを逐次実行"},
+        {"name": "leading_indicators",    "cat": "監視",      "schedule": "StrategyChain（月・木）",         "agents": "biz_pdca_planner",              "desc": "収益以外の先行指標（タスク完了数・施策実施率等）を日次集計"},
+        {"name": "risk_manager",          "cat": "監視",      "schedule": "StrategyChain（月・木）",         "agents": "risk_assessor",                 "desc": "法的・プラットフォームToS・セキュリティの3カテゴリを週次評価"},
+        {"name": "user_acquisition_funnel","cat": "監視",     "schedule": "無効化中",                        "agents": "monitoring_agent",              "desc": "note→製品ページ→購入のファネルメトリクスを日次更新。collect_real_metrics()実装まで停止中"},
+        {"name": "doc_sync",              "cat": "インフラ",  "schedule": "週次（日）21:27",                 "agents": "backup_agent reviewer",         "desc": "MD監査（陳腐化検出）/ memory→mempalace KG差分同期 / Obsidian→mempalace KG同期"},
+        {"name": "fetch_claude_usage_auto","cat": "インフラ", "schedule": "毎日 21:30",                      "agents": "infra_ops",                     "desc": "claude.aiのCap使用率をusage_cache.jsonに記録。daily_driver終了後に自動実行"},
+        {"name": "gdrive_backup",         "cat": "インフラ",  "schedule": "毎日 21:21",                      "agents": "backup_agent",                  "desc": "Claude Code環境全体をGoogle Drive差分バックアップ。PC故障・環境移行時の完全復元を想定"},
+        {"name": "orphan_process_killer", "cat": "インフラ",  "schedule": "Stopフック + スケジューラ",       "agents": "infra_ops",                     "desc": "セッション終了時に自動実行。残留した重いPowerShell/Python/bashプロセスを検出・終了"},
+        {"name": "consultation_manager",  "cat": "意思決定",  "schedule": "セッションから呼び出し",          "agents": "cx_expert content_pipeline",    "desc": "複数の専門エージェントに質問を投げ、推奨・リスク・次のアクションを集約して意思決定を支援"},
+        {"name": "product_researcher",    "cat": "市場調査",  "schedule": "StrategyChain（月・木）",         "agents": "marketing",                     "desc": "市場機会をToT3経路で並列分析し、QAドクター製品の競合ベンチマークを実行"},
+    ]
+
+    SKILLS_DEF = [
+        {"cmd": "/draft-message",  "dept": "会社業務",  "desc": "困ったメール・Teamsを状況説明だけで下書き（催促・依頼・謝罪・報告対応）",              "status": "未使用"},
+        {"cmd": "/make-pptx",      "dept": "会社業務",  "desc": "箇条書きや表をそのままPowerPointスライドに変換する（報告・提案・ハンドオーバー対応）", "status": "未使用"},
+        {"cmd": "/office-to-md",   "dept": "会社業務",  "desc": "OfficeファイルをMarkdownに変換してClaudeに読ませる（PPTX/DOCX/XLSX対応）",           "status": "未使用"},
+        {"cmd": "/note-draft",     "dept": "コンテンツ","desc": "note記事の構成・見出し・本文下書きをターゲット読者に合わせてCTA付きで作成する",         "status": "未使用"},
+        {"cmd": "/eval-idea",      "dept": "ビジネス",  "desc": "ビジネスアイデアをDevil's Advocate思考＋3軸スコアで評価し、致命的な穴と改善策を指摘する","status": "✓ 使用中"},
+        {"cmd": "/agent-status",   "dept": "システム",  "desc": "Claudeのバックグラウンドプロセスとエージェントログをリアルタイムで表示する",            "status": "未使用"},
+    ]
+
+    n_pl3 = len(PIPELINES_DEF3)
+    n_ag3 = len(AGENTS_DEF)
+
+    def _safe3(fn, default=None):
+        try:
+            return fn()
+        except Exception:
+            return default
+
+    pl_logs3     = _safe3(lambda: data_loader.pipeline_logs(), {})
+    exec_t3      = _safe3(lambda: data_loader.execution_times(), {})
+    agents_ctx3  = _safe3(lambda: data_loader.agents_context(), {})
+    token_usage3 = _safe3(lambda: data_loader.pipeline_token_usage(), {})
+    exec_map3    = {p["name"]: p for p in (exec_t3 or {}).get("pipelines", [])}
+
+    # 体制概要
+    style.section_card_start("📊 組織体制・AI最高経営責任者")
+    col_left, col_right = st.columns([1, 1])
+    with col_left:
+        style.section_title("📊 体制図")
+        st.markdown("""
+| 役職 | 担当 |
+|---|---|
+| 👑 **会長（ユーザー）** | 意思決定・最終判断 |
+| 🤖 **社長 Claude**（Main: Sonnet） | CEO・オーケストレーター |
+| 🏭 COO（日常業務統括） | 日常業務統括・タスク実行 |
+
+**部門一覧:**
+事業開発部 / コンテンツ部 / 品質管理部 / 経営管理部 / 財務部 / 集客部 / IT部
+""")
+    with col_right:
+        style.section_title("🤖 社長 AI Chief Executive Officer")
+        st.info("""
+実績ある自律型AIエグゼクティブ。アイデア創出から収益化まで短期完結が得意。
+指示待ちゼロ、常に先手を打つ経営スタイル。
+
+⚡ 自律実行　💡 アイデア量産　🎯 顧客ニーズ発見　🚀 短期収益化　🤖 AI活用エキスパート
+""")
+    style.section_card_end()
+
+    # システム構造概要
+    style.section_card_start("🏗️ システム構造概要")
+    s1, s2, s3 = st.columns(3)
+    s1.metric("⚙️ パイプライン", f"{n_pl3} 本")
+    s2.metric("🤖 エージェント", f"{n_ag3} 種")
+    s3.metric("🔗 チェーン数", "3 本（戦略・コンテンツ・システム）")
+    st.caption(f"AIパイプライン {n_pl3} 本 が {n_ag3} 種のエージェントを共有利用。")
+    style.section_card_end()
+
+    subtab3_1, subtab3_2, subtab3_3, subtab3_4, subtab3_5 = st.tabs([
+        "⚙️ パイプライン一覧",
+        "👥 エージェント一覧",
+        "🎯 スキル一覧",
+        "🔗 チェーン設計",
+        "🗺️ アーキテクチャ図",
+    ])
+
+    with subtab3_1:
+        import pandas as pd
+        style.section_card_start(f"⚙️ パイプライン一覧（{n_pl3} 本）")
+        categories3 = sorted(set(p["cat"] for p in PIPELINES_DEF3))
+        selected_cat3 = st.selectbox("カテゴリで絞り込み", ["すべて"] + categories3, key="cat3_pl")
+        filtered3 = PIPELINES_DEF3 if selected_cat3 == "すべて" else [p for p in PIPELINES_DEF3 if p["cat"] == selected_cat3]
+        st.caption(f"表示: {len(filtered3)} 本 / 全 {n_pl3} 本")
+
+        for p in filtered3:
+            logs_raw3   = (pl_logs3 or {}).get("logs", pl_logs3)
+            logs_entry3 = logs_raw3.get(p["name"], {}) if isinstance(logs_raw3, dict) else {}
+            if not isinstance(logs_entry3, dict):
+                logs_entry3 = {}
+            status3     = logs_entry3.get("status", "unknown")
+            last_run3   = logs_entry3.get("last_run", "—")
+            last_lines3 = logs_entry3.get("last_lines", "")
+            tok_entry3  = (token_usage3 or {}).get(p["name"], {})
+            tokens3     = tok_entry3.get("total", 0)
+            cost3       = tok_entry3.get("cost_usd", 0)
+            tok_ts3     = (tok_entry3.get("ts", "") or "")[:10]
+            stopped3    = "停止" in p["schedule"] or "⏸" in p["schedule"]
+            haishi3     = "廃止" in p["desc"] or "統合済み" in p["desc"]
+            icon3 = "⏸" if stopped3 else ("🗑" if haishi3 else ("✅" if status3 == "success" else "❌" if status3 == "failed" else "⬜"))
+
+            with st.expander(f"{icon3} **{p['name']}** — {p['cat']} ／ {p['schedule']}"):
+                c1, c2, c3, c4 = st.columns([3, 1, 1, 1])
+                with c1:
+                    st.caption(p["desc"])
+                    st.write(f"**エージェント:** {p['agents']}")
+                with c2:
+                    st.write(f"**最終実行:** {last_run3}")
+                    st.write(f"**状態:** {status3}")
+                with c3:
+                    if tokens3:
+                        st.write(f"**トークン:** {tokens3:,}")
+                        st.caption(f"${cost3:.4f}  {tok_ts3}")
+                    else:
+                        st.caption("トークン: —")
+                with c4:
+                    ei3 = exec_map3.get(p["name"], {})
+                    if ei3:
+                        st.write(f"**平均:** {ei3.get('avg_seconds','-')} 秒")
+                        st.write(f"**累計:** {ei3.get('run_count',0)} 回")
+                if last_lines3:
+                    st.markdown("---")
+                    st.code(str(last_lines3)[-300:], language=None)
+        style.section_card_end()
+
+    with subtab3_2:
+        import pandas as pd
+        style.section_card_start(f"👥 エージェント一覧（{n_ag3} 種）")
+        departments3 = sorted(set(a["dept"] for a in AGENTS_DEF))
+        for dept3 in departments3:
+            agents3 = [a for a in AGENTS_DEF if a["dept"] == dept3]
+            style.section_title(f"🏢 {dept3}")
+            rows3 = [{"エージェント名": a["name"], "役割": a["purpose"], "使用パイプライン": a["pipelines"]} for a in agents3]
+            st.dataframe(pd.DataFrame(rows3), use_container_width=True, hide_index=True)
+
+        if (agents_ctx3 or {}).get("content"):
+            with st.expander("📋 エージェント コンテキスト詳細", expanded=False):
+                st.markdown(agents_ctx3["content"])
+        style.section_card_end()
+
+    with subtab3_3:
+        import pandas as pd
+        style.section_card_start(f"🎯 スキル一覧（{len(SKILLS_DEF)} 種）")
+        df_sk = pd.DataFrame([
+            {"コマンド": s["cmd"], "部門": s["dept"], "機能説明": s["desc"], "パイプライン活用": s["status"]}
+            for s in SKILLS_DEF
+        ])
+        st.dataframe(df_sk, use_container_width=True, hide_index=True)
+        style.section_card_end()
+
+    with subtab3_4:
+        style.section_card_start("🔗 チェーン設計")
+        style.section_title("🔵 戦略チェーン（月・木 21:07）")
+        st.markdown("""
+市場調査 → BizDev → MAB最適化 → 先行指標 → リスク確認 → PDCA
+
+| ステップ | スクリプト | 役割 | 出力ファイル |
+|---|---|---|---|
+| 🧠 KG抽出 | extract_chain_context.py | now.md/brand/learningから抽出 | chain_context.md |
+| 🔍 市場調査 | product_researcher | ToT3経路で市場分析・競合ベンチマーク | market_analysis.md |
+| 💡 BizDev | daily_bizdev | bizdev→marketing→reviewerの3連鎖 | bizdev_report.md（State経由） |
+| 📊 MAB最適化 | bizdev_optimizer | パターン抽出→MABスコア更新 | mab_recommendation.json |
+| 📈 先行指標 | leading_indicators | プロセス指標の日次集計 | leading_indicators.json |
+| 🛡 リスク確認 | risk_manager | 法的・ToS・セキュリティ評価 | risk_assessment.md |
+| 🔄 PDCA | biz_pdca | Check→Act→Planの3フェーズ | — |
+""")
+
+        style.section_title("🟢 コンテンツチェーン（火・金 21:03）")
+        st.markdown("""
+メトリクス収集 → 戦略立案 → コンテンツ生成 → CX品質レビュー → 各PF公開
+
+| ステップ | スクリプト | 役割 | 出力ファイル |
+|---|---|---|---|
+| 📊 メトリクス収集 | metrics_collector | note/Qiita/KDP売上を一元収集 | unified_metrics.json |
+| 🗺 戦略立案 | content_strategist | 3プラットフォームの戦略プラン立案 | content_plan.json |
+| ✍ コンテンツ生成 | content_writer | qiita/note/kdp/gumroad向け一括生成 | content_drafts.json |
+| ✅ 品質レビュー | cx_improver | CXトレンド調査→全製品評価 | cx評価+quick_wins |
+| 🔄 CX改善ループ | cx_publisher_base | 改善コピー生成→各PF適用 | 改善コピー（英語） |
+| 📢 各PF公開 | qiita/note/kdp/gumroad publisher | 各プラットフォームへ投稿 | 各PF適用完了 |
+""")
+
+        style.section_title("🟣 システム改善ループ（水・土 21:06）")
+        st.markdown("""
+インフラ監視 → 改善案生成 → 評価 → eval_reportが次週のインフラ監視インプットに戻る
+
+| ステップ | スクリプト | 役割 | 出力ファイル |
+|---|---|---|---|
+| 🧠 KG抽出 | extract_chain_context.py | failures/learning/eval_reportから抽出 | chain_context.md |
+| 🔍 インフラ監視 | system_health | ログERROR/リソース/スケジューラ整合性 | health_report.md |
+| 🛠 改善案生成 | pipeline_improver | ログ解析・コード健全性・自動修正 | improvement.md |
+| 📊 評価 | system_evaluator | 環境監査・パフォーマンス分析・改善提案 | eval_report.md |
+| ↻ フィードバック | — | eval_report.md → system_health へ（次週） | — |
+""")
+
+        style.section_title("🔗 チェーン間連携ルール")
+        st.markdown("""
+**送信（戦略 → コンテンツ）**
+- ✅ `extract_chain_context.py` が `market_analysis_*.md` を要約 → `chain_context_content.md` に書き出し → コンテンツチェーンの各ノードへ注入
+- ✅ `market_score < 4.0` の日: `route_after_research()` が BizDev 2本をスキップ、`route_before_publish()` が `note_publisher` をスキップ（低品質日のLLM節約）
+
+**受信（コンテンツ ← 戦略）**
+- ✅ `node_context` が `chain_context_content.md` を読み込み → ContentState に `market_score` / `market_summary` を格納 → 各エージェントへ渡す
+""")
+
+        style.section_title("🛠 OSS移行進捗 — LangGraph + Prefect + OpenRouter")
+        st.markdown("""
+| フェーズ | 状態 | 解決した問題 |
+|---|---|---|
+| **フェーズ1: Prefect** | ✅ 完了 | チェーン途中で止まった場所の可視化 |
+| **フェーズ2: LangGraph** | ✅ 完了 | 低スコア日のLLMスキップ（トークン30〜40%削減） |
+| **フェーズ3: OpenRouter** | 🔍 検討中 | claude -p の従量課金（6/15〜）対策。6/15以降の実課金額を確認してから判断 |
+""")
+        st.info("Prefect可視化: `prefect server start` → ブラウザで `localhost:4200` → Flows → StrategyChain/ContentChain を選択")
+        style.section_card_end()
+
+    with subtab3_5:
+        style.section_card_start("🗺️ アーキテクチャ図")
+        dot3 = """
+digraph {
+    rankdir=LR
+    node  [fontname="Helvetica" style="filled" shape="box" fontsize="11"]
+    edge  [fontsize="9"]
+    subgraph cluster_strategy {
+        label="StrategyChain（月・木）" style="dashed" color="#3b82f6"
+        node [fillcolor="#dbeafe"]
+        PR [label="ProductResearcher"]
+        BD [label="DailyBizDev"]
+        BO [label="BizdevOptimizer"]
+        RM [label="RiskManager"]
+        BP [label="BizPDCA"]
+        PR -> BD -> BO -> RM -> BP
+    }
+    subgraph cluster_content {
+        label="ContentChain（火・金）" style="dashed" color="#22c55e"
+        node [fillcolor="#dcfce7"]
+        MC [label="MetricsCollector"]
+        CS [label="ContentStrategist"]
+        CW [label="ContentWriter"]
+        CX [label="CXImprover"]
+        PB [label="Publishers"]
+        MC -> CS -> CW -> CX -> PB
+    }
+    subgraph cluster_system {
+        label="SystemLoop（水・土）" style="dashed" color="#a855f7"
+        node [fillcolor="#fae8ff"]
+        SH [label="SystemHealth"]
+        PI [label="PipelineImprover"]
+        SE [label="SystemEvaluator"]
+        SH -> PI -> SE
+        SE -> SH [label="eval_report" style="dashed"]
+    }
+    subgraph cluster_infra {
+        label="インフラ（毎日）" style="dashed" color="#f97316"
+        node [fillcolor="#ffedd5"]
+        GB [label="GDriveBackup"]
+        FP [label="FirebasePusher"]
+        MM [label="MempalaceMaintenance"]
+    }
+    FB  [label="Firebase\\nFirestore" shape="cylinder" fillcolor="#fde68a"]
+    ST  [label="Streamlit\\nDashboard" shape="diamond" fillcolor="#bae6fd"]
+    LF  [label="Local Logs/JSON" shape="parallelogram" fillcolor="#f1f5f9"]
+    MP  [label="MemPalace\\n(SQLite KG)" shape="cylinder" fillcolor="#e9d5ff"]
+    LF -> FP [label="read"]
+    FP -> FB [label="push" color="#f97316"]
+    FB -> ST [label="read" color="#0ea5e9"]
+    MM -> MP [label="write"]
+    GB -> LF [label="backup"]
+}
+"""
+        st.graphviz_chart(dot3)
+
+        style.section_title("📁 フォルダ配置方針")
+        st.markdown("""
+| フォルダ | 用途 |
+|---|---|
+| `agents/` | パイプライン・エージェント本体・メインスクリプト |
+| `agents/data/` | JSON設定・キャッシュ・状態ファイル |
+| `agents/logs/` | 実行ログ・エラーログ |
+| `agents/platforms/` | プラットフォーム別スクリプト（Etsy/KDP等） |
+| `agents/backups/` | バックアップファイル・復旧用スナップショット |
+| `agents/_archive/` | 廃止スクリプト・歴史的記録 |
+| `Sync/ai/brain/` | 毎セッション読むコア（now.md・map.md・me.md） |
+| `Sync/ai/knowledge/` | 蓄積ナレッジ・claude -pキャッシュ |
+| `Sync/ai/tasks/` | 常時参照データ（standing_orders・kanban_tasks） |
+| `Sync/ai/outputs/` | パイプライン生成物（qiita・note・kdp） |
+| `Sync/ai/secrets/` | APIキー・認証情報 |
+""")
+        style.section_card_end()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 🧠 AI管理（旧 8_AI管理.py）
+# ══════════════════════════════════════════════════════════════════════════════
 with tab4:
-    st.info("AI管理 - 準備中")
+    def _safe4(fn, default=None):
+        try:
+            return fn()
+        except Exception:
+            return default
 
+    tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs = st.tabs([
+        "🧠 mempalace × Obsidian", "🚀 レベルアップ", "⚙️ ルールエンジン",
+        "📖 エージェント体制", "📋 Sync/ai コンテキスト", "🛡️ 4層学習システム", "📦 生成物一覧"
+    ])
+
+    with tab_mem:
+        style.section_card_start("🧠 mempalace ナレッジ成長（直近14日）")
+        mem = _safe4(lambda: data_loader.mempalace(), {})
+        if mem:
+            rows_m = mem.get("rows", [])
+            if rows_m:
+                import pandas as pd
+                df_m = pd.DataFrame(rows_m)
+                last_m = rows_m[-1] if rows_m else {}
+                c1, c2, c3 = st.columns(3)
+                with c1: st.metric("ルーム数",      last_m.get("rooms", "-"))
+                with c2: st.metric("エンティティ数", last_m.get("entities", "-"))
+                with c3: st.metric("トリプル数",     last_m.get("triples", "-"))
+                style.section_title("📊 mempalace成長推移")
+                if "date" in df_m.columns:
+                    num_cols_m = [c for c in df_m.columns if c != "date"]
+                    try:
+                        for c in num_cols_m: df_m[c] = pd.to_numeric(df_m[c], errors="coerce")
+                        st.line_chart(df_m.set_index("date")[num_cols_m])
+                    except Exception: pass
+                st.dataframe(df_m, use_container_width=True)
+        else:
+            st.info("mempalaceデータがありません")
+        style.section_card_end()
+
+        style.section_card_start("📦 mempalace ルーム別ナレッジ分布")
+        rooms_data = _safe4(lambda: data_loader.mempalace_rooms(), {})
+        if rooms_data:
+            rooms_m    = rooms_data.get("rooms", {})
+            latest_date_m = rooms_data.get("latest_date", "")
+            history_m  = rooms_data.get("history", [])
+            st.caption(f"最終更新: {latest_date_m}")
+            if rooms_m:
+                ROOM_LABELS = {
+                    "general":       "汎用メモ（未分類）",
+                    "products":      "製品情報",
+                    "strategy":      "戦略・計画",
+                    "lessons":       "失敗と学び",
+                    "branding":      "ブランド・表現",
+                    "diary":         "日記・振り返り",
+                    "documentation": "ドキュメント",
+                }
+                ROOM_COLORS = {
+                    "general": "🔵", "products": "🟢", "strategy": "🟣",
+                    "lessons": "🟠", "branding": "🩷", "diary": "🔴", "documentation": "⚫",
+                }
+                total_m = sum(rooms_m.values()) if rooms_m else 0
+                cols_m = st.columns(min(len(rooms_m), 4))
+                for i, (room, cnt) in enumerate(sorted(rooms_m.items(), key=lambda x: -x[1])):
+                    pct_m = (cnt / total_m * 100) if total_m else 0
+                    label_m = ROOM_LABELS.get(room, room)
+                    icon_m  = ROOM_COLORS.get(room, "⬜")
+                    with cols_m[i % 4]:
+                        st.metric(f"{icon_m} {label_m}", cnt, help=f"{pct_m:.1f}%")
+                st.progress(1.0, text=f"合計 {total_m} ドロワー")
+
+                issues_m = []
+                if rooms_m.get("general", 0) / max(total_m, 1) > 0.8:
+                    issues_m.append("⚠️ general集中度が高い — 製品/戦略/学習カテゴリへの再分類を推奨")
+                for room_m in ("products", "strategy", "lessons"):
+                    if rooms_m.get(room_m, 0) < 5:
+                        issues_m.append(f"⚠️ {ROOM_LABELS.get(room_m, room_m)}が{rooms_m.get(room_m,0)}件のみ — 構造化ナレッジを優先追加")
+                for iss in issues_m[:3]:
+                    st.warning(iss)
+
+                if history_m:
+                    import pandas as pd
+                    style.section_title("📅 ルーム別ドロワー数推移（直近14日）")
+                    df_hist = pd.DataFrame(history_m)
+                    if "date" in df_hist.columns:
+                        room_cols = [c for c in df_hist.columns if c != "date"]
+                        try:
+                            for c in room_cols: df_hist[c] = pd.to_numeric(df_hist[c], errors="coerce")
+                            st.line_chart(df_hist.set_index("date")[room_cols])
+                        except Exception: pass
+        else:
+            st.info("ルーム別データがありません。firebase_dashboard_pusher.py を実行してください。")
+        style.section_card_end()
+
+        style.section_card_start("📖 Obsidian ナレッジ体系")
+        OBSIDIAN_FOLDERS = [
+            ("MOC",          "🗺️", "ナビゲーション起点。_HOME・Rules-MOC・Projects-MOC"),
+            ("Rules",        "📏", "Claudeへの全行動ルール（ai/system/business/communication）"),
+            ("Rules/ai",     "🤖", "AI振る舞い・Haiku委譲・設計ルール・モデル選択"),
+            ("Rules/system", "⚙️", "ダッシュボード・MS Store・プロセス管理"),
+            ("Rules/business","💼","コンテンツ施策・note・Etsy・LSルール"),
+            ("Reference",    "📚", "ツール・APIキー・場所・チャネル状態の参照情報"),
+            ("Preferences",  "👤", "プロフィール・PC制約・会長/社長呼称・NW環境"),
+            ("Projects",     "🚀", "QA Doctor・claude-p課金対応・TOEIC UP"),
+            ("Knowledge",    "💡", "成長戦略・mempalace設計・プラットフォーム分析"),
+            ("raw",          "📥", "Web記事・メモの投入口（Karpathyパターン）"),
+            ("wiki",         "📖", "コンパイル済み知識（sources/entities/concepts/synthesis）"),
+            ("output",       "📤", "生成されたレポート・成果物"),
+            ("Decisions",    "⚖️", "意思決定の記録"),
+        ]
+        st.markdown("**AI自律層（mempalace）** + **人間管理層（Obsidian）** の2層構造")
+        st.markdown("- 🧠 **mempalace**: Claude セッション間記憶継続・KGグラフ検索・自動集約")
+        st.markdown("- 📓 **Obsidian**: ビジュアルグラフ・手動編集・Web記事クリップ・ルール閲覧")
+        st.markdown("- 📥 **raw/ → wiki/**: Web記事を投入→AIがコンパイル→知識ページ生成（Karpathyパターン）")
+        st.markdown("- 🔄 **週次同期**: Obsidian → mempalace KGバックアップ（毎週日曜 21:27）")
+
+        obs = _safe4(lambda: data_loader.obsidian_stats(), {})
+        if obs:
+            o1, o2 = st.columns(2)
+            o1.metric("📝 総ノート数", obs.get("total_notes", 0))
+            o2.metric("🆕 直近14日追加", obs.get("recent_14d", 0))
+            folders_obs = obs.get("folders", {})
+            if folders_obs:
+                style.section_title("📁 Vault フォルダ構成")
+                rows_obs = [{"フォルダ": k, "件数": v} for k, v in sorted(folders_obs.items(), key=lambda x: -x[1])]
+                import pandas as pd
+                st.dataframe(pd.DataFrame(rows_obs), use_container_width=True, hide_index=True)
+
+        style.section_title("📁 フォルダ構成")
+        cols_obs = st.columns(3)
+        for i, (folder, icon, desc) in enumerate(OBSIDIAN_FOLDERS):
+            with cols_obs[i % 3]:
+                st.markdown(f"{icon} **{folder}**  \n{desc}")
+        style.section_card_end()
+
+    with tab_lv:
+        style.section_card_start("🚀 エージェント レベルアップ状況")
+        status_lv = _safe4(lambda: data_loader.levelup_status(), {})
+        if status_lv:
+            if isinstance(status_lv, dict):
+                for key, val in status_lv.items():
+                    if isinstance(val, dict):
+                        with st.expander(f"**{key}**", expanded=False):
+                            for k2, v2 in val.items():
+                                st.write(f"**{k2}:** {v2}")
+                    elif isinstance(val, list):
+                        st.markdown(f"**{key}**")
+                        for item in val[:10]: st.write(f"- {item}")
+                    else:
+                        st.write(f"**{key}:** {val}")
+        else:
+            st.info("レベルアップ状況データがありません")
+        style.section_card_end()
+
+        style.section_card_start("📜 レベルアップ履歴")
+        history_lv = _safe4(lambda: data_loader.levelup_history(), [])
+        if history_lv:
+            for h in sorted(history_lv, key=lambda x: x.get("date",""), reverse=True):
+                date_lv    = h.get("date", "?")
+                content_lv = h.get("content", "")
+                with st.expander(f"📅 {date_lv}", expanded=False):
+                    if content_lv: st.markdown(content_lv[:2000])
+        else:
+            st.info("レベルアップ履歴がありません")
+        style.section_card_end()
+
+    with tab_rule:
+        rule_data = _safe4(lambda: data_loader.rule_engine(), {})
+        style.section_card_start("⚙️ ルールエンジン状態")
+        if rule_data:
+            r1, r2, r3 = st.columns(3)
+            with r1: st.metric("🪝 フック数",      rule_data.get("hook_count", 0))
+            with r2: st.metric("✅ 許可ルール数",   rule_data.get("allow_count", 0))
+            with r3: st.metric("🔒 デフォルトモード", rule_data.get("default_mode", "-"))
+            st.caption(f"最終更新: {(rule_data.get('updated_at','') or '')[:16]}")
+            hook_types = rule_data.get("hook_types", [])
+            if hook_types:
+                style.section_title("🪝 登録フック")
+                for ht in hook_types: st.write(f"• **{ht}**")
+        else:
+            st.info("ルールエンジンデータがありません")
+        style.section_card_end()
+
+        style.section_card_start("📋 主要ルール（CLAUDE.mdより）")
+        rules_list = [
+            ("🔴 会社NW接続時は完全停止",     "SWing/SWingS 検出→全ツール停止"),
+            ("🔴 自動化スクリプトでOpus禁止",  "claude-haiku-4-5 推奨。Opusは自動化禁止"),
+            ("🔴 subprocess.run直接禁止",       "safe_run/safe_popen に差し替え必須"),
+            ("🔴 AtLogonトリガー禁止",          "BSOD防止。21:00〜21:30の定時スケジューラのみ"),
+            ("🔴 Microsoft Store禁止",          "管理者権限なし。pip/scoopを使う"),
+            ("🔴 新規スクリプトはclaude -pのみ","APIクレジット消費禁止。CLIは無料"),
+            ("🟡 Haiku委譲（閾値9）",           "スコア≤9のタスクは全てHaiku"),
+            ("🟡 ダッシュボードはpython実行必須","mdファイル書き込み≠ダッシュボード反映"),
+            ("🟡 新規スクリプト追加は会長明示指示のみ","システムシンプル化原則"),
+        ]
+        for rule_name, desc in rules_list:
+            st.markdown(f"**{rule_name}**  \n　{desc}")
+        style.section_card_end()
+
+    with tab_obsidian:
+        agents_ctx4 = _safe4(lambda: data_loader.agents_context(), {})
+        insights4   = _safe4(lambda: data_loader.agent_insights(), {})
+        style.section_card_start("📖 エージェント体制・施策サマリー")
+        if (agents_ctx4 or {}).get("content"):
+            st.markdown(agents_ctx4["content"])
+        else:
+            st.info("エージェントコンテキストがありません")
+
+        patterns4 = (insights4 or {}).get("success_patterns", {})
+        if patterns4:
+            style.section_title("🌟 成功パターンライブラリ")
+            for cat4, items4 in patterns4.items():
+                if not isinstance(items4, list): continue
+                with st.expander(f"**{cat4}** （{len(items4)}件）"):
+                    for item4 in items4[-5:]:
+                        if isinstance(item4, dict):
+                            score4   = item4.get("score", 0)
+                            summary4 = item4.get("summary", "")
+                            ts4      = (item4.get("ts") or "")[:10]
+                            color4   = "🟢" if score4 >= 8 else "🟡" if score4 >= 6 else "🔴"
+                            st.write(f"{color4} {ts4} スコア{score4}: {summary4[:100]}")
+        style.section_card_end()
+
+    with tab_ctx:
+        brain4 = _safe4(lambda: data_loader.sync_brain(), {})
+        tasks4 = _safe4(lambda: data_loader.sync_tasks(), {})
+        ll4    = _safe4(lambda: data_loader.lessons_learned(), {})
+
+        style.section_card_start("📋 Sync/ai コンテキスト")
+        st.caption(f"最終更新: {(brain4 or {}).get('updated_at', '')[:16]}")
+
+        sub_now, sub_so, sub_ctx, sub_me, sub_brand, sub_oss, sub_ll = st.tabs([
+            "🟢 now.md", "📌 Standing Orders", "🧩 コンテキスト",
+            "👤 me.md", "🎨 brand_memory", "🏗️ OSS移行計画", "📚 lessons_learned"
+        ])
+
+        with sub_now:
+            now_content4 = (brain4 or {}).get("now", "")
+            if now_content4:
+                st.markdown(now_content4)
+            else:
+                st.info("now.mdデータがありません。firebase_dashboard_pusher.pyを実行してください。")
+
+        with sub_so:
+            so_content4 = (tasks4 or {}).get("standing_orders", "")
+            if so_content4:
+                st.markdown(so_content4)
+            else:
+                st.info("standing_ordersデータがありません。")
+
+        with sub_ctx:
+            ctx_content4 = (tasks4 or {}).get("claude_context", "")
+            ws4          = (tasks4 or {}).get("work_status", {})
+            if ctx_content4:
+                st.markdown(ctx_content4)
+            if ws4:
+                style.section_title("📊 work_status")
+                for k, v in ws4.items():
+                    st.write(f"**{k}:** {v}")
+
+        with sub_me:
+            me_content4 = (brain4 or {}).get("me", "")
+            if me_content4:
+                st.markdown(me_content4)
+            else:
+                st.info("me.mdデータがありません。")
+
+        with sub_brand:
+            brand_content4 = (brain4 or {}).get("brand_memory", "")
+            if brand_content4:
+                st.markdown(brand_content4)
+            else:
+                st.info("brand_memoryデータがありません。")
+
+        with sub_oss:
+            oss_content4 = (brain4 or {}).get("oss_migration_plan", "")
+            if oss_content4:
+                st.markdown(oss_content4)
+            else:
+                st.info("OSS移行計画データがありません。")
+
+        with sub_ll:
+            ll_content4 = (ll4 or {}).get("content", "")
+            if ll_content4:
+                st.markdown(ll_content4)
+            else:
+                st.info("lessons_learnedデータがありません。")
+        style.section_card_end()
+
+    with tab_learn:
+        ls4 = _safe4(lambda: data_loader.learning_system(), {})
+        style.section_card_start("🛡️ エラー再発防止・自律学習システム：4層の多層防御")
+        st.caption("失敗パターンの再発を防止 + 自律学習フィードバック実装")
+
+        if ls4:
+            active_count4 = ls4.get("active_count", 0)
+            total4        = ls4.get("total", 4)
+            overall4      = ls4.get("overall", "")
+            flow4         = ls4.get("flow", "")
+
+            c1, c2 = st.columns(2)
+            c1.metric("有効レイヤー", f"{active_count4}/{total4}層",
+                      delta="正常" if active_count4 == total4 else f"⚠ {total4 - active_count4}層未設定")
+            c2.markdown(f"**全体状態:** {overall4}")
+
+            layers4 = ls4.get("layers", [])
+            for la in layers4:
+                icon4       = "🟢" if la.get("active") else "⚪"
+                status_tag4 = f"✓ {la['status']}" if la.get("active") else la["status"]
+                with st.expander(f"{icon4} **Layer {la['layer']}: {la['name']}** — {status_tag4}", expanded=la.get("active", False)):
+                    st.markdown(f"**コンポーネント:** {la.get('components','')}")
+                    st.markdown(f"**動作内容:** {la.get('desc','')}")
+                    st.markdown(f"**ステータス:** `{la.get('status','')}`")
+
+            st.markdown(f"**学習フロー:** {flow4}")
+            st.caption(f"最終更新: {ls4.get('updated_at','')[:16]}")
+        else:
+            st.info("学習システムデータがありません。firebase_dashboard_pusher.pyを実行してください。")
+        style.section_card_end()
+
+    with tab_outputs:
+        outputs4 = _safe4(lambda: data_loader.sync_outputs(), {})
+        style.section_card_start("📦 Sync/ai/outputs/ 生成物一覧")
+
+        if outputs4:
+            files4 = outputs4.get("files", [])
+            total4o = outputs4.get("total", 0)
+            st.caption(f"合計 {total4o} ファイル（最新40件表示）| 最終更新: {outputs4.get('updated_at','')[:16]}")
+
+            if files4:
+                import pandas as pd
+                EXT_ICON = {".md": "📝", ".json": "📊", ".txt": "📄"}
+                df4 = pd.DataFrame([{
+                    "種類": EXT_ICON.get(f["ext"], "📁"),
+                    "ファイル名": f["name"],
+                    "サイズ(KB)": f["size_kb"],
+                    "更新日": f["modified"],
+                } for f in files4])
+                st.dataframe(df4, use_container_width=True, hide_index=True)
+
+                note_files4 = [f for f in files4 if f["name"].startswith("note_")]
+                kdp_files4  = [f for f in files4 if f["name"].startswith("kdp_") or f["name"].startswith("chapter")]
+                x_files4    = [f for f in files4 if f["name"].startswith("x_")]
+
+                cols4 = st.columns(3)
+                cols4[0].metric("📝 note下書き", len(note_files4))
+                cols4[1].metric("📚 KDP原稿", len(kdp_files4))
+                cols4[2].metric("🐦 X投稿", len(x_files4))
+        else:
+            st.info("生成物データがありません。firebase_dashboard_pusher.pyを実行してください。")
+        style.section_card_end()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 📈 Eval品質（旧 9_Eval品質.py）
+# ══════════════════════════════════════════════════════════════════════════════
 with tab5:
-    st.info("Eval品質 - 準備中")
+    def _safe5(fn, default=None):
+        try:
+            return fn()
+        except Exception:
+            return default
+
+    eval_data5    = _safe5(lambda: data_loader.eval_status(), {})
+    failure_data5 = _safe5(lambda: data_loader.failure_patterns(), {})
+
+    by_agent5    = (eval_data5 or {}).get("by_agent", [])
+    total_exp5   = (eval_data5 or {}).get("total_experiments", 0)
+    avg_score5   = (eval_data5 or {}).get("overall_avg_score")
+    error_rate5  = (eval_data5 or {}).get("overall_error_rate_pct", 0)
+    impl_status5 = (eval_data5 or {}).get("impl_status", {})
+    impl_done5   = sum(1 for v in impl_status5.values() if v)
+    impl_total5  = max(len(impl_status5), 7)
+
+    style.kpi_wrap_start("info")
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("実験記録", f"{total_exp5}件")
+    c2.metric("平均スコア", f"{avg_score5:.1f} / 10" if avg_score5 else "—")
+    c3.metric("エラー率", f"{error_rate5:.0f}%",
+              delta=f"+{error_rate5:.0f}%" if error_rate5 > 0 else None,
+              delta_color="inverse")
+    c4.metric("実装済み機能", f"{impl_done5} / {impl_total5}項目")
+    c5.metric("評価エージェント数", f"{len(by_agent5)}個")
+    style.kpi_wrap_end()
+
+    tab5_1, tab5_2, tab5_3, tab5_4 = st.tabs([
+        "🗺️ 全体フロー",
+        "📊 スコア分析",
+        "⚠️ エラーパターン",
+        "🗓️ 実装ロードマップ",
+    ])
+
+    with tab5_1:
+        style.section_card_start("📍 Eval接触点マップ（全パイプライン）", "", "info")
+        st.markdown("""
+> **凡例**: 🟢 実装済み &nbsp;|&nbsp; 🔲 計画中 &nbsp;|&nbsp; ⚪ Eval対象外
+        """)
+
+        PIPELINE_EVAL_MAP = [
+            ("毎日 21:26", "⭐ DailyDriver",
+             "step6: agent_runs.jsonl記録 / step6.5: run_stats集計", "🟢"),
+            ("毎日 21:20", "MempalaceMaintenance",
+             "phase3b: 低スコアエージェント検出 → agents_prompts.json自動改善", "🟢"),
+            ("月・木 21:05", "StrategyChain (LangGraph+Prefect)",
+             "run_agent_with_retry(): reviewer採点 → experiments.jsonl記録", "🟢"),
+            ("火・金 21:05", "ContentChain (LangGraph+Prefect)",
+             "run_agent_with_retry(): reviewer採点 → experiments.jsonl記録", "🟢"),
+            ("毎日 21:27", "SelfAuditEngine",
+             "自己監査スコア記録（独立評価）", "🟢"),
+            ("毎日 21:26", "DailyDriver → eval_runner.py",
+             "step9: 定義済みテストケースを毎日自動実行（回帰Eval）", "🔲"),
+            ("日 21:23", "AutonomousLoop",
+             "supervisor_agent: 出力品質チェック → Eval統合予定", "🔲"),
+            ("水 23:03", "ProductMonitor",
+             "Eval対象外（情報収集のみ）", "⚪"),
+            ("月 22:33", "DailyOpensource",
+             "Eval対象外（情報収集のみ）", "⚪"),
+        ]
+
+        cols_h5 = st.columns([2, 3, 4, 1])
+        cols_h5[0].markdown("**時刻 / 頻度**")
+        cols_h5[1].markdown("**パイプライン**")
+        cols_h5[2].markdown("**Eval接触点**")
+        cols_h5[3].markdown("**状態**")
+
+        for t5, name5, eval_point5, status5 in PIPELINE_EVAL_MAP:
+            cols5 = st.columns([2, 3, 4, 1])
+            cols5[0].markdown(f'<span style="font-family:monospace;color:#666">{t5}</span>',
+                              unsafe_allow_html=True)
+            cols5[1].markdown(f"**{name5}**")
+            cols5[2].markdown(f'<span style="color:#555;font-size:0.9em">{eval_point5}</span>',
+                              unsafe_allow_html=True)
+            cols5[3].markdown(status5)
+        style.section_card_end()
+
+        style.section_card_start("🔄 Evalデータフロー（現状 → 目標）", "", "ok")
+        st.markdown("""
+```
+【現状フロー】
+パイプライン実行
+  ├─ run_agent()          → agent_runs.jsonl   (latency / error / cost)
+  └─ run_agent_with_retry() → experiments.jsonl (score / verdict / blind_spots)
+                                    ↓
+                           mempalace phase3b (毎日21:20)
+                                    ↓
+                           agents_prompts.json 自動改善
+                                    ↓
+                           次回実行から改善済みプロンプトで動作
+
+【目標フロー（追加予定）】
+eval_testcases/*.yaml  ← テストケース定義（入力・期待スコア・評価観点）
+         ↓
+eval_runner.py         ← DailyDriver step9 から毎日呼び出し
+         ↓
+experiments.jsonl      ← 既存フォーマットに追記（eval_mode=True で区別）
+         ↓
+回帰検出               ← 前回スコアより2点以上低下 → Kanban自動起票
+```
+        """)
+        style.section_card_end()
+
+    with tab5_2:
+        if by_agent5:
+            style.section_card_start("📊 エージェント別スコア・Verdict分布", "", "info")
+            cols_h5b = st.columns([2, 1, 1, 1, 3])
+            cols_h5b[0].markdown("**エージェント**")
+            cols_h5b[1].markdown("**平均スコア**")
+            cols_h5b[2].markdown("**実験件数**")
+            cols_h5b[3].markdown("**エラー率**")
+            cols_h5b[4].markdown("**Verdict分布**")
+
+            for a5 in sorted(by_agent5, key=lambda x: -(x.get("avg_score") or 0)):
+                agent_name5  = a5.get("agent", "?")
+                avg_s5       = a5.get("avg_score")
+                exp_count5   = a5.get("experiment_count", 0)
+                err_rate5    = a5.get("error_rate_pct", 0)
+                verdicts5    = a5.get("verdicts", {})
+
+                score_icon5 = "🔴" if (avg_s5 and avg_s5 < 4) else ("🟡" if (avg_s5 and avg_s5 < 6) else "🟢")
+                err_icon5   = "🔴" if err_rate5 > 20 else ("🟡" if err_rate5 > 5 else "🟢")
+
+                v_parts5 = []
+                for k5, cnt5 in sorted(verdicts5.items(), key=lambda x: -x[1])[:3]:
+                    v_parts5.append(f"{k5[:6]}:{cnt5}")
+                verdict_str5 = " / ".join(v_parts5) if v_parts5 else "—"
+
+                cols5b = st.columns([2, 1, 1, 1, 3])
+                cols5b[0].code(agent_name5)
+                cols5b[1].write(f"{score_icon5} {avg_s5:.1f}" if avg_s5 else "—")
+                cols5b[2].write(str(exp_count5))
+                cols5b[3].write(f"{err_icon5} {err_rate5:.0f}%")
+                cols5b[4].write(verdict_str5)
+            style.section_card_end()
+
+            problem_agents5 = [a5 for a5 in by_agent5
+                               if (a5.get("avg_score") or 10) < 5 or a5.get("error_rate_pct", 0) > 20]
+            if problem_agents5:
+                style.section_card_start(
+                    f"🔴 要改善エージェント（スコア<5 or エラー率>20%）",
+                    f"{len(problem_agents5)}件", "warn")
+                for a5 in problem_agents5:
+                    avg_s5b    = a5.get("avg_score")
+                    err_rate5b = a5.get("error_rate_pct", 0)
+                    reasons5   = []
+                    if avg_s5b and avg_s5b < 5:
+                        reasons5.append(f"スコア低: {avg_s5b:.1f}/10")
+                    if err_rate5b > 20:
+                        reasons5.append(f"エラー率高: {err_rate5b:.0f}%")
+                    st.markdown(f"- `{a5['agent']}` — {' / '.join(reasons5)}")
+                style.section_card_end()
+        else:
+            st.info("Firebase にデータがまだありません。`firebase_dashboard_pusher.py` を実行してください。")
+
+        style.section_card_start("📋 Verdict 判定基準", "", "info")
+        st.markdown("""
+| Verdict | スコア目安 | 意味 |
+|---------|-----------|------|
+| **推奨** | 7.0〜10 | そのまま本番投入可 |
+| **条件付き** | 5.5〜6.9 | 軽微な修正で投入可 |
+| **保留** | 4.0〜5.4 | 改善してから再評価 |
+| **却下** | 0〜3.9 | 根本的な見直しが必要 |
+
+> スコアは `reviewer` エージェントが 1〜10 点で評価。`experiments.jsonl` に記録。
+        """)
+        style.section_card_end()
+
+    with tab5_3:
+        fp_patterns5 = (failure_data5 or {}).get("patterns", {})
+
+        if fp_patterns5:
+            style.section_card_start("🔍 失敗パターン分類（mempalace phase3b が自動解析）", "", "warn")
+            cols_h5c = st.columns([2, 2, 1, 3])
+            cols_h5c[0].markdown("**エージェント**")
+            cols_h5c[1].markdown("**エラー種別**")
+            cols_h5c[2].markdown("**件数**")
+            cols_h5c[3].markdown("**自動対処内容**")
+            AUTO_FIX5 = {
+                "json_parse_failed": "プロンプトに「JSONのみ出力」制約を自動注入",
+                "claude_cli_error":  "プロンプト短縮・トークン削減を改善に反映",
+                "timeout":           "出力簡潔化指示を改善に反映",
+            }
+            for agent_name5c, err_counts5 in sorted(fp_patterns5.items()):
+                if not isinstance(err_counts5, dict):
+                    continue
+                for err_type5, count5 in sorted(err_counts5.items(), key=lambda x: -x[1]):
+                    cols5c = st.columns([2, 2, 1, 3])
+                    cols5c[0].code(agent_name5c)
+                    cols5c[1].write(f"`{err_type5}`")
+                    cols5c[2].write(f"{'🔴' if count5 >= 3 else '🟡'} {count5}")
+                    cols5c[3].write(AUTO_FIX5.get(err_type5, "次回phase3bで分析・改善"))
+            style.section_card_end()
+
+        elif by_agent5:
+            style.section_card_start("⚠️ エラー率サマリー（agent_runs.jsonl）", "", "warn")
+            error_agents5 = [a5 for a5 in by_agent5 if a5.get("error_rate_pct", 0) > 0]
+            if error_agents5:
+                cols_h5d = st.columns([2, 1, 3])
+                cols_h5d[0].markdown("**エージェント**")
+                cols_h5d[1].markdown("**エラー率**")
+                cols_h5d[2].markdown("**状態**")
+                for a5d in sorted(error_agents5, key=lambda x: -x.get("error_rate_pct", 0)):
+                    cols5d = st.columns([2, 1, 3])
+                    cols5d[0].code(a5d["agent"])
+                    rate5d = a5d.get("error_rate_pct", 0)
+                    cols5d[1].write(f"{'🔴' if rate5d > 20 else '🟡'} {rate5d:.0f}%")
+                    cols5d[2].write("phase3b次回実行時に自動分類・改善")
+            style.section_card_end()
+        else:
+            st.info("Firebase にデータがまだありません。`firebase_dashboard_pusher.py` を実行してください。")
+
+        style.section_card_start("🔍 既知エラーパターンと対処法", "", "info")
+        st.markdown("""
+| エラー種別 | 発生エージェント | 原因 | 対処法 |
+|-----------|----------------|------|--------|
+| `json_parse_failed` | bizdev / reviewer | Haiku が JSON 以外のテキストを出力 | プロンプトに `出力はJSONのみ` 制約を追加 |
+| `claude_cli_error` | cx_expert | claude -p プロセス異常終了 | `safe_run()` の timeout 延長・リトライ追加 |
+| タイムアウト | 全般 | 処理時間超過 | Haiku 優先 / 入力トークン削減 |
+| コンテキスト超過 | LangGraph系 | プロンプト肥大化 | `--max-tokens` / 入力切り詰め |
+
+> **自動対処**: `mempalace_maintenance.py phase3b` が毎日 21:20 にエラー率>20%を検知し、
+> 改善プロンプトを自動生成して `agents_prompts.json` を更新。
+        """)
+        style.section_card_end()
+
+    with tab5_4:
+        style.section_card_start("✅ 実装済み機能（Eval基盤）", "", "ok")
+        DONE_ITEMS5 = [
+            ("agent_runs.jsonl", "本番ログ記録（latency/error/cost/trace_id）",
+             "agent_framework.py → run_agent()"),
+            ("experiments.jsonl", "評価ログ記録（score/verdict/blind_spots）",
+             "agent_framework.py → run_agent_with_retry()"),
+            ("agents_prompts.json + Git", "プロンプトバージョン管理（履歴付き）",
+             "mempalace_maintenance.py → GitHub管理"),
+            ("mempalace phase3b", "日次自動改善（run_stats→低スコア検知→prompt更新）",
+             "毎日 21:20 自動実行"),
+            ("agent_run_stats Firebase", "エラー率・レイテンシのダッシュボード可視化",
+             "AIシステム → 稼働状況タブ"),
+        ]
+        for name5e, desc5e, where5e in DONE_ITEMS5:
+            st.markdown(
+                f'✅ **{name5e}**'
+                f'<br><span style="color:#555;font-size:0.9em;margin-left:1.5em">'
+                f'{desc5e}<br>'
+                f'<span style="color:#888">実装場所: {where5e}</span>'
+                f'</span>',
+                unsafe_allow_html=True,
+            )
+            st.markdown("")
+        style.section_card_end()
+
+        style.section_card_start("🔲 未実装（次のステップ）", "優先順", "warn")
+        PLANNED_ITEMS5 = [
+            ("1", "eval_testcases/*.yaml",
+             "エージェントごとのテストケース定義（入力・期待スコア・評価観点）",
+             "30分", "eval_testcases/ フォルダ新規作成"),
+            ("2", "eval_runner.py",
+             "YAMLテストケースを実行 → experiments.jsonlに記録（回帰Eval）",
+             "30分", "DailyDriver step9 から呼び出し"),
+            ("3", "回帰検出（DailyDriver連携）",
+             "前回比スコア低下 > 2点 → Kanban自動起票",
+             "10分", "eval_runner.py 追記のみ"),
+            ("4", "失敗パターン自動分類",
+             "agent_runs.jsonl のエラー種別を自動タグ付け → failure_patterns.md 更新",
+             "20分", "mempalace phase3b 拡張"),
+            ("5", "プロンプトA/Bテスト",
+             "2バージョンのプロンプトを同一入力で比較評価",
+             "後日", "eval_runner.py 拡張"),
+        ]
+        cols_h5e = st.columns([0.5, 2, 4, 1, 2])
+        cols_h5e[0].markdown("**#**")
+        cols_h5e[1].markdown("**機能**")
+        cols_h5e[2].markdown("**内容**")
+        cols_h5e[3].markdown("**工数**")
+        cols_h5e[4].markdown("**統合先**")
+        for no5, name5f, desc5f, effort5, where5f in PLANNED_ITEMS5:
+            cols5e = st.columns([0.5, 2, 4, 1, 2])
+            cols5e[0].write(no5)
+            cols5e[1].code(name5f)
+            cols5e[2].write(desc5f)
+            cols5e[3].write(effort5)
+            cols5e[4].write(where5f)
+        style.section_card_end()
+
+        style.section_card_start("💡 OSS vs 自前の設計判断", "", "info")
+        st.markdown("""
+| 選択肢 | メリット | デメリット | 判断 |
+|--------|---------|-----------|------|
+| **promptfoo** | 業界標準・CI統合容易 | Node.js依存・外部HTTP・CrowdStrikeリスク | ❌ 不採用 |
+| **deepeval** | Python製・豊富なメトリクス | API呼び出し前提・外部依存 | ❌ 不採用 |
+| **自前 eval_runner.py** | 既存インフラ完全統合・claude -p のみ・外部HTTP不要 | 機能は最小限 | ✅ 採用 |
+
+> **採用理由**: `claude -p` 縛り・CrowdStrikeリスク・外部HTTP最小化の制約下では、
+> `experiments.jsonl + agent_framework.py` の既存仕組みに乗せた自前実装が最適。
+        """)
+        style.section_card_end()
