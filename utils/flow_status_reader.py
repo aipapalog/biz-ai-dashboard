@@ -33,7 +33,7 @@ def format_last_run(iso_str: str | None) -> str:
             return f"{diff.seconds // 60}分前"
         if diff.days == 0:
             return dt.strftime("%H:%M")
-        return dt.strftime("%-m/%-d %H:%M")
+        return dt.strftime("%m/%d %H:%M")
     except Exception:
         return (iso_str[:16] if iso_str else "不明")
 
