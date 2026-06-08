@@ -299,8 +299,12 @@ def freshness_banner(push_log: dict) -> str:
         return '<span class="freshness-stale">⚠️ データ未取得</span>'
 
     try:
+        from datetime import timezone
         dt = datetime.fromisoformat(ts)
-        minutes = int((datetime.now() - dt).total_seconds() / 60)
+        now = datetime.now(timezone.utc)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        minutes = int((now - dt).total_seconds() / 60)
     except Exception:
         return '<span class="freshness-warn">更新時刻不明</span>'
 
