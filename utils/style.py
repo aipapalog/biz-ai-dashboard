@@ -116,6 +116,57 @@ GLOBAL_CSS = """
 
     /* ── ページ見出し下のキャプション余白調整 ─────────── */
     h1 { padding-bottom: 0.2rem; }
+
+    /* ============ グラスモーフィズムテーマ ============ */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.07);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    .glass-kpi {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 14px 10px;
+        text-align: center;
+    }
+    .glass-kpi .kpi-label { color: #6c7086; font-size: 11px; margin-bottom: 4px; }
+    .glass-kpi .kpi-value { font-size: 24px; font-weight: 700; }
+    .glass-alert-red {
+        background: rgba(243,139,168,0.15);
+        border: 1px solid rgba(243,139,168,0.4);
+        border-radius: 8px;
+        padding: 8px 14px;
+        color: #f38ba8;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+    .glass-alert-yellow {
+        background: rgba(249,226,175,0.15);
+        border: 1px solid rgba(249,226,175,0.4);
+        border-radius: 8px;
+        padding: 8px 14px;
+        color: #f9e2af;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+    .freshness-ok   { background:rgba(166,227,161,0.12); border:1px solid rgba(166,227,161,0.35);
+                      border-radius:20px; padding:3px 12px; color:#a6e3a1; font-size:11px; }
+    .freshness-warn { background:rgba(249,226,175,0.12); border:1px solid rgba(249,226,175,0.35);
+                      border-radius:20px; padding:3px 12px; color:#f9e2af; font-size:11px; }
+    .freshness-stale{ background:rgba(243,139,168,0.12); border:1px solid rgba(243,139,168,0.35);
+                      border-radius:20px; padding:3px 12px; color:#f38ba8; font-size:11px; }
+    .flow-badge-ok   { background:rgba(166,227,161,0.15); border:1px solid rgba(166,227,161,0.3);
+                       border-radius:4px; padding:3px 8px; color:#a6e3a1; font-size:11px; margin:2px; display:inline-block; }
+    .flow-badge-err  { background:rgba(243,139,168,0.15); border:1px solid rgba(243,139,168,0.3);
+                       border-radius:4px; padding:3px 8px; color:#f38ba8; font-size:11px; margin:2px; display:inline-block; }
+    .flow-badge-warn { background:rgba(249,226,175,0.15); border:1px solid rgba(249,226,175,0.3);
+                       border-radius:4px; padding:3px 8px; color:#f9e2af; font-size:11px; margin:2px; display:inline-block; }
+    /* ============================================== */
 </style>
 """
 
@@ -236,3 +287,32 @@ def trow_head():
         '</div>',
         unsafe_allow_html=True,
     )
+
+
+def freshness_banner(push_log: dict) -> str:
+    """_push_logのtimestampから鮮度バナーHTMLを返す"""
+    from datetime import datetime
+    ts = push_log.get("timestamp")
+    fail = push_log.get("fail_count", 0)
+
+    if not ts:
+        return '<span class="freshness-stale">⚠️ データ未取得</span>'
+
+    try:
+        dt = datetime.fromisoformat(ts)
+        minutes = int((datetime.now() - dt).total_seconds() / 60)
+    except Exception:
+        return '<span class="freshness-warn">更新時刻不明</span>'
+
+    if minutes < 120:
+        css = "freshness-ok"
+        label = f"● 更新: {minutes}分前"
+    elif minutes < 1440:
+        css = "freshness-warn"
+        label = f"⚠️ 更新: {minutes // 60}時間前"
+    else:
+        css = "freshness-stale"
+        label = f"🔴 更新: {minutes // 1440}日前"
+
+    suffix = f" ({fail}件失敗)" if fail else ""
+    return f'<span class="{css}">{label}{suffix}</span>'
