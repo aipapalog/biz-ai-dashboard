@@ -1,10 +1,10 @@
-import streamlit as st
+﻿import streamlit as st
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import data_loader, firebase_client, style
-from utils.data_loader_v2 import get_push_log
+from utils.data_loader import get_push_log
 from utils.style import freshness_banner
 
 st.set_page_config(page_title="BizDash", page_icon="🏠", layout="wide")

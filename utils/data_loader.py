@@ -1,3 +1,80 @@
+import streamlit as st
+from utils.firebase_client import get_doc
+
+
+@st.cache_data(ttl=3600)
+def get_system_health() -> dict:
+    return get_doc("dashboard", "system_health") or {
+        "flows": {}, "alerts": [], "pipeline_count": 0,
+        "scheduler": {}, "last_run": "",
+    }
+
+
+@st.cache_data(ttl=3600)
+def get_tasks() -> dict:
+    return get_doc("dashboard", "tasks") or {
+        "summary": {}, "active": {}, "total": 0,
+        "in_progress": 0, "high_priority": [],
+    }
+
+
+@st.cache_data(ttl=3600)
+def get_business() -> dict:
+    return get_doc("dashboard", "business") or {
+        "business_status": {}, "pf_watch": {}, "freelance": {},
+    }
+
+
+@st.cache_data(ttl=3600)
+def get_bizdev() -> dict:
+    return get_doc("dashboard", "bizdev") or {"report": {}, "trend": {}}
+
+
+@st.cache_data(ttl=3600)
+def get_cx_quality() -> dict:
+    return get_doc("dashboard", "cx_quality") or {
+        "cx_report": {}, "levelup_status": {}, "levelup_history": [],
+    }
+
+
+@st.cache_data(ttl=3600)
+def get_ai_ops() -> dict:
+    return get_doc("dashboard", "ai_ops") or {
+        "autonomous_loop": {}, "agent_run_stats": {}, "agent_insights": {},
+    }
+
+
+@st.cache_data(ttl=3600)
+def get_finance() -> dict:
+    return get_doc("dashboard", "finance") or {
+        "api_budget": {}, "cost_report": {}, "token_usage": {},
+    }
+
+
+@st.cache_data(ttl=3600)
+def get_content() -> dict:
+    return get_doc("dashboard", "content") or {
+        "mempalace": {}, "mempalace_rooms": {}, "obsidian": {},
+        "sync_brain": {}, "sync_tasks": {},
+    }
+
+
+@st.cache_data(ttl=3600)
+def get_meta() -> dict:
+    return get_doc("dashboard", "meta") or {
+        "risk_report": {}, "failure_patterns": {}, "code_health": {},
+        "eval_status": {}, "pdca": {}, "biz_pdca": {}, "last_updated": "",
+    }
+
+
+def get_push_log() -> dict:
+    """キャッシュなし — 鮮度バナー表示用"""
+    return get_doc("dashboard", "_push_log") or {
+        "timestamp": None, "success_count": 0, "fail_count": 0, "errors": {},
+    }
+
+
+# ── v1 互換関数（data_loader.py から統合）────────────────────────────────────
 """Firestore優先でデータ取得し、未接続時はローカルJSONにフォールバック。"""
 import json
 import os
@@ -26,16 +103,13 @@ def kanban_summary() -> dict:
 
 
 def kanban_tasks() -> list:
-    # kanban_tasks コレクション優先（書き込みを即時反映）
     fb = firebase_client.get_collection("kanban_tasks")
     if fb:
         tasks = [t for t in fb if isinstance(t, dict)]
-        # name フィールド正規化
         for t in tasks:
             if not t.get("name"):
                 t["name"] = t.get("title", "")
         return tasks
-    # dashboard/kanban_active（pusher が 30 分毎更新）
     fb_doc = firebase_client.get_doc("dashboard", "kanban_active")
     if fb_doc and fb_doc.get("tasks"):
         return [t for t in fb_doc["tasks"] if isinstance(t, dict)]
@@ -72,9 +146,7 @@ def pipeline_logs() -> dict:
 
 
 def pipeline_merged() -> dict:
-    """pipeline_status + pipeline_token_usage を統合した per-pipeline dict。
-    key: pipeline_name, value: status フィールド + token_total/cost_usd/token_ts を追加。
-    新規ページはこの関数を使うこと。各ドキュメントを個別に参照する必要はない。"""
+    """pipeline_status + pipeline_token_usage を統合した per-pipeline dict。"""
     status_doc = pipeline_status()
     token_doc  = pipeline_token_usage()
     result = {}
@@ -229,7 +301,7 @@ def routines() -> list:
     return []
 
 
-# ── 書き込み関数 ──────────────────────────────────────────────────────────────
+# ── 書き込み関数 ─────────────────────────────────────────────────────────────
 
 def update_task(task_id: str, updates: dict) -> bool:
     """タスクフィールドを更新する。kanban_tasks/{task_id} に PATCH。"""
