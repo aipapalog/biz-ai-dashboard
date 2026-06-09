@@ -60,15 +60,13 @@ AGENTS = [
 ]
 
 FOLDERS = [
-    ("🟢", "agents/",                    "メインスクリプト群（100+ファイル）",        "chains/agent_framework/tools等"),
-    ("🟢", "agents/data/",               "キャッシュ・データファイル（JSON/JSONL）",  "単一ライター原則遵守"),
-    ("🟢", "agents/logs/",               "実行ログ（JSONL・テキスト・biz_pdca）",    "日次ローテーション"),
-    ("🟢", "agents/platforms/",          "外部PF連携（Gumroad/KDP/Etsy/Payhip）",  "pending多数"),
-    ("🟢", "streamlit_dashboard/",       "Streamlitダッシュボード（8ページ）",        "push→自動デプロイ"),
-    ("🟢", "wiki/",                       "ナレッジベース（audience-pains等）",        "DailyDriver参照"),
-    ("🟢", "skills/",                     "Claude Codeスキル定義",                   "セッション内で起動"),
-    ("🔴", "agents/deprecated_scripts/", "廃止スクリプト（参照用）",                 "削除候補"),
-    ("🔴", "agents/_archive_20260602/",  "2026-06-02以前のアーカイブ",              "削除候補"),
+    ("🟢", "agents/",                   "メインスクリプト群（100+ファイル）",       "chains/agent_framework/tools等"),
+    ("🟢", "agents/data/",              "キャッシュ・データファイル（JSON/JSONL）", "単一ライター原則遵守"),
+    ("🟢", "agents/logs/",              "実行ログ（JSONL・テキスト・biz_pdca）",   "日次ローテーション"),
+    ("🟢", "agents/platforms/",         "外部PF連携（Gumroad/KDP/Etsy/Payhip）", "pending多数"),
+    ("🟢", "streamlit_dashboard/",      "Streamlitダッシュボード（3ページ）",       "push→自動デプロイ"),
+    ("🟢", "skills/",                   "Claude Codeスキル定義",                  "セッション内で起動"),
+    ("🔴", "agents/_archive_20260602/", "2026-06-02以前のアーカイブ",             "削除候補"),
 ]
 
 DATA_FILES = [
@@ -131,7 +129,7 @@ with tab1:
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("タスク数", f"{total_pl}本")
     c2.metric("エージェント", f"{len(AGENTS)}個")
-    c3.metric("ページ数", "8")
+    c3.metric("ページ数", "3")
     c4.metric("正常", f"{ok_pl}本", delta=None)
     c5.metric("失敗", f"{failed_pl}本",
               delta=f"-{failed_pl}" if failed_pl else None,
