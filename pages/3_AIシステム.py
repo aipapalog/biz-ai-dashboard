@@ -11,28 +11,23 @@ from utils.style import freshness_banner
 # ─── 静的定数（旧 0_システム概要.py） ────────────────────────────────────────
 
 DAILY_PIPELINES = [
-    ("21:00", "DailyCheckinFetch",       "接続チェック・日次初期化"),
-    ("21:15", "UserAcquisitionFunnel",   "ユーザー獲得ファネル分析"),
-    ("21:20", "MempalaceMaintenance",    "メモリ保守・agent_levelup・知識補完"),
-    ("21:21", "GDriveBackup",            "Googleドライブバックアップ"),
-    ("21:26", "⭐ DailyDriver",          "メインオーケストレーター（全施策実行）"),
-    ("21:27", "SelfAuditEngine",         "自己監査・品質評価"),
-    ("21:30", "FetchClaudeUsageAuto",    "Claude使用量取得・Kanban起票"),
-    ("21:55", "FirebaseDashboardPusher", "Firebaseへのデータプッシュ"),
+    ("18:30", "DailyCheckinMailer",   "チェックインメール送信"),
+    ("21:00", "DailyCheckinFetch",    "接続チェック・日次初期化"),
+    ("21:20", "MempalaceMaintenance", "メモリ保守・agent_levelup・知識補完"),
+    ("21:21", "GDriveBackup",         "Googleドライブバックアップ"),
+    ("21:23", "⭐ PrefectDailyFlow",  "DailyDriver含む日次パイプライン群（Prefect統合）"),
+    ("21:30", "FetchClaudeUsageAuto", "Claude使用量取得・Kanban起票"),
 ]
 
 CHAIN_PIPELINES = [
-    ("月・木 21:05", "StrategyChain", "戦略分析 → BizDev → PDCAレポート（LangGraph+Prefect）"),
-    ("火・金 21:05", "ContentChain",  "コンテンツ生成 → note記事投稿（LangGraph+Prefect）"),
+    ("月・木 21:05", "PrefectStrategyFlow",    "戦略分析 → BizDev → PDCAレポート（LangGraph+Prefect）"),
+    ("火・金 21:05", "PrefectContentFlow",     "コンテンツ生成 → note記事投稿（LangGraph+Prefect）"),
+    ("水・土 21:06", "PrefectMaintenanceFlow", "システム改善・監査ループ（LangGraph+Prefect）"),
 ]
 
 WEEKLY_PIPELINES = [
-    ("日 21:23", "AutonomousLoop",      "自律ループ実行（クラウド化エージェント統合）"),
-    ("月 22:33", "DailyOpensource",     "OSS記事パイプライン"),
-    ("水 23:03", "ProductMonitor",       "製品監視・市場情報収集"),
     ("日 22:57", "NameConsistencyCheck", "ファイル名一貫性チェック"),
     ("日 21:27", "DocSync",             "ドキュメント同期"),
-    ("毎日 18:30", "DailyCheckinMailer", "チェックインメール送信"),
 ]
 
 DAILY_DRIVER_STEPS = [
@@ -144,9 +139,9 @@ with tab1:
         col_daily, col_chain = st.columns([1, 1])
 
         with col_daily:
-            style.section_card_start("📅 日次タスク（毎日 21:00〜）", "8タスク", "info")
+            style.section_card_start("📅 日次タスク（毎日）", f"{len(DAILY_PIPELINES)}タスク", "info")
             for t, name, role in DAILY_PIPELINES:
-                is_master = "DailyDriver" in name
+                is_master = "PrefectDailyFlow" in name or "DailyDriver" in name
                 icon = "⭐" if is_master else "▸"
                 bg = "background:#fffbe6;border-left:3px solid #f5a623;padding:4px 8px;border-radius:4px;" if is_master else ""
                 st.markdown(
@@ -160,7 +155,7 @@ with tab1:
             style.section_card_end()
 
         with col_chain:
-            style.section_card_start("⚡ チェーンパイプライン（週2回）", "2チェーン", "ok")
+            style.section_card_start("⚡ チェーンパイプライン（週次・Prefect）", f"{len(CHAIN_PIPELINES)}チェーン", "ok")
             for t, name, role in CHAIN_PIPELINES:
                 st.markdown(
                     f'<div style="margin-bottom:8px">'
