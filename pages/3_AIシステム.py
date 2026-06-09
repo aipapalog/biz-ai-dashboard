@@ -1,11 +1,11 @@
-import streamlit as st
+﻿import streamlit as st
 import sys
 from pathlib import Path
 from datetime import datetime, date, timedelta
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils import data_loader, style
-from utils.data_loader_v2 import get_push_log
+from utils.data_loader import get_push_log
 from utils.style import freshness_banner
 
 # ─── 静的定数（旧 0_システム概要.py） ────────────────────────────────────────
@@ -93,12 +93,15 @@ st.markdown(
 
 st.title("🤖 AI・システム")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 システム概要",
     "⚙️ 稼働状況",
     "🏢 経営体制",
     "🧠 AI管理",
-    "📈 Eval品質"
+    "📈 Eval品質",
+    "💰 コスト管理",
+    "🔄 フロー実行",
+    "🩺 システム健全性",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -126,14 +129,14 @@ with tab1:
 
     style.kpi_wrap_start("info")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("スケジューラータスク", f"{total_pl}本")
+    c1.metric("タスク数", f"{total_pl}本")
     c2.metric("エージェント", f"{len(AGENTS)}個")
-    c3.metric("ダッシュボードページ", "8ページ")
-    c4.metric("パイプライン正常", f"{ok_pl}本", delta=None)
-    c5.metric("パイプライン失敗", f"{failed_pl}本",
+    c3.metric("ページ数", "8")
+    c4.metric("正常", f"{ok_pl}本", delta=None)
+    c5.metric("失敗", f"{failed_pl}本",
               delta=f"-{failed_pl}" if failed_pl else None,
               delta_color="inverse" if failed_pl else "off")
-    c6.metric("統合スクリプト", f"{integrated_pl}本")
+    c6.metric("統合", f"{integrated_pl}本")
     style.kpi_wrap_end()
 
     subtab1, subtab2, subtab3 = st.tabs(["⏱️ 実行タイムライン", "🤖 エージェント構成", "📁 ファイル・フォルダ構成"])
@@ -1772,4 +1775,236 @@ experiments.jsonl      ← 既存フォーマットに追記（eval_mode=True �
 > **採用理由**: `claude -p` 縛り・CrowdStrikeリスク・外部HTTP最小化の制約下では、
 > `experiments.jsonl + agent_framework.py` の既存仕組みに乗せた自前実装が最適。
         """)
+        style.section_card_end()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 💰 コスト管理
+# ══════════════════════════════════════════════════════════════════════════════
+with tab6:
+    def _safe6(fn, default=None):
+        try:
+            return fn()
+        except Exception:
+            return default
+
+    finance6    = _safe6(lambda: data_loader.get_finance(), {})
+    usage_cache6 = _safe6(lambda: data_loader._local("usage_cache.json", {}), {})
+
+    sonnet_pct6  = usage_cache6.get("sonnet_weekly_pct", 0) if usage_cache6 else 0
+    haiku_pct6   = 100 - sonnet_pct6 if sonnet_pct6 else 0
+    session_pct6 = usage_cache6.get("session_pct", 0) if usage_cache6 else 0
+    all_pct6     = usage_cache6.get("all_models_weekly_pct", 0) if usage_cache6 else 0
+    last_check6  = (usage_cache6.get("last_checked", "") or "")[:16] if usage_cache6 else ""
+
+    cost_doc6   = finance6.get("cost_report", {}) if finance6 else {}
+    token_doc6  = finance6.get("token_usage", {}) if finance6 else {}
+    budget_doc6 = finance6.get("api_budget", {}) if finance6 else {}
+
+    monthly_tokens6 = token_doc6.get("monthly_total", 0) if token_doc6 else 0
+    est_cost6       = cost_doc6.get("estimated_monthly_usd", 0) if cost_doc6 else 0
+
+    style.section_card_start("💰 コスト & モデル使用率")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("🪙 月間トークン", f"{monthly_tokens6:,}" if monthly_tokens6 else "未収集")
+    with c2:
+        sonnet_color = "🟠" if sonnet_pct6 > 30 else "🟢"
+        st.metric("🤖 Sonnet比率（週次）", f"{sonnet_color} {sonnet_pct6}%", help="30%超でオレンジ警告")
+    with c3:
+        st.metric("💵 課金見込み（月）", f"${est_cost6:.2f}" if est_cost6 else "未収集")
+
+    if sonnet_pct6 > 30:
+        st.warning(f"⚠️ Sonnet使用率が {sonnet_pct6}% — 30%を超えています。Haikuへの委譲を強化してください。")
+
+    st.info("ℹ️ 6/15以降の実データで蓄積中。usage_cache.json は毎日21:30に自動更新されます。")
+    style.section_card_end()
+
+    style.section_card_start("📊 Claude Cap使用状況（usage_cache.json）")
+    if usage_cache6:
+        cc1, cc2, cc3 = st.columns(3)
+        cc1.metric("セッション使用率", f"{session_pct6}%")
+        cc2.metric("全モデル週次使用率", f"{all_pct6}%")
+        cc3.metric("Haiku比率（推定）", f"{haiku_pct6}%")
+        if last_check6:
+            st.caption(f"最終取得: {last_check6}")
+        if all_pct6 >= 80:
+            st.error("🔴 Token使用率80%超 — 全Haikuモード切替推奨（CrowdStrikeリスク軽減）")
+        elif all_pct6 >= 60:
+            st.warning(f"🟡 Token使用率 {all_pct6}% — Haiku優先を徹底してください")
+    else:
+        st.info("usage_cache.jsonが見つかりません。fetch_claude_usage_auto.pyを実行してください。")
+    style.section_card_end()
+
+    if budget_doc6:
+        style.section_card_start("💳 APIバジェット")
+        budget_items6 = budget_doc6.get("items", []) if isinstance(budget_doc6, dict) else []
+        if budget_items6:
+            import pandas as pd
+            st.dataframe(pd.DataFrame(budget_items6), use_container_width=True, hide_index=True)
+        else:
+            for k6, v6 in (budget_doc6.items() if isinstance(budget_doc6, dict) else []):
+                st.write(f"**{k6}:** {v6}")
+        style.section_card_end()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 🔄 フロー実行ログ
+# ══════════════════════════════════════════════════════════════════════════════
+with tab7:
+    from utils import flow_status_reader
+    from utils import firebase_client as _fc7
+
+    def _safe7(fn, default=None):
+        try:
+            return fn()
+        except Exception:
+            return default
+
+    flow7 = _safe7(lambda: flow_status_reader.get_flow_status(_fc7), {})
+    sh7   = _safe7(lambda: data_loader.get_system_health(), {})
+
+    FLOWS7 = [
+        ("maintenance", "MempalaceMaintenance",  "毎日 21:20"),
+        ("strategy",    "StrategyChain",         "月・木 21:07"),
+        ("content",     "ContentChain",          "火・金 21:03"),
+        ("daily",       "DailyDriver",           "毎日 21:26"),
+    ]
+
+    style.section_card_start("🔄 Prefectフロー実行状況（Firestore: flow_status/latest）")
+    col7s = st.columns(4)
+    for i7, (key7, label7, sched7) in enumerate(FLOWS7):
+        fdata7  = (flow7 or {}).get(key7, {})
+        status7   = fdata7.get("status", "unknown") if isinstance(fdata7, dict) else "unknown"
+        last_run7 = fdata7.get("last_run", None) if isinstance(fdata7, dict) else None
+        duration7 = fdata7.get("duration_seconds", None) if isinstance(fdata7, dict) else None
+        icon7     = flow_status_reader.status_icon(status7)
+        last_str7 = flow_status_reader.format_last_run(last_run7)
+        dur_str7  = f"{duration7:.0f}秒" if isinstance(duration7, (int, float)) and duration7 else "—"
+        bg7  = "#f0fdf4" if status7 == "ok" else ("#fef2f2" if status7 not in ("ok", "unknown") else "#f8fafc")
+        brd7 = "#22c55e" if status7 == "ok" else ("#ef4444" if status7 not in ("ok", "unknown") else "#94a3b8")
+        with col7s[i7]:
+            st.markdown(
+                f'<div style="background:{bg7};border-left:4px solid {brd7};'
+                f'padding:10px 12px;border-radius:6px;margin-bottom:8px">'
+                f'<div style="font-size:1.4em">{icon7}</div>'
+                f'<div style="font-weight:600;font-size:0.95em">{label7}</div>'
+                f'<div style="color:#666;font-size:0.8em">{sched7}</div>'
+                f'<div style="margin-top:6px;font-size:0.85em">状態: <b>{status7}</b></div>'
+                f'<div style="font-size:0.8em;color:#555">最終: {last_str7}</div>'
+                f'<div style="font-size:0.8em;color:#555">所要: {dur_str7}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+    style.section_card_end()
+
+    for key7e, label7e, _ in FLOWS7:
+        fdata7e  = (flow7 or {}).get(key7e, {})
+        if not isinstance(fdata7e, dict):
+            continue
+        status7e = fdata7e.get("status", "unknown")
+        error7e  = fdata7e.get("error", "") or fdata7e.get("error_detail", "")
+        if status7e not in ("ok", "unknown") and error7e:
+            with st.expander(f"❌ {label7e} — エラー詳細"):
+                st.code(str(error7e)[:1000], language=None)
+
+    if not flow7 or all(
+        (flow7.get(k, {}) or {}).get("status", "unknown") == "unknown"
+        for k, _, _ in FLOWS7
+    ):
+        st.info("ℹ️ Firestoreにflow_statusデータがありません。Prefectフロー実行後に自動反映されます。")
+
+    flows_in_sh7 = (sh7 or {}).get("flows", {})
+    if flows_in_sh7 and isinstance(flows_in_sh7, dict):
+        style.section_card_start("📋 system_health からのフロー情報")
+        for fname7, finfo7 in flows_in_sh7.items():
+            if isinstance(finfo7, dict):
+                st.write(f"**{fname7}**: {finfo7}")
+        style.section_card_end()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 🩺 システム健全性
+# ══════════════════════════════════════════════════════════════════════════════
+with tab8:
+    def _safe8(fn, default=None):
+        try:
+            return fn()
+        except Exception:
+            return default
+
+    sh8       = _safe8(lambda: data_loader.get_system_health(), {})
+    sys_info8 = _safe8(lambda: data_loader.system_info(), {})
+    ds8       = _safe8(lambda: data_loader.datasource(), {})
+
+    alerts8   = (sh8 or {}).get("alerts", []) if sh8 else []
+    pl_cnt8   = (sh8 or {}).get("pipeline_count", 0) if sh8 else 0
+    sched8    = (sh8 or {}).get("scheduler", {}) if sh8 else {}
+    sh_last8  = ((sh8 or {}).get("last_run", "") or "")[:16] if sh8 else ""
+
+    orphan8   = (sh8 or {}).get("orphan_process_count", 0) or 0
+    stale8    = (sh8 or {}).get("stale_output_count", 0) or 0
+    sched_cnt8 = sched8.get("total", pl_cnt8) if isinstance(sched8, dict) else pl_cnt8
+
+    style.section_card_start("🩺 システム健全性サマリー")
+    mc1, mc2, mc3 = st.columns(3)
+    mc1.metric("🔄 孤立プロセス数", orphan8,
+               delta="要確認" if orphan8 > 0 else None, delta_color="inverse")
+    mc2.metric("📦 放置成果物数", stale8,
+               delta="要確認" if stale8 > 5 else None, delta_color="inverse")
+    mc3.metric("⏱️ スケジューラ件数", sched_cnt8)
+    if sh_last8:
+        st.caption(f"最終更新: {sh_last8}")
+    style.section_card_end()
+
+    style.section_card_start("💾 ディスク使用率")
+    disk_info8 = (ds8 or {}).get("disk_usage", {}) if ds8 else {}
+    if disk_info8 and isinstance(disk_info8, dict):
+        for drv8, dinfo8 in disk_info8.items():
+            if not isinstance(dinfo8, dict):
+                continue
+            pct8  = dinfo8.get("percent", 0)
+            used8 = dinfo8.get("used_gb", 0)
+            tot8  = dinfo8.get("total_gb", 0)
+            st.write(f"**{drv8}** — {pct8:.0f}%  ({used8:.1f}GB / {tot8:.1f}GB)")
+            st.progress(min(pct8 / 100, 1.0))
+            if pct8 > 85:
+                st.warning(f"⚠️ {drv8} ディスク使用率 {pct8:.0f}% — 85%超。不要ファイル削除を推奨")
+    elif sys_info8:
+        d_p8 = sys_info8.get("disk_percent", 0)
+        d_u8 = sys_info8.get("disk_used_gb", 0)
+        d_t8 = sys_info8.get("disk_total_gb", 0)
+        st.write(f"**C:** {d_p8:.0f}%  ({d_u8:.1f}GB / {d_t8:.1f}GB)")
+        st.progress(min(d_p8 / 100, 1.0))
+        if d_p8 > 85:
+            st.warning(f"⚠️ ディスク使用率 {d_p8:.0f}% — 85%超。不要ファイル削除を推奨")
+    else:
+        st.info("ディスク情報がありません")
+    style.section_card_end()
+
+    if alerts8:
+        style.section_card_start("⚠️ 既知の問題一覧", f"{len(alerts8)}件", "warn")
+        for al8 in alerts8:
+            if isinstance(al8, dict):
+                level8 = al8.get("level", "warn")
+                msg8   = al8.get("message", str(al8))
+                icon8  = "🔴" if level8 == "error" else "🟡"
+                st.markdown(f"{icon8} {msg8}")
+            else:
+                st.markdown(f"🟡 {al8}")
+        style.section_card_end()
+    else:
+        style.section_card_start("✅ 問題なし", "", "ok")
+        st.success("現在アラートはありません")
+        style.section_card_end()
+
+    extra8 = {k: v for k, v in (sh8 or {}).items()
+              if k not in ("alerts", "pipeline_count", "scheduler", "last_run",
+                           "flows", "orphan_process_count", "stale_output_count")}
+    if extra8:
+        style.section_card_start("📋 その他の健全性情報")
+        for k8, v8 in extra8.items():
+            if isinstance(v8, dict):
+                with st.expander(f"**{k8}**"):
+                    for kk8, vv8 in v8.items():
+                        st.write(f"**{kk8}:** {vv8}")
+            else:
+                st.write(f"**{k8}:** {v8}")
         style.section_card_end()

@@ -14,8 +14,8 @@ GLOBAL_CSS = """
         border-radius: 10px;
         padding: 14px 16px;
     }
-    div[data-testid="stMetricValue"] { font-size: 1.9rem; font-weight: 700; }
-    div[data-testid="stMetricLabel"] p { font-size: 0.82rem; color: #9aa4b2; }
+    div[data-testid="stMetricValue"] { font-size: 1.45rem; font-weight: 700; line-height: 1.3; }
+    div[data-testid="stMetricLabel"] p { font-size: 0.75rem; color: #9aa4b2; white-space: normal !important; word-break: keep-all; line-height: 1.35; }
 
     /* ── KPI 優先度カラー（左ボーダーで重要度を表現） ───
        使い方: 親 div に kpi-* クラスを当てた上で内部の st.metric を着色する。
@@ -114,8 +114,10 @@ GLOBAL_CSS = """
     .status-red    { color: #F38BA8; font-weight: 700; }
     .status-yellow { color: #F9E2AF; font-weight: 700; }
 
-    /* ── ページ見出し下のキャプション余白調整 ─────────── */
-    h1 { padding-bottom: 0.2rem; }
+    /* ── ページ見出し（大きすぎるデフォルトh1を抑制）─── */
+    h1 { font-size: 1.45rem !important; font-weight: 700; letter-spacing: -0.02em; padding-bottom: 0.3rem; color: #e2e8f0; }
+    h2 { font-size: 1.15rem !important; font-weight: 600; color: #cdd6f4; }
+    h3 { font-size: 1.0rem !important; font-weight: 600; color: #cdd6f4; }
 
     /* ============ グラスモーフィズムテーマ ============ */
     .glass-card {
