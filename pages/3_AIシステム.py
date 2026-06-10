@@ -142,8 +142,8 @@ with tab1:
                     delta=f"自律完了{_aut.get('closed_tasks',{}).get('autonomy_rate_pct',0)}%",
                     help="自律完了率 = 人間の介入なしにClaudeが独立完了したタスクの割合")
         _kc3.metric("🟢 効率性 ×20%", f"{_eff_score:.0f}/100",
-                    delta=f"Haiku比率{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%",
-                    help="Haiku比率 = 全エージェント実行のうち低コストモデル(Haiku)を使用した割合。高いほどコスト効率が良い")
+                    delta=f"自動実行Haiku比率{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%",
+                    help="自動エージェント実行（パイプライン）のHaiku使用率。Claude Codeセッション(Sonnet)は含まない")
         _kc4.metric("🟡 学習率 ×15%", f"{_lrn_score:.0f}/100",
                     delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件",
                     help="FBルール数 = MEMORYに蓄積されたフィードバックルールの総数。多いほど学習が進んでいる")
@@ -157,7 +157,7 @@ with tab1:
 |--------|------|------|--------|
 | **信頼性** | ×30% | エージェント実行の成功率・エラー率 | パイプラインが安定稼働している |
 | **自律性** | ×20% | タスク自律完了率×40% + 実行品質×30% + 出力品質×30% | 人手介入なしで動く・JSON出力が正確・Evalスコアが高い |
-| **効率性** | ×20% | Haiku比率（低コストモデル使用率）+ トークン消費量 | コストを抑えて多くのタスクをこなしている |
+| **効率性** | ×20% | 自動パイプライン実行のHaiku比率（※Claude Codeセッションは除く）+ PC負荷 | パイプラインがHaikuのみで稼働・CPU負荷が低い |
 | **学習率** | ×15% | MEMORY蓄積フィードバックルール数 + Eval改善トレンド | 同じミスを繰り返さず知識が増えている |
 | **観測性** | ×15% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 
