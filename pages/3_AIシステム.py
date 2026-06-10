@@ -86,15 +86,13 @@ st.markdown(
 
 st.title("🤖 AI・システム")
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 システム概要",
     "⚙️ 稼働状況",
     "🏢 経営体制",
     "🧠 AI管理",
-    "🔍 AI出力品質",       # 旧: Eval品質（エージェント出力スコア・評価判定）
     "💰 コスト管理",
     "🔄 フロー実行",
-    "🩺 診断・健全性",     # 旧: システム健全性
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -371,8 +369,8 @@ with tab2:
     all_outputs    = _safe2(lambda: data_loader.sync_outputs(), {})
     agent_run_data = _safe2(lambda: data_loader.agent_run_stats(), {})
 
-    tab_pl, tab_loop, tab_res, tab_sched, tab_agent = st.tabs([
-        "⚙️ パイプライン", "🔄 ループログ", "💾 リソース", "⏱️ スケジュール", "🤖 エージェント実績"
+    tab_pl, tab_loop, tab_res, tab_sched, tab_agent, tab_health = st.tabs([
+        "⚙️ パイプライン", "🔄 ループログ", "💾 リソース", "⏱️ スケジュール", "🤖 エージェント実績", "🩺 診断・健全性"
     ])
 
     # ── パイプライン ────────────────────────────────────────────────────────────
@@ -818,6 +816,103 @@ with tab2:
                     st.dataframe(pd.DataFrame(rows7), use_container_width=True)
                 style.section_card_end()
 
+    # ── 診断・健全性 ────────────────────────────────────────────────────────────
+    with tab_health:
+        def _safe_h(fn, default=None):
+            try:
+                return fn()
+            except Exception:
+                return default
+
+        sh_h       = _safe_h(lambda: data_loader.get_system_health(), {})
+        sys_info_h = _safe_h(lambda: data_loader.system_info(), {})
+        ds_h       = _safe_h(lambda: data_loader.datasource(), {})
+
+        pl_status_h = _safe_h(lambda: data_loader.pipeline_status(), {})
+        pl_counts_h = pl_status_h.get("counts", {}) if pl_status_h else {}
+        failed_pipes_h = [p for p in pl_status_h.get("pipelines", [])
+                         if p.get("overall") == "failed"] if pl_status_h else []
+
+        alerts_static_h = (sh_h or {}).get("alerts", []) if sh_h else []
+        alerts_dynamic_h = [
+            {"level": "error", "message": f"パイプライン失敗: {p.get('name')} ({p.get('schedule','')})"}
+            for p in failed_pipes_h
+        ]
+        alerts_h = alerts_dynamic_h + alerts_static_h
+
+        orphan_h    = (sh_h or {}).get("orphan_process_count", 0) or 0
+        stale_h     = (sh_h or {}).get("stale_output_count", 0) or 0
+        sh_last_h   = ((sh_h or {}).get("last_run", "") or "")[:16] if sh_h else ""
+
+        _health_color_h = "critical" if failed_pipes_h else "ok"
+        style.section_card_start("🩺 診断サマリー", "", _health_color_h)
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        mc1.metric("🔴 パイプライン失敗", f"{len(failed_pipes_h)}本",
+                   delta="要確認" if failed_pipes_h else None, delta_color="inverse")
+        mc2.metric("✅ 正常稼働", f"{pl_counts_h.get('ok', 0)}本")
+        mc3.metric("🔄 孤立プロセス", orphan_h,
+                   delta="要確認" if orphan_h > 0 else None, delta_color="inverse")
+        mc4.metric("📦 放置成果物", stale_h,
+                   delta="要確認" if stale_h > 5 else None, delta_color="inverse")
+        if sh_last_h:
+            st.caption(f"最終更新: {sh_last_h}")
+        style.section_card_end()
+
+        style.section_card_start("💾 ディスク使用率")
+        disk_info_h = (ds_h or {}).get("disk_usage", {}) if ds_h else {}
+        if disk_info_h and isinstance(disk_info_h, dict):
+            for drv_h, dinfo_h in disk_info_h.items():
+                if not isinstance(dinfo_h, dict):
+                    continue
+                pct_h  = dinfo_h.get("percent", 0)
+                used_h = dinfo_h.get("used_gb", 0)
+                tot_h  = dinfo_h.get("total_gb", 0)
+                st.write(f"**{drv_h}** — {pct_h:.0f}%  ({used_h:.1f}GB / {tot_h:.1f}GB)")
+                st.progress(min(pct_h / 100, 1.0))
+                if pct_h > 85:
+                    st.warning(f"⚠️ {drv_h} ディスク使用率 {pct_h:.0f}% — 85%超。不要ファイル削除を推奨")
+        elif sys_info_h:
+            d_p_h = sys_info_h.get("disk_percent", 0)
+            d_u_h = sys_info_h.get("disk_used_gb", 0)
+            d_t_h = sys_info_h.get("disk_total_gb", 0)
+            st.write(f"**C:** {d_p_h:.0f}%  ({d_u_h:.1f}GB / {d_t_h:.1f}GB)")
+            st.progress(min(d_p_h / 100, 1.0))
+            if d_p_h > 85:
+                st.warning(f"⚠️ ディスク使用率 {d_p_h:.0f}% — 85%超。不要ファイル削除を推奨")
+        else:
+            st.info("ディスク情報がありません")
+        style.section_card_end()
+
+        if alerts_h:
+            style.section_card_start("⚠️ 既知の問題一覧", f"{len(alerts_h)}件", "warn")
+            for al_h in alerts_h:
+                if isinstance(al_h, dict):
+                    level_h = al_h.get("level", "warn")
+                    msg_h   = al_h.get("message", str(al_h))
+                    icon_h  = "🔴" if level_h == "error" else "🟡"
+                    st.markdown(f"{icon_h} {msg_h}")
+                else:
+                    st.markdown(f"🟡 {al_h}")
+            style.section_card_end()
+        else:
+            style.section_card_start("✅ 問題なし", "", "ok")
+            st.success("現在アラートはありません")
+            style.section_card_end()
+
+        extra_h = {k: v for k, v in (sh_h or {}).items()
+                   if k not in ("alerts", "pipeline_count", "scheduler", "last_run",
+                                "flows", "orphan_process_count", "stale_output_count")}
+        if extra_h:
+            style.section_card_start("📋 その他の健全性情報")
+            for k_h, v_h in extra_h.items():
+                if isinstance(v_h, dict):
+                    with st.expander(f"**{k_h}**"):
+                        for kk_h, vv_h in v_h.items():
+                            st.write(f"**{kk_h}:** {vv_h}")
+                else:
+                    st.write(f"**{k_h}:** {v_h}")
+            style.section_card_end()
+
 # ══════════════════════════════════════════════════════════════════════════════
 # 🏢 経営体制（旧 7_経営体制.py）
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1164,12 +1259,13 @@ with tab4:
         except Exception:
             return default
 
-    # ── 7サブタブ → 4サブタブに統合（スクロール不要・最大2クリック）──────────
-    tab_knowledge, tab_growth, tab_ops, tab_outputs = st.tabs([
+    # ── 4サブタブ + AI出力品質を統合 ──────────────────────────────────────────
+    tab_knowledge, tab_growth, tab_ops, tab_outputs, tab_eval = st.tabs([
         "🧠 メモリ・知識",     # mempalace + Sync/aiコンテキスト
         "🚀 成長・改善",       # レベルアップ + 4層学習システム
         "📖 体制・ルール",     # ルールエンジン + エージェント体制
         "📦 生成物",           # 生成物一覧
+        "🔍 AI出力品質",       # エージェント出力スコア・評価判定
     ])
 
     with tab_knowledge:
@@ -1458,315 +1554,313 @@ with tab4:
             st.info("生成物データがありません。firebase_dashboard_pusher.pyを実行してください。")
         style.section_card_end()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 🔍 AI出力品質（旧: Eval品質 — エージェント出力スコア・評価判定）
-# ══════════════════════════════════════════════════════════════════════════════
-with tab5:
-    st.caption("🔍 AI出力品質: エージェントが生成したレポート・記事・分析の採点スコアと評価判定（推奨/条件付き/保留/却下）を追跡します")
-
-    def _safe5(fn, default=None):
-        try:
-            return fn()
-        except Exception:
-            return default
-
-    eval_data5    = _safe5(lambda: data_loader.eval_status(), {})
-    failure_data5 = _safe5(lambda: data_loader.failure_patterns(), {})
-
-    by_agent5    = (eval_data5 or {}).get("by_agent", [])
-    total_exp5   = (eval_data5 or {}).get("total_experiments", 0)
-    avg_score5   = (eval_data5 or {}).get("overall_avg_score")
-    error_rate5  = (eval_data5 or {}).get("overall_error_rate_pct", 0)
-    impl_status5 = (eval_data5 or {}).get("impl_status", {})
-    impl_done5   = sum(1 for v in impl_status5.values() if v)
-    impl_total5  = max(len(impl_status5), 7)
-
-    style.kpi_wrap_start("info")
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("実験記録", f"{total_exp5}件")
-    c2.metric("平均スコア", f"{avg_score5:.1f} / 10" if avg_score5 else "—")
-    c3.metric("エラー率", f"{error_rate5:.0f}%",
-              delta=f"+{error_rate5:.0f}%" if error_rate5 > 0 else None,
-              delta_color="inverse")
-    c4.metric("実装済み機能", f"{impl_done5} / {impl_total5}項目")
-    c5.metric("評価エージェント数", f"{len(by_agent5)}個")
-    style.kpi_wrap_end()
-
-    tab5_1, tab5_2, tab5_3, tab5_4 = st.tabs([
-        "🗺️ 全体フロー",
-        "📊 スコア分析",
-        "⚠️ エラーパターン",
-        "🗓️ 実装ロードマップ",
-    ])
-
-    with tab5_1:
-        style.section_card_start("📍 Eval接触点マップ（全パイプライン）", "", "info")
-        st.markdown("""
-> **凡例**: 🟢 実装済み &nbsp;|&nbsp; 🔲 計画中 &nbsp;|&nbsp; ⚪ Eval対象外
-        """)
-
-        PIPELINE_EVAL_MAP = [
-            ("毎日 21:26", "⭐ DailyDriver",
-             "step6: agent_runs.jsonl記録 / step6.5: run_stats集計", "🟢"),
-            ("毎日 21:20", "MempalaceMaintenance",
-             "phase3b: 低スコアエージェント検出 → agents_prompts.json自動改善", "🟢"),
-            ("月・木 21:05", "StrategyChain (LangGraph+Prefect)",
-             "run_agent_with_retry(): reviewer採点 → experiments.jsonl記録", "🟢"),
-            ("火・金 21:05", "ContentChain (LangGraph+Prefect)",
-             "run_agent_with_retry(): reviewer採点 → experiments.jsonl記録", "🟢"),
-            ("毎日 21:27", "SelfAuditEngine",
-             "自己監査スコア記録（独立評価）", "🟢"),
-            ("毎日 21:26", "DailyDriver → eval_runner.py",
-             "step9: 定義済みテストケースを毎日自動実行（回帰Eval）", "🔲"),
-            ("日 21:23", "AutonomousLoop",
-             "supervisor_agent: 出力品質チェック → Eval統合予定", "🔲"),
-            ("水 23:03", "ProductMonitor",
-             "Eval対象外（情報収集のみ）", "⚪"),
-            ("月 22:33", "DailyOpensource",
-             "Eval対象外（情報収集のみ）", "⚪"),
-        ]
-
-        cols_h5 = st.columns([2, 3, 4, 1])
-        cols_h5[0].markdown("**時刻 / 頻度**")
-        cols_h5[1].markdown("**パイプライン**")
-        cols_h5[2].markdown("**Eval接触点**")
-        cols_h5[3].markdown("**状態**")
-
-        for t5, name5, eval_point5, status5 in PIPELINE_EVAL_MAP:
-            cols5 = st.columns([2, 3, 4, 1])
-            cols5[0].markdown(f'<span style="font-family:monospace;color:#666">{t5}</span>',
-                              unsafe_allow_html=True)
-            cols5[1].markdown(f"**{name5}**")
-            cols5[2].markdown(f'<span style="color:#555;font-size:0.9em">{eval_point5}</span>',
-                              unsafe_allow_html=True)
-            cols5[3].markdown(status5)
-        style.section_card_end()
-
-        style.section_card_start("🔄 Evalデータフロー（現状 → 目標）", "", "ok")
-        st.markdown("""
-```
-【現状フロー】
-パイプライン実行
-  ├─ run_agent()          → agent_runs.jsonl   (latency / error / cost)
-  └─ run_agent_with_retry() → experiments.jsonl (score / verdict / blind_spots)
-                                    ↓
-                           mempalace phase3b (毎日21:20)
-                                    ↓
-                           agents_prompts.json 自動改善
-                                    ↓
-                           次回実行から改善済みプロンプトで動作
-
-【目標フロー（追加予定）】
-eval_testcases/*.yaml  ← テストケース定義（入力・期待スコア・評価観点）
-         ↓
-eval_runner.py         ← DailyDriver step9 から毎日呼び出し
-         ↓
-experiments.jsonl      ← 既存フォーマットに追記（eval_mode=True で区別）
-         ↓
-回帰検出               ← 前回スコアより2点以上低下 → Kanban自動起票
-```
-        """)
-        style.section_card_end()
-
-    with tab5_2:
-        if by_agent5:
-            style.section_card_start("📊 エージェント別スコア・Verdict分布", "", "info")
-            cols_h5b = st.columns([2, 1, 1, 1, 3])
-            cols_h5b[0].markdown("**エージェント**")
-            cols_h5b[1].markdown("**平均スコア**")
-            cols_h5b[2].markdown("**実験件数**")
-            cols_h5b[3].markdown("**エラー率**")
-            cols_h5b[4].markdown("**Verdict分布**")
-
-            for a5 in sorted(by_agent5, key=lambda x: -(x.get("avg_score") or 0)):
-                agent_name5  = a5.get("agent", "?")
-                avg_s5       = a5.get("avg_score")
-                exp_count5   = a5.get("experiment_count", 0)
-                err_rate5    = a5.get("error_rate_pct", 0)
-                verdicts5    = a5.get("verdicts", {})
-
-                score_icon5 = "🔴" if (avg_s5 and avg_s5 < 4) else ("🟡" if (avg_s5 and avg_s5 < 6) else "🟢")
-                err_icon5   = "🔴" if err_rate5 > 20 else ("🟡" if err_rate5 > 5 else "🟢")
-
-                v_parts5 = []
-                for k5, cnt5 in sorted(verdicts5.items(), key=lambda x: -x[1])[:3]:
-                    v_parts5.append(f"{k5[:6]}:{cnt5}")
-                verdict_str5 = " / ".join(v_parts5) if v_parts5 else "—"
-
-                cols5b = st.columns([2, 1, 1, 1, 3])
-                cols5b[0].code(agent_name5)
-                cols5b[1].write(f"{score_icon5} {avg_s5:.1f}" if avg_s5 else "—")
-                cols5b[2].write(str(exp_count5))
-                cols5b[3].write(f"{err_icon5} {err_rate5:.0f}%")
-                cols5b[4].write(verdict_str5)
+    # ── AI出力品質（旧 tab5）────────────────────────────────────────────────────
+    with tab_eval:
+        st.caption("🔍 AI出力品質: エージェントが生成したレポート・記事・分析の採点スコアと評価判定（推奨/条件付き/保留/却下）を追跡します")
+    
+        def _safe5(fn, default=None):
+            try:
+                return fn()
+            except Exception:
+                return default
+    
+        eval_data5    = _safe5(lambda: data_loader.eval_status(), {})
+        failure_data5 = _safe5(lambda: data_loader.failure_patterns(), {})
+    
+        by_agent5    = (eval_data5 or {}).get("by_agent", [])
+        total_exp5   = (eval_data5 or {}).get("total_experiments", 0)
+        avg_score5   = (eval_data5 or {}).get("overall_avg_score")
+        error_rate5  = (eval_data5 or {}).get("overall_error_rate_pct", 0)
+        impl_status5 = (eval_data5 or {}).get("impl_status", {})
+        impl_done5   = sum(1 for v in impl_status5.values() if v)
+        impl_total5  = max(len(impl_status5), 7)
+    
+        style.kpi_wrap_start("info")
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("実験記録", f"{total_exp5}件")
+        c2.metric("平均スコア", f"{avg_score5:.1f} / 10" if avg_score5 else "—")
+        c3.metric("エラー率", f"{error_rate5:.0f}%",
+                  delta=f"+{error_rate5:.0f}%" if error_rate5 > 0 else None,
+                  delta_color="inverse")
+        c4.metric("実装済み機能", f"{impl_done5} / {impl_total5}項目")
+        c5.metric("評価エージェント数", f"{len(by_agent5)}個")
+        style.kpi_wrap_end()
+    
+        tab5_1, tab5_2, tab5_3, tab5_4 = st.tabs([
+            "🗺️ 全体フロー",
+            "📊 スコア分析",
+            "⚠️ エラーパターン",
+            "🗓️ 実装ロードマップ",
+        ])
+    
+        with tab5_1:
+            style.section_card_start("📍 Eval接触点マップ（全パイプライン）", "", "info")
+            st.markdown("""
+    > **凡例**: 🟢 実装済み &nbsp;|&nbsp; 🔲 計画中 &nbsp;|&nbsp; ⚪ Eval対象外
+            """)
+    
+            PIPELINE_EVAL_MAP = [
+                ("毎日 21:26", "⭐ DailyDriver",
+                 "step6: agent_runs.jsonl記録 / step6.5: run_stats集計", "🟢"),
+                ("毎日 21:20", "MempalaceMaintenance",
+                 "phase3b: 低スコアエージェント検出 → agents_prompts.json自動改善", "🟢"),
+                ("月・木 21:05", "StrategyChain (LangGraph+Prefect)",
+                 "run_agent_with_retry(): reviewer採点 → experiments.jsonl記録", "🟢"),
+                ("火・金 21:05", "ContentChain (LangGraph+Prefect)",
+                 "run_agent_with_retry(): reviewer採点 → experiments.jsonl記録", "🟢"),
+                ("毎日 21:27", "SelfAuditEngine",
+                 "自己監査スコア記録（独立評価）", "🟢"),
+                ("毎日 21:26", "DailyDriver → eval_runner.py",
+                 "step9: 定義済みテストケースを毎日自動実行（回帰Eval）", "🔲"),
+                ("日 21:23", "AutonomousLoop",
+                 "supervisor_agent: 出力品質チェック → Eval統合予定", "🔲"),
+                ("水 23:03", "ProductMonitor",
+                 "Eval対象外（情報収集のみ）", "⚪"),
+                ("月 22:33", "DailyOpensource",
+                 "Eval対象外（情報収集のみ）", "⚪"),
+            ]
+    
+            cols_h5 = st.columns([2, 3, 4, 1])
+            cols_h5[0].markdown("**時刻 / 頻度**")
+            cols_h5[1].markdown("**パイプライン**")
+            cols_h5[2].markdown("**Eval接触点**")
+            cols_h5[3].markdown("**状態**")
+    
+            for t5, name5, eval_point5, status5 in PIPELINE_EVAL_MAP:
+                cols5 = st.columns([2, 3, 4, 1])
+                cols5[0].markdown(f'<span style="font-family:monospace;color:#666">{t5}</span>',
+                                  unsafe_allow_html=True)
+                cols5[1].markdown(f"**{name5}**")
+                cols5[2].markdown(f'<span style="color:#555;font-size:0.9em">{eval_point5}</span>',
+                                  unsafe_allow_html=True)
+                cols5[3].markdown(status5)
             style.section_card_end()
-
-            problem_agents5 = [a5 for a5 in by_agent5
-                               if (a5.get("avg_score") or 10) < 5 or a5.get("error_rate_pct", 0) > 20]
-            if problem_agents5:
-                style.section_card_start(
-                    f"🔴 要改善エージェント（スコア<5 or エラー率>20%）",
-                    f"{len(problem_agents5)}件", "warn")
-                for a5 in problem_agents5:
-                    avg_s5b    = a5.get("avg_score")
-                    err_rate5b = a5.get("error_rate_pct", 0)
-                    reasons5   = []
-                    if avg_s5b and avg_s5b < 5:
-                        reasons5.append(f"スコア低: {avg_s5b:.1f}/10")
-                    if err_rate5b > 20:
-                        reasons5.append(f"エラー率高: {err_rate5b:.0f}%")
-                    st.markdown(f"- `{a5['agent']}` — {' / '.join(reasons5)}")
+    
+            style.section_card_start("🔄 Evalデータフロー（現状 → 目標）", "", "ok")
+            st.markdown("""
+    ```
+    【現状フロー】
+    パイプライン実行
+      ├─ run_agent()          → agent_runs.jsonl   (latency / error / cost)
+      └─ run_agent_with_retry() → experiments.jsonl (score / verdict / blind_spots)
+                                        ↓
+                               mempalace phase3b (毎日21:20)
+                                        ↓
+                               agents_prompts.json 自動改善
+                                        ↓
+                               次回実行から改善済みプロンプトで動作
+    
+    【目標フロー（追加予定）】
+    eval_testcases/*.yaml  ← テストケース定義（入力・期待スコア・評価観点）
+             ↓
+    eval_runner.py         ← DailyDriver step9 から毎日呼び出し
+             ↓
+    experiments.jsonl      ← 既存フォーマットに追記（eval_mode=True で区別）
+             ↓
+    回帰検出               ← 前回スコアより2点以上低下 → Kanban自動起票
+    ```
+            """)
+            style.section_card_end()
+    
+        with tab5_2:
+            if by_agent5:
+                style.section_card_start("📊 エージェント別スコア・Verdict分布", "", "info")
+                cols_h5b = st.columns([2, 1, 1, 1, 3])
+                cols_h5b[0].markdown("**エージェント**")
+                cols_h5b[1].markdown("**平均スコア**")
+                cols_h5b[2].markdown("**実験件数**")
+                cols_h5b[3].markdown("**エラー率**")
+                cols_h5b[4].markdown("**Verdict分布**")
+    
+                for a5 in sorted(by_agent5, key=lambda x: -(x.get("avg_score") or 0)):
+                    agent_name5  = a5.get("agent", "?")
+                    avg_s5       = a5.get("avg_score")
+                    exp_count5   = a5.get("experiment_count", 0)
+                    err_rate5    = a5.get("error_rate_pct", 0)
+                    verdicts5    = a5.get("verdicts", {})
+    
+                    score_icon5 = "🔴" if (avg_s5 and avg_s5 < 4) else ("🟡" if (avg_s5 and avg_s5 < 6) else "🟢")
+                    err_icon5   = "🔴" if err_rate5 > 20 else ("🟡" if err_rate5 > 5 else "🟢")
+    
+                    v_parts5 = []
+                    for k5, cnt5 in sorted(verdicts5.items(), key=lambda x: -x[1])[:3]:
+                        v_parts5.append(f"{k5[:6]}:{cnt5}")
+                    verdict_str5 = " / ".join(v_parts5) if v_parts5 else "—"
+    
+                    cols5b = st.columns([2, 1, 1, 1, 3])
+                    cols5b[0].code(agent_name5)
+                    cols5b[1].write(f"{score_icon5} {avg_s5:.1f}" if avg_s5 else "—")
+                    cols5b[2].write(str(exp_count5))
+                    cols5b[3].write(f"{err_icon5} {err_rate5:.0f}%")
+                    cols5b[4].write(verdict_str5)
                 style.section_card_end()
-        else:
-            st.info("Firebase にデータがまだありません。`firebase_dashboard_pusher.py` を実行してください。")
-
-        style.section_card_start("📋 Verdict 判定基準", "", "info")
-        st.markdown("""
-| Verdict | スコア目安 | 意味 |
-|---------|-----------|------|
-| **推奨** | 7.0〜10 | そのまま本番投入可 |
-| **条件付き** | 5.5〜6.9 | 軽微な修正で投入可 |
-| **保留** | 4.0〜5.4 | 改善してから再評価 |
-| **却下** | 0〜3.9 | 根本的な見直しが必要 |
-
-> スコアは `reviewer` エージェントが 1〜10 点で評価。`experiments.jsonl` に記録。
-        """)
-        style.section_card_end()
-
-    with tab5_3:
-        fp_patterns5 = (failure_data5 or {}).get("patterns", {})
-
-        if fp_patterns5:
-            style.section_card_start("🔍 失敗パターン分類（mempalace phase3b が自動解析）", "", "warn")
-            cols_h5c = st.columns([2, 2, 1, 3])
-            cols_h5c[0].markdown("**エージェント**")
-            cols_h5c[1].markdown("**エラー種別**")
-            cols_h5c[2].markdown("**件数**")
-            cols_h5c[3].markdown("**自動対処内容**")
-            AUTO_FIX5 = {
-                "json_parse_failed": "プロンプトに「JSONのみ出力」制約を自動注入",
-                "claude_cli_error":  "プロンプト短縮・トークン削減を改善に反映",
-                "timeout":           "出力簡潔化指示を改善に反映",
-            }
-            for agent_name5c, err_counts5 in sorted(fp_patterns5.items()):
-                if not isinstance(err_counts5, dict):
-                    continue
-                for err_type5, count5 in sorted(err_counts5.items(), key=lambda x: -x[1]):
-                    cols5c = st.columns([2, 2, 1, 3])
-                    cols5c[0].code(agent_name5c)
-                    cols5c[1].write(f"`{err_type5}`")
-                    cols5c[2].write(f"{'🔴' if count5 >= 3 else '🟡'} {count5}")
-                    cols5c[3].write(AUTO_FIX5.get(err_type5, "次回phase3bで分析・改善"))
+    
+                problem_agents5 = [a5 for a5 in by_agent5
+                                   if (a5.get("avg_score") or 10) < 5 or a5.get("error_rate_pct", 0) > 20]
+                if problem_agents5:
+                    style.section_card_start(
+                        f"🔴 要改善エージェント（スコア<5 or エラー率>20%）",
+                        f"{len(problem_agents5)}件", "warn")
+                    for a5 in problem_agents5:
+                        avg_s5b    = a5.get("avg_score")
+                        err_rate5b = a5.get("error_rate_pct", 0)
+                        reasons5   = []
+                        if avg_s5b and avg_s5b < 5:
+                            reasons5.append(f"スコア低: {avg_s5b:.1f}/10")
+                        if err_rate5b > 20:
+                            reasons5.append(f"エラー率高: {err_rate5b:.0f}%")
+                        st.markdown(f"- `{a5['agent']}` — {' / '.join(reasons5)}")
+                    style.section_card_end()
+            else:
+                st.info("Firebase にデータがまだありません。`firebase_dashboard_pusher.py` を実行してください。")
+    
+            style.section_card_start("📋 Verdict 判定基準", "", "info")
+            st.markdown("""
+    | Verdict | スコア目安 | 意味 |
+    |---------|-----------|------|
+    | **推奨** | 7.0〜10 | そのまま本番投入可 |
+    | **条件付き** | 5.5〜6.9 | 軽微な修正で投入可 |
+    | **保留** | 4.0〜5.4 | 改善してから再評価 |
+    | **却下** | 0〜3.9 | 根本的な見直しが必要 |
+    
+    > スコアは `reviewer` エージェントが 1〜10 点で評価。`experiments.jsonl` に記録。
+            """)
             style.section_card_end()
-
-        elif by_agent5:
-            style.section_card_start("⚠️ エラー率サマリー（agent_runs.jsonl）", "", "warn")
-            error_agents5 = [a5 for a5 in by_agent5 if a5.get("error_rate_pct", 0) > 0]
-            if error_agents5:
-                cols_h5d = st.columns([2, 1, 3])
-                cols_h5d[0].markdown("**エージェント**")
-                cols_h5d[1].markdown("**エラー率**")
-                cols_h5d[2].markdown("**状態**")
-                for a5d in sorted(error_agents5, key=lambda x: -x.get("error_rate_pct", 0)):
-                    cols5d = st.columns([2, 1, 3])
-                    cols5d[0].code(a5d["agent"])
-                    rate5d = a5d.get("error_rate_pct", 0)
-                    cols5d[1].write(f"{'🔴' if rate5d > 20 else '🟡'} {rate5d:.0f}%")
-                    cols5d[2].write("phase3b次回実行時に自動分類・改善")
+    
+        with tab5_3:
+            fp_patterns5 = (failure_data5 or {}).get("patterns", {})
+    
+            if fp_patterns5:
+                style.section_card_start("🔍 失敗パターン分類（mempalace phase3b が自動解析）", "", "warn")
+                cols_h5c = st.columns([2, 2, 1, 3])
+                cols_h5c[0].markdown("**エージェント**")
+                cols_h5c[1].markdown("**エラー種別**")
+                cols_h5c[2].markdown("**件数**")
+                cols_h5c[3].markdown("**自動対処内容**")
+                AUTO_FIX5 = {
+                    "json_parse_failed": "プロンプトに「JSONのみ出力」制約を自動注入",
+                    "claude_cli_error":  "プロンプト短縮・トークン削減を改善に反映",
+                    "timeout":           "出力簡潔化指示を改善に反映",
+                }
+                for agent_name5c, err_counts5 in sorted(fp_patterns5.items()):
+                    if not isinstance(err_counts5, dict):
+                        continue
+                    for err_type5, count5 in sorted(err_counts5.items(), key=lambda x: -x[1]):
+                        cols5c = st.columns([2, 2, 1, 3])
+                        cols5c[0].code(agent_name5c)
+                        cols5c[1].write(f"`{err_type5}`")
+                        cols5c[2].write(f"{'🔴' if count5 >= 3 else '🟡'} {count5}")
+                        cols5c[3].write(AUTO_FIX5.get(err_type5, "次回phase3bで分析・改善"))
+                style.section_card_end()
+    
+            elif by_agent5:
+                style.section_card_start("⚠️ エラー率サマリー（agent_runs.jsonl）", "", "warn")
+                error_agents5 = [a5 for a5 in by_agent5 if a5.get("error_rate_pct", 0) > 0]
+                if error_agents5:
+                    cols_h5d = st.columns([2, 1, 3])
+                    cols_h5d[0].markdown("**エージェント**")
+                    cols_h5d[1].markdown("**エラー率**")
+                    cols_h5d[2].markdown("**状態**")
+                    for a5d in sorted(error_agents5, key=lambda x: -x.get("error_rate_pct", 0)):
+                        cols5d = st.columns([2, 1, 3])
+                        cols5d[0].code(a5d["agent"])
+                        rate5d = a5d.get("error_rate_pct", 0)
+                        cols5d[1].write(f"{'🔴' if rate5d > 20 else '🟡'} {rate5d:.0f}%")
+                        cols5d[2].write("phase3b次回実行時に自動分類・改善")
+                style.section_card_end()
+            else:
+                st.info("Firebase にデータがまだありません。`firebase_dashboard_pusher.py` を実行してください。")
+    
+            style.section_card_start("🔍 既知エラーパターンと対処法", "", "info")
+            st.markdown("""
+    | エラー種別 | 発生エージェント | 原因 | 対処法 |
+    |-----------|----------------|------|--------|
+    | `json_parse_failed` | bizdev / reviewer | Haiku が JSON 以外のテキストを出力 | プロンプトに `出力はJSONのみ` 制約を追加 |
+    | `claude_cli_error` | cx_expert | claude -p プロセス異常終了 | `safe_run()` の timeout 延長・リトライ追加 |
+    | タイムアウト | 全般 | 処理時間超過 | Haiku 優先 / 入力トークン削減 |
+    | コンテキスト超過 | LangGraph系 | プロンプト肥大化 | `--max-tokens` / 入力切り詰め |
+    
+    > **自動対処**: `mempalace_maintenance.py phase3b` が毎日 21:20 にエラー率>20%を検知し、
+    > 改善プロンプトを自動生成して `agents_prompts.json` を更新。
+            """)
             style.section_card_end()
-        else:
-            st.info("Firebase にデータがまだありません。`firebase_dashboard_pusher.py` を実行してください。")
-
-        style.section_card_start("🔍 既知エラーパターンと対処法", "", "info")
-        st.markdown("""
-| エラー種別 | 発生エージェント | 原因 | 対処法 |
-|-----------|----------------|------|--------|
-| `json_parse_failed` | bizdev / reviewer | Haiku が JSON 以外のテキストを出力 | プロンプトに `出力はJSONのみ` 制約を追加 |
-| `claude_cli_error` | cx_expert | claude -p プロセス異常終了 | `safe_run()` の timeout 延長・リトライ追加 |
-| タイムアウト | 全般 | 処理時間超過 | Haiku 優先 / 入力トークン削減 |
-| コンテキスト超過 | LangGraph系 | プロンプト肥大化 | `--max-tokens` / 入力切り詰め |
-
-> **自動対処**: `mempalace_maintenance.py phase3b` が毎日 21:20 にエラー率>20%を検知し、
-> 改善プロンプトを自動生成して `agents_prompts.json` を更新。
-        """)
-        style.section_card_end()
-
-    with tab5_4:
-        style.section_card_start("✅ 実装済み機能（Eval基盤）", "", "ok")
-        DONE_ITEMS5 = [
-            ("agent_runs.jsonl", "本番ログ記録（latency/error/cost/trace_id）",
-             "agent_framework.py → run_agent()"),
-            ("experiments.jsonl", "評価ログ記録（score/verdict/blind_spots）",
-             "agent_framework.py → run_agent_with_retry()"),
-            ("agents_prompts.json + Git", "プロンプトバージョン管理（履歴付き）",
-             "mempalace_maintenance.py → GitHub管理"),
-            ("mempalace phase3b", "日次自動改善（run_stats→低スコア検知→prompt更新）",
-             "毎日 21:20 自動実行"),
-            ("agent_run_stats Firebase", "エラー率・レイテンシのダッシュボード可視化",
-             "AIシステム → 稼働状況タブ"),
-        ]
-        for name5e, desc5e, where5e in DONE_ITEMS5:
-            st.markdown(
-                f'✅ **{name5e}**'
-                f'<br><span style="color:#555;font-size:0.9em;margin-left:1.5em">'
-                f'{desc5e}<br>'
-                f'<span style="color:#888">実装場所: {where5e}</span>'
-                f'</span>',
-                unsafe_allow_html=True,
-            )
-            st.markdown("")
-        style.section_card_end()
-
-        style.section_card_start("🔲 未実装（次のステップ）", "優先順", "warn")
-        PLANNED_ITEMS5 = [
-            ("1", "eval_testcases/*.yaml",
-             "エージェントごとのテストケース定義（入力・期待スコア・評価観点）",
-             "30分", "eval_testcases/ フォルダ新規作成"),
-            ("2", "eval_runner.py",
-             "YAMLテストケースを実行 → experiments.jsonlに記録（回帰Eval）",
-             "30分", "DailyDriver step9 から呼び出し"),
-            ("3", "回帰検出（DailyDriver連携）",
-             "前回比スコア低下 > 2点 → Kanban自動起票",
-             "10分", "eval_runner.py 追記のみ"),
-            ("4", "失敗パターン自動分類",
-             "agent_runs.jsonl のエラー種別を自動タグ付け → failure_patterns.md 更新",
-             "20分", "mempalace phase3b 拡張"),
-            ("5", "プロンプトA/Bテスト",
-             "2バージョンのプロンプトを同一入力で比較評価",
-             "後日", "eval_runner.py 拡張"),
-        ]
-        cols_h5e = st.columns([0.5, 2, 4, 1, 2])
-        cols_h5e[0].markdown("**#**")
-        cols_h5e[1].markdown("**機能**")
-        cols_h5e[2].markdown("**内容**")
-        cols_h5e[3].markdown("**工数**")
-        cols_h5e[4].markdown("**統合先**")
-        for no5, name5f, desc5f, effort5, where5f in PLANNED_ITEMS5:
-            cols5e = st.columns([0.5, 2, 4, 1, 2])
-            cols5e[0].write(no5)
-            cols5e[1].code(name5f)
-            cols5e[2].write(desc5f)
-            cols5e[3].write(effort5)
-            cols5e[4].write(where5f)
-        style.section_card_end()
-
-        style.section_card_start("💡 OSS vs 自前の設計判断", "", "info")
-        st.markdown("""
-| 選択肢 | メリット | デメリット | 判断 |
-|--------|---------|-----------|------|
-| **promptfoo** | 業界標準・CI統合容易 | Node.js依存・外部HTTP・CrowdStrikeリスク | ❌ 不採用 |
-| **deepeval** | Python製・豊富なメトリクス | API呼び出し前提・外部依存 | ❌ 不採用 |
-| **自前 eval_runner.py** | 既存インフラ完全統合・claude -p のみ・外部HTTP不要 | 機能は最小限 | ✅ 採用 |
-
-> **採用理由**: `claude -p` 縛り・CrowdStrikeリスク・外部HTTP最小化の制約下では、
-> `experiments.jsonl + agent_framework.py` の既存仕組みに乗せた自前実装が最適。
-        """)
+    
+        with tab5_4:
+            style.section_card_start("✅ 実装済み機能（Eval基盤）", "", "ok")
+            DONE_ITEMS5 = [
+                ("agent_runs.jsonl", "本番ログ記録（latency/error/cost/trace_id）",
+                 "agent_framework.py → run_agent()"),
+                ("experiments.jsonl", "評価ログ記録（score/verdict/blind_spots）",
+                 "agent_framework.py → run_agent_with_retry()"),
+                ("agents_prompts.json + Git", "プロンプトバージョン管理（履歴付き）",
+                 "mempalace_maintenance.py → GitHub管理"),
+                ("mempalace phase3b", "日次自動改善（run_stats→低スコア検知→prompt更新）",
+                 "毎日 21:20 自動実行"),
+                ("agent_run_stats Firebase", "エラー率・レイテンシのダッシュボード可視化",
+                 "AIシステム → 稼働状況タブ"),
+            ]
+            for name5e, desc5e, where5e in DONE_ITEMS5:
+                st.markdown(
+                    f'✅ **{name5e}**'
+                    f'<br><span style="color:#555;font-size:0.9em;margin-left:1.5em">'
+                    f'{desc5e}<br>'
+                    f'<span style="color:#888">実装場所: {where5e}</span>'
+                    f'</span>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown("")
+            style.section_card_end()
+    
+            style.section_card_start("🔲 未実装（次のステップ）", "優先順", "warn")
+            PLANNED_ITEMS5 = [
+                ("1", "eval_testcases/*.yaml",
+                 "エージェントごとのテストケース定義（入力・期待スコア・評価観点）",
+                 "30分", "eval_testcases/ フォルダ新規作成"),
+                ("2", "eval_runner.py",
+                 "YAMLテストケースを実行 → experiments.jsonlに記録（回帰Eval）",
+                 "30分", "DailyDriver step9 から呼び出し"),
+                ("3", "回帰検出（DailyDriver連携）",
+                 "前回比スコア低下 > 2点 → Kanban自動起票",
+                 "10分", "eval_runner.py 追記のみ"),
+                ("4", "失敗パターン自動分類",
+                 "agent_runs.jsonl のエラー種別を自動タグ付け → failure_patterns.md 更新",
+                 "20分", "mempalace phase3b 拡張"),
+                ("5", "プロンプトA/Bテスト",
+                 "2バージョンのプロンプトを同一入力で比較評価",
+                 "後日", "eval_runner.py 拡張"),
+            ]
+            cols_h5e = st.columns([0.5, 2, 4, 1, 2])
+            cols_h5e[0].markdown("**#**")
+            cols_h5e[1].markdown("**機能**")
+            cols_h5e[2].markdown("**内容**")
+            cols_h5e[3].markdown("**工数**")
+            cols_h5e[4].markdown("**統合先**")
+            for no5, name5f, desc5f, effort5, where5f in PLANNED_ITEMS5:
+                cols5e = st.columns([0.5, 2, 4, 1, 2])
+                cols5e[0].write(no5)
+                cols5e[1].code(name5f)
+                cols5e[2].write(desc5f)
+                cols5e[3].write(effort5)
+                cols5e[4].write(where5f)
+            style.section_card_end()
+    
+            style.section_card_start("💡 OSS vs 自前の設計判断", "", "info")
+            st.markdown("""
+    | 選択肢 | メリット | デメリット | 判断 |
+    |--------|---------|-----------|------|
+    | **promptfoo** | 業界標準・CI統合容易 | Node.js依存・外部HTTP・CrowdStrikeリスク | ❌ 不採用 |
+    | **deepeval** | Python製・豊富なメトリクス | API呼び出し前提・外部依存 | ❌ 不採用 |
+    | **自前 eval_runner.py** | 既存インフラ完全統合・claude -p のみ・外部HTTP不要 | 機能は最小限 | ✅ 採用 |
+    
+    > **採用理由**: `claude -p` 縛り・CrowdStrikeリスク・外部HTTP最小化の制約下では、
+    > `experiments.jsonl + agent_framework.py` の既存仕組みに乗せた自前実装が最適。
+            """)
         style.section_card_end()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 💰 コスト管理
 # ══════════════════════════════════════════════════════════════════════════════
-with tab6:
+with tab5:
     def _safe6(fn, default=None):
         try:
             return fn()
@@ -1835,7 +1929,7 @@ with tab6:
 # ══════════════════════════════════════════════════════════════════════════════
 # 🔄 フロー実行ログ
 # ══════════════════════════════════════════════════════════════════════════════
-with tab7:
+with tab6:
     from utils import flow_status_reader
     from utils import firebase_client as _fc7
 
@@ -1904,108 +1998,4 @@ with tab7:
         for fname7, finfo7 in flows_in_sh7.items():
             if isinstance(finfo7, dict):
                 st.write(f"**{fname7}**: {finfo7}")
-        style.section_card_end()
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 🩺 システム健全性
-# ══════════════════════════════════════════════════════════════════════════════
-with tab8:
-    def _safe8(fn, default=None):
-        try:
-            return fn()
-        except Exception:
-            return default
-
-    sh8       = _safe8(lambda: data_loader.get_system_health(), {})
-    sys_info8 = _safe8(lambda: data_loader.system_info(), {})
-    ds8       = _safe8(lambda: data_loader.datasource(), {})
-
-    # pipeline_statusから動的アラートを生成
-    pl_status8 = _safe8(lambda: data_loader.pipeline_status(), {})
-    pl_counts8 = pl_status8.get("counts", {}) if pl_status8 else {}
-    failed_pipes8 = [p for p in pl_status8.get("pipelines", [])
-                     if p.get("overall") == "failed"] if pl_status8 else []
-
-    alerts8_static = (sh8 or {}).get("alerts", []) if sh8 else []
-    alerts8_dynamic = [
-        {"level": "error", "message": f"パイプライン失敗: {p.get('name')} ({p.get('schedule','')})"}
-        for p in failed_pipes8
-    ]
-    alerts8 = alerts8_dynamic + alerts8_static
-
-    pl_cnt8   = (sh8 or {}).get("pipeline_count", 0) if sh8 else 0
-    sched8    = (sh8 or {}).get("scheduler", {}) if sh8 else {}
-    sh_last8  = ((sh8 or {}).get("last_run", "") or "")[:16] if sh8 else ""
-
-    orphan8    = (sh8 or {}).get("orphan_process_count", 0) or 0
-    stale8     = (sh8 or {}).get("stale_output_count", 0) or 0
-    sched_cnt8 = pl_counts8.get("ok", 0) + pl_counts8.get("failed", 0) + pl_counts8.get("never_ran", 0) or pl_cnt8
-
-    _health_color8 = "critical" if failed_pipes8 else "ok"
-    style.section_card_start("🩺 診断サマリー", "", _health_color8)
-    mc1, mc2, mc3, mc4 = st.columns(4)
-    mc1.metric("🔴 パイプライン失敗", f"{len(failed_pipes8)}本",
-               delta="要確認" if failed_pipes8 else None, delta_color="inverse")
-    mc2.metric("✅ 正常稼働", f"{pl_counts8.get('ok', 0)}本")
-    mc3.metric("🔄 孤立プロセス", orphan8,
-               delta="要確認" if orphan8 > 0 else None, delta_color="inverse")
-    mc4.metric("📦 放置成果物", stale8,
-               delta="要確認" if stale8 > 5 else None, delta_color="inverse")
-    if sh_last8:
-        st.caption(f"最終更新: {sh_last8}")
-    style.section_card_end()
-
-    style.section_card_start("💾 ディスク使用率")
-    disk_info8 = (ds8 or {}).get("disk_usage", {}) if ds8 else {}
-    if disk_info8 and isinstance(disk_info8, dict):
-        for drv8, dinfo8 in disk_info8.items():
-            if not isinstance(dinfo8, dict):
-                continue
-            pct8  = dinfo8.get("percent", 0)
-            used8 = dinfo8.get("used_gb", 0)
-            tot8  = dinfo8.get("total_gb", 0)
-            st.write(f"**{drv8}** — {pct8:.0f}%  ({used8:.1f}GB / {tot8:.1f}GB)")
-            st.progress(min(pct8 / 100, 1.0))
-            if pct8 > 85:
-                st.warning(f"⚠️ {drv8} ディスク使用率 {pct8:.0f}% — 85%超。不要ファイル削除を推奨")
-    elif sys_info8:
-        d_p8 = sys_info8.get("disk_percent", 0)
-        d_u8 = sys_info8.get("disk_used_gb", 0)
-        d_t8 = sys_info8.get("disk_total_gb", 0)
-        st.write(f"**C:** {d_p8:.0f}%  ({d_u8:.1f}GB / {d_t8:.1f}GB)")
-        st.progress(min(d_p8 / 100, 1.0))
-        if d_p8 > 85:
-            st.warning(f"⚠️ ディスク使用率 {d_p8:.0f}% — 85%超。不要ファイル削除を推奨")
-    else:
-        st.info("ディスク情報がありません")
-    style.section_card_end()
-
-    if alerts8:
-        style.section_card_start("⚠️ 既知の問題一覧", f"{len(alerts8)}件", "warn")
-        for al8 in alerts8:
-            if isinstance(al8, dict):
-                level8 = al8.get("level", "warn")
-                msg8   = al8.get("message", str(al8))
-                icon8  = "🔴" if level8 == "error" else "🟡"
-                st.markdown(f"{icon8} {msg8}")
-            else:
-                st.markdown(f"🟡 {al8}")
-        style.section_card_end()
-    else:
-        style.section_card_start("✅ 問題なし", "", "ok")
-        st.success("現在アラートはありません")
-        style.section_card_end()
-
-    extra8 = {k: v for k, v in (sh8 or {}).items()
-              if k not in ("alerts", "pipeline_count", "scheduler", "last_run",
-                           "flows", "orphan_process_count", "stale_output_count")}
-    if extra8:
-        style.section_card_start("📋 その他の健全性情報")
-        for k8, v8 in extra8.items():
-            if isinstance(v8, dict):
-                with st.expander(f"**{k8}**"):
-                    for kk8, vv8 in v8.items():
-                        st.write(f"**{kk8}:** {vv8}")
-            else:
-                st.write(f"**{k8}:** {v8}")
         style.section_card_end()
