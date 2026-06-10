@@ -132,6 +132,23 @@ with tab1:
     c6.metric("統合", f"{integrated_pl}本")
     style.kpi_wrap_end()
 
+    # ── AIレベルスコア（ROI KPI）────────────────────────────────────────────────
+    _roi = _safe(lambda: data_loader.roi_score(), {})
+    if _roi:
+        _comps = _roi.get("component_scores", {})
+        _grade = _roi.get("grade", "?")
+        _level = _roi.get("ai_level_score", 0)
+        _grade_color = {"A": "ok", "B": "ok", "C": "warn", "D": "critical", "F": "critical"}.get(_grade, "info")
+        style.kpi_wrap_start(_grade_color)
+        _rc1, _rc2, _rc3, _rc4, _rc5, _rc6 = st.columns(6)
+        _rc1.metric("AIレベル", f"{_level}/100", delta=f"[{_grade}]")
+        _rc2.metric("🔴 信頼性", f"{_comps.get('reliability', 0):.0f}/100")
+        _rc3.metric("🟢 自律性", f"{_comps.get('autonomy', 0):.0f}/100")
+        _rc4.metric("🟢 効率性", f"{_comps.get('efficiency', 0):.0f}/100")
+        _rc5.metric("🟡 学習率", f"{_comps.get('learning', 0):.0f}/100")
+        _rc6.metric("ROI", f"{_roi.get('roi') or 'N/A'}")
+        style.kpi_wrap_end()
+
     subtab1, subtab2, subtab3 = st.tabs(["⏱️ 実行タイムライン", "🤖 エージェント構成", "📁 ファイル・フォルダ構成"])
 
     # ── 実行タイムライン ────────────────────────────────────────────────────────
@@ -1125,9 +1142,10 @@ with tab4:
         except Exception:
             return default
 
-    tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs = st.tabs([
+    tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs, tab_roi = st.tabs([
         "🧠 mempalace × Obsidian", "🚀 レベルアップ", "⚙️ ルールエンジン",
-        "📖 エージェント体制", "📋 Sync/ai コンテキスト", "🛡️ 4層学習システム", "📦 生成物一覧"
+        "📖 エージェント体制", "📋 Sync/ai コンテキスト", "🛡️ 4層学習システム", "📦 生成物一覧",
+        "🎯 ROI・KPI"
     ])
 
     with tab_mem:
@@ -1465,6 +1483,121 @@ with tab4:
                 cols4[2].metric("🐦 X投稿", len(x_files4))
         else:
             st.info("生成物データがありません。firebase_dashboard_pusher.pyを実行してください。")
+        style.section_card_end()
+
+    with tab_roi:
+        roi4    = _safe4(lambda: data_loader.roi_score(), {})
+        rel4    = _safe4(lambda: data_loader.reliability_kpi(), {})
+        aut4    = _safe4(lambda: data_loader.autonomy_kpi(), {})
+        eff4    = _safe4(lambda: data_loader.efficiency_kpi(), {})
+        lrn4    = _safe4(lambda: data_loader.learning_kpi(), {})
+
+        style.section_card_start("🎯 AIシステム ROI・KPIダッシュボード")
+
+        # ── 複合スコア ─────────────────────────────────────────────────────────
+        if roi4:
+            comps4 = roi4.get("component_scores", {})
+            grade4 = roi4.get("grade", "?")
+            level4 = roi4.get("ai_level_score", 0)
+            grade_color4 = {"A": "🟢", "B": "🟢", "C": "🟡", "D": "🔴", "F": "🔴"}.get(grade4, "⚪")
+            st.markdown(f"### {grade_color4} AIレベルスコア: **{level4}/100** [{grade4}]")
+            st.caption(f"収集日時: {roi4.get('collected_at','')[:16]}")
+
+            col_r1, col_r2 = st.columns([1, 1])
+            with col_r1:
+                weights4 = roi4.get("weights", {})
+                rows_score = [
+                    ("🔴 信頼性",  comps4.get("reliability", 0), weights4.get("reliability", 0.30)),
+                    ("🟢 自律性",  comps4.get("autonomy", 0),    weights4.get("autonomy", 0.20)),
+                    ("🟢 効率性",  comps4.get("efficiency", 0),  weights4.get("efficiency", 0.20)),
+                    ("🟡 学習率",  comps4.get("learning", 0),    weights4.get("learning", 0.15)),
+                    ("⚪ 移植性",  comps4.get("portability", 0), weights4.get("portability", 0.15)),
+                ]
+                for label4, score4, weight4 in rows_score:
+                    bar4 = int(score4 / 10)
+                    st.markdown(
+                        f"{label4}: **{score4:.0f}** (×{weight4:.0f%}) "
+                        f"`{'█' * bar4}{'░' * (10 - bar4)}`"
+                    )
+            with col_r2:
+                total_cost4 = roi4.get("total_token_cost_usd", 0)
+                roi_val4    = roi4.get("roi")
+                st.metric("総トークンコスト(推定)", f"${total_cost4:.4f}")
+                st.metric("ROI", f"{roi_val4:.2f}" if roi_val4 else "N/A",
+                          help="(AIレベル×0.7 + 金銭収益×0.3) / トークンコスト")
+                st.caption(roi4.get("note", ""))
+
+        st.divider()
+
+        # ── 詳細KPI ────────────────────────────────────────────────────────────
+        st.markdown("#### 詳細KPI")
+        kpi_tab1, kpi_tab2, kpi_tab3, kpi_tab4 = st.tabs(
+            ["🔴 信頼性", "🟢 自律性", "🟢 効率性", "🟡 学習率"]
+        )
+
+        with kpi_tab1:
+            if rel4:
+                ov4 = rel4.get("overall", {})
+                r74 = rel4.get("recent_7d", {})
+                er4 = rel4.get("error_recurrence", {})
+                c1r, c2r, c3r, c4r = st.columns(4)
+                c1r.metric("成功率(全期間)", f"{ov4.get('success_rate_pct', 0)}%")
+                c2r.metric("成功率(直近7日)", f"{r74.get('success_rate_pct', 'N/A')}%")
+                c3r.metric("MTBF", f"{rel4.get('mtbf_hours','N/A')}h")
+                c4r.metric("エラー再発率", f"{er4.get('recurrence_rate_pct', 0)}%",
+                           delta_color="inverse")
+                st.caption(f"総実行: {ov4.get('total_runs',0)}件 / 成功: {ov4.get('success_count',0)} / 失敗: {ov4.get('failure_count',0)}")
+                if er4.get("recurring_errors"):
+                    st.markdown("**再発エラー:**")
+                    for err, cnt in er4["recurring_errors"].items():
+                        st.markdown(f"- `{err}`: {cnt}回")
+            else:
+                st.info("信頼性KPIデータなし")
+
+        with kpi_tab2:
+            if aut4:
+                cl4 = aut4.get("closed_tasks", {})
+                c1a, c2a, c3a = st.columns(3)
+                c1a.metric("自律完了率", f"{cl4.get('autonomy_rate_pct', 0)}%")
+                c2a.metric("介入率", f"{cl4.get('intervention_rate_pct', 0)}%")
+                c3a.metric("エージェント質問数", f"{aut4.get('agent_questions_total', 0)}件")
+                st.caption(
+                    f"完了タスク {cl4.get('total',0)}件 / 自律: {cl4.get('autonomous',0)} / 介入あり: {cl4.get('intervened',0)}"
+                )
+            else:
+                st.info("自律性KPIデータなし")
+
+        with kpi_tab3:
+            if eff4:
+                tok4  = eff4.get("tokens", {})
+                hai4  = eff4.get("haiku_ratio", {})
+                cst4  = eff4.get("cost", {})
+                pc4   = eff4.get("pc_load", {})
+                c1e, c2e, c3e, c4e = st.columns(4)
+                c1e.metric("Haiku比率(runs)", f"{hai4.get('by_runs_pct', 0)}%")
+                c2e.metric("推定コスト", f"${cst4.get('estimated_usd', 0):.4f}")
+                c3e.metric("コスト/タスク", f"${cst4.get('cost_per_task_usd', 0):.5f}" if cst4.get('cost_per_task_usd') else "N/A")
+                c4e.metric("CPU / RAM", f"{pc4.get('cpu_pct','?')}% / {pc4.get('ram_pct','?')}%")
+                st.caption(f"総トークン: {tok4.get('total', 0):,} (input: {tok4.get('input',0):,} / output: {tok4.get('output',0):,})")
+            else:
+                st.info("効率性KPIデータなし")
+
+        with kpi_tab4:
+            if lrn4:
+                er4l  = lrn4.get("error_recurrence", {})
+                mg4   = lrn4.get("memory_growth", {})
+                fp4   = lrn4.get("failure_pattern_improvement", {})
+                c1l, c2l, c3l = st.columns(3)
+                c1l.metric("エラー再発率", f"{er4l.get('recurrence_rate_pct', 0)}%")
+                c2l.metric("FBルール数", f"{mg4.get('feedback_rule_count', 0)}件")
+                c3l.metric("障害パターン解決率", f"{fp4.get('resolution_rate_pct', 0)}%")
+                if er4l.get("agent_recurring"):
+                    st.markdown("**エージェント別再発エラー:**")
+                    for k, v in list(er4l["agent_recurring"].items())[:5]:
+                        st.markdown(f"- `{k}`: {v}回")
+            else:
+                st.info("学習率KPIデータなし")
+
         style.section_card_end()
 
 # ══════════════════════════════════════════════════════════════════════════════
