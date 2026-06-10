@@ -29,8 +29,11 @@ def format_last_run(iso_str: str | None) -> str:
         dt = datetime.fromisoformat(iso_str).astimezone()
         now = datetime.now(timezone.utc).astimezone()
         diff = now - dt
-        if diff.days == 0 and diff.seconds < 3600:
-            return f"{diff.seconds // 60}分前"
+        total_sec = diff.total_seconds()
+        if total_sec < 0:
+            return dt.strftime("%m/%d %H:%M")  # 未来タイムスタンプは日時表示
+        if total_sec < 3600:
+            return f"{int(total_sec // 60)}分前"
         if diff.days == 0:
             return dt.strftime("%H:%M")
         return dt.strftime("%m/%d %H:%M")

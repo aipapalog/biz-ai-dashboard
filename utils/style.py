@@ -305,8 +305,8 @@ def freshness_banner(push_log: dict) -> str:
         dt = datetime.fromisoformat(ts)
         now = datetime.now(timezone.utc)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        minutes = int((now - dt).total_seconds() / 60)
+            dt = dt.astimezone(timezone.utc)  # ローカル時刻(JST)として解釈しUTCへ変換
+        minutes = max(0, int((now - dt).total_seconds() / 60))
     except Exception:
         return '<span class="freshness-warn">更新時刻不明</span>'
 

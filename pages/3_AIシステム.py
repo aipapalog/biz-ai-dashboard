@@ -151,18 +151,95 @@ with tab1:
         _kc5.metric("👁️ 観測性 ×15%", f"{_obs_score:.0f}/100",
                     delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse",
                     help="ダッシュボードの情報整理度（分散・深さ・鮮度）を評価。問題が少ないほど高スコア")
-        with st.expander("📖 各スコアの説明"):
+        with st.expander("📖 各スコアの定義"):
             st.markdown("""
-| スコア | 重み | 意味 | 高い = |
-|--------|------|------|--------|
-| **信頼性** | ×30% | エージェント実行の成功率・エラー率 | パイプラインが安定稼働している |
-| **自律性** | ×20% | タスク自律完了率×40% + 実行品質×30% + 出力品質×30% | 人手介入なしで動く・JSON出力が正確・Evalスコアが高い |
+| スコア | 重み | 計算式 | 高い = |
+|--------|------|--------|--------|
+| **信頼性** | ×30% | エージェントスコア×35% + パイプライン成功率×25% + 出力品質×40% | 安定動作かつ出力品質が高い |
+| **自律性** | ×20% | タスク自律率×40% + 問題解決性×30% + 価値創出性×30% | 放置なし・人介入なし・目標に向けて成果を出す |
 | **効率性** | ×20% | 自動パイプライン実行のHaiku比率（※Claude Codeセッションは除く）+ PC負荷 | パイプラインがHaikuのみで稼働・CPU負荷が低い |
 | **学習率** | ×15% | MEMORY蓄積フィードバックルール数 + Eval改善トレンド | 同じミスを繰り返さず知識が増えている |
 | **観測性** | ×15% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
 """)
+
+        with st.expander("🔍 計算根拠（全内訳）"):
+            _c_rel, _c_aut = st.columns(2)
+
+            with _c_rel:
+                st.markdown("#### 🔴 信頼性スコア")
+                _ag = _rel.get("agent_reliability", {})
+                _ag_score = _ag.get("agent_score", 0)
+                _pl = _rel.get("pipeline_reliability", {})
+                _pl_rate = _pl.get("pipeline_success_rate_pct") or 0
+                _oq = _rel.get("output_quality", {})
+                _oq_score = _oq.get("score_100", 0)
+                st.markdown(f"""
+| 軸 | 重み | 値 | 寄与 |
+|----|------|-----|------|
+| エージェントスコア | ×35% | {_ag_score:.1f} | {_ag_score*0.35:.1f}pt |
+| パイプライン成功率 | ×25% | {_pl_rate:.1f} | {_pl_rate*0.25:.1f}pt |
+| 出力品質 | ×40% | {_oq_score:.1f} | {_oq_score*0.40:.1f}pt |
+| **合計** | | | **{_rel_score:.1f}/100** |
+""")
+                if _pl.get("pipelines"):
+                    _failed = [p for p in _pl["pipelines"] if p.get("status") == "failed"]
+                    if _failed:
+                        st.markdown(f"⚠️ 失敗パイプライン: {', '.join(p['name'] for p in _failed)}")
+
+            with _c_aut:
+                st.markdown("#### 🟢 自律性スコア")
+                _ac = _aut.get("components", {})
+                _pr = _aut.get("problem_resolution", {})
+                _vc = _aut.get("value_creation", {})
+                _cl = _aut.get("closed_tasks", {})
+                _closure_pct = _ac.get("task_closure_rate_pct", 0)
+                _res_pct     = _ac.get("problem_resolution_pct", 0)
+                _val_pct     = _ac.get("value_creation_pct", 0)
+                st.markdown(f"""
+| 軸 | 重み | 値 | 寄与 |
+|----|------|-----|------|
+| タスク自律率 | ×40% | {_closure_pct:.1f}% | {_closure_pct*0.40:.1f}pt |
+| 問題解決性 | ×30% | {_res_pct:.1f}% | {_res_pct*0.30:.1f}pt |
+| 価値創出性 | ×30% | {_val_pct:.1f}% | {_val_pct*0.30:.1f}pt |
+| **合計** | | | **{_aut_score:.1f}/100** |
+""")
+                _pen = _pr.get("total_penalty", 0)
+                if _pen > 0:
+                    _bt  = _pr.get("blocked_tasks", {})
+                    _st  = _pr.get("stale_tasks", {})
+                    _da  = _pr.get("dashboard_alerts", {})
+                    _la  = _pr.get("low_ai_score", {})
+                    st.markdown(f"**問題解決性ペナルティ合計: {_pen}pt**")
+                    st.markdown(f"""
+- ブロックタスク {_bt.get('count',0)}件: -{_bt.get('penalty',0)}pt
+- 放置タスク(7日+) {_st.get('count',0)}件: -{_st.get('penalty',0)}pt
+- ダッシュボードアラート {_da.get('count',0)}件: -{_da.get('penalty',0)}pt
+- 低AIスコア放置: -{_la.get('penalty',0)}pt
+""")
+                _hp  = _vc.get("high_priority", {})
+                _fb  = _vc.get("positive_feedback", {})
+                _kpi = _vc.get("kpi_achievement", {})
+                st.markdown(f"""**価値創出性内訳:**
+- 高優先度完了率 {_hp.get('closed',0)}/{_hp.get('total',0)}件: {_hp.get('rate_pct',0)}%
+- 会長ポジティブFB率: {_fb.get('rate_pct',0)}%（{_fb.get('positive_count',0)}/{_fb.get('tasks_with_user_comment',0)}件）
+- KPI目標達成度: {_kpi.get('rate_pct',0)}%（目標{_kpi.get('target',65)}pt / 現在{_kpi.get('current_ai_score',0)}pt）
+""")
+
+            st.divider()
+            _c_eff, _c_obs = st.columns(2)
+            with _c_eff:
+                st.markdown("#### 🟢 効率性・学習率")
+                st.markdown(f"効率性: **{_eff_score:.1f}/100**")
+                st.markdown(f"学習率: **{_lrn_score:.1f}/100** — FBルール {_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
+            with _c_obs:
+                st.markdown("#### 👁️ 観測性スコア")
+                st.markdown(f"スコア: **{_obs_score:.1f}/100**")
+                _obs_issues = _roi.get("observability_issues", [])
+                for _iss in _obs_issues:
+                    st.markdown(f"- {_iss}")
+
         style.kpi_wrap_end()
     else:
         st.warning("AIレベルスコアデータなし — run_kpi_collectors.pyを実行してください")
