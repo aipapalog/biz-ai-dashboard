@@ -139,8 +139,8 @@ with tab1:
                     delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
                     delta_color="normal" if _rel_score >= 60 else "inverse")
         _kc2.metric("🟢 自律性 ×20%", f"{_aut_score:.0f}/100",
-                    delta=f"自律完了{_aut.get('closed_tasks',{}).get('autonomy_rate_pct',0)}%",
-                    help="自律完了率 = 人間の介入なしにClaudeが独立完了したタスクの割合")
+                    delta=f"問題解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% / 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
+                    help="問題解決性×50% + 価値創出性×50%。放置タスク・アラート・KPIグレードで評価")
         _kc3.metric("🟢 効率性 ×20%", f"{_eff_score:.0f}/100",
                     delta=f"自動実行Haiku比率{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%",
                     help="自動エージェント実行（パイプライン）のHaiku使用率。Claude Codeセッション(Sonnet)は含まない")
