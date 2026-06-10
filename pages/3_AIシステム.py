@@ -137,16 +137,16 @@ with tab1:
         _lrn_score = _comps.get("learning", 0)
         _port_score = _comps.get("portability", 0)
 
-        _kc1.metric("🔴 信頼性 ×30%", f"{_rel_score:.0f}",
+        _kc1.metric("🔴 信頼性 ×30%", f"{_rel_score:.0f}/100",
                     delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
                     delta_color="normal" if _rel_score >= 60 else "inverse")
-        _kc2.metric("🟢 自律性 ×20%", f"{_aut_score:.0f}",
+        _kc2.metric("🟢 自律性 ×20%", f"{_aut_score:.0f}/100",
                     delta=f"自律完了{_aut.get('closed_tasks',{}).get('autonomy_rate_pct',0)}%")
-        _kc3.metric("🟢 効率性 ×20%", f"{_eff_score:.0f}",
+        _kc3.metric("🟢 効率性 ×20%", f"{_eff_score:.0f}/100",
                     delta=f"Haiku{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%")
-        _kc4.metric("🟡 学習率 ×15%", f"{_lrn_score:.0f}",
+        _kc4.metric("🟡 学習率 ×15%", f"{_lrn_score:.0f}/100",
                     delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
-        _kc5.metric("⚪ 移植性 ×15%", f"{_port_score:.0f}", delta="暫定値")
+        _kc5.metric("⚪ 移植性 ×15%", f"{_port_score:.0f}/100", delta="暫定値")
         style.kpi_wrap_end()
     else:
         st.warning("AIレベルスコアデータなし — run_kpi_collectors.pyを実行してください")
