@@ -252,11 +252,22 @@ with tab1:
                 st.markdown(f"**学習率: {_lrn_score:.1f}/100** — FBルール {_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
                 st.divider()
                 _roi_bk = _roi.get("roi")
+                _sc = _roi.get("score_change", {})
+                _cp = _roi.get("cost_period", {})
+                if _sc:
+                    _delta = _sc.get("delta", 0)
+                    _dir   = "▲" if _delta > 0 else ("▼" if _delta < 0 else "→")
+                    _color = "green" if _delta > 0 else ("red" if _delta < 0 else "gray")
+                    st.markdown(f"**週次スコア変化: :{_color}[{_dir}{abs(_delta):.1f}pt]** &nbsp; ({_sc.get('oldest_score','?')} → {_sc.get('latest_score','?')} &nbsp; {_sc.get('oldest_date','?')}〜{_sc.get('latest_date','?')})")
+                st.divider()
                 if _roi_bk and isinstance(_roi_bk, dict):
+                    _period_str = ""
+                    if _cp.get("from") and _cp.get("to"):
+                        _period_str = f"（期間: {_cp['from']}〜{_cp['to']} {_cp.get('days','?')}日間）"
                     st.markdown(f"**ROI: {_roi_bk.get('value','N/A')}**")
                     st.markdown(f"計算式: {_roi_bk.get('formula','')}")
                     st.markdown(f"- 分子: AIレベルスコア = **{_roi_bk.get('numerator_ai_score','?')}**")
-                    st.markdown(f"- 分母: パイプライン${_roi_bk.get('pipeline_cost_usd',0):.4f} + CCセッション${_roi_bk.get('claude_code_cost_usd',0):.4f} = **${_roi_bk.get('denominator_total_cost_usd',0):.4f}**")
+                    st.markdown(f"- 分母: パイプライン${_roi_bk.get('pipeline_cost_usd',0):.4f}{_period_str} + CCセッション${_roi_bk.get('claude_code_cost_usd',0):.4f} = **${_roi_bk.get('denominator_total_cost_usd',0):.4f}**")
                     _cc_track = _roi_bk.get("claude_code_tracking", "pending")
                     if _cc_track == "pending":
                         st.caption("⚠️ Claude Codeトークンは未追跡（pending）。分母は現在パイプラインコストのみ")
