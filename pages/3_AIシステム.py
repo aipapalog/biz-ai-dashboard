@@ -91,10 +91,10 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⚙️ 稼働状況",
     "🏢 経営体制",
     "🧠 AI管理",
-    "📈 Eval品質",
+    "🔍 AI出力品質",       # 旧: Eval品質（エージェント出力スコア・評価判定）
     "💰 コスト管理",
     "🔄 フロー実行",
-    "🩺 システム健全性",
+    "🩺 診断・健全性",     # 旧: システム健全性
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -146,7 +146,9 @@ with tab1:
                     delta=f"Haiku{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%")
         _kc4.metric("🟡 学習率 ×15%", f"{_lrn_score:.0f}/100",
                     delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
-        _kc5.metric("⚪ 移植性 ×15%", f"{_port_score:.0f}/100", delta="暫定値")
+        _obs_score = _comps.get("observability", 0)
+        _kc5.metric("👁️ 観測性 ×15%", f"{_obs_score:.0f}/100",
+                    delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse")
         style.kpi_wrap_end()
     else:
         st.warning("AIレベルスコアデータなし — run_kpi_collectors.pyを実行してください")
@@ -1162,11 +1164,11 @@ with tab4:
         except Exception:
             return default
 
-    tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs, tab_roi = st.tabs([
+    tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs = st.tabs([
         "🧠 mempalace × Obsidian", "🚀 レベルアップ", "⚙️ ルールエンジン",
         "📖 エージェント体制", "📋 Sync/ai コンテキスト", "🛡️ 4層学習システム", "📦 生成物一覧",
-        "🎯 ROI・KPI"
     ])
+    tab_roi = None  # ROI・KPIはシステム概要タブ(tab1)に表示
 
     with tab_mem:
         style.section_card_start("🧠 mempalace ナレッジ成長（直近14日）")
@@ -1505,125 +1507,12 @@ with tab4:
             st.info("生成物データがありません。firebase_dashboard_pusher.pyを実行してください。")
         style.section_card_end()
 
-    with tab_roi:
-        roi4    = _safe4(lambda: data_loader.roi_score(), {})
-        rel4    = _safe4(lambda: data_loader.reliability_kpi(), {})
-        aut4    = _safe4(lambda: data_loader.autonomy_kpi(), {})
-        eff4    = _safe4(lambda: data_loader.efficiency_kpi(), {})
-        lrn4    = _safe4(lambda: data_loader.learning_kpi(), {})
-
-        style.section_card_start("🎯 AIシステム ROI・KPIダッシュボード")
-
-        # ── 複合スコア ─────────────────────────────────────────────────────────
-        if roi4:
-            comps4 = roi4.get("component_scores", {})
-            grade4 = roi4.get("grade", "?")
-            level4 = roi4.get("ai_level_score", 0)
-            grade_color4 = {"A": "🟢", "B": "🟢", "C": "🟡", "D": "🔴", "F": "🔴"}.get(grade4, "⚪")
-            st.markdown(f"### {grade_color4} AIレベルスコア: **{level4}/100** [{grade4}]")
-            st.caption(f"収集日時: {roi4.get('collected_at','')[:16]}")
-
-            col_r1, col_r2 = st.columns([1, 1])
-            with col_r1:
-                weights4 = roi4.get("weights", {})
-                rows_score = [
-                    ("🔴 信頼性",  comps4.get("reliability", 0), weights4.get("reliability", 0.30)),
-                    ("🟢 自律性",  comps4.get("autonomy", 0),    weights4.get("autonomy", 0.20)),
-                    ("🟢 効率性",  comps4.get("efficiency", 0),  weights4.get("efficiency", 0.20)),
-                    ("🟡 学習率",  comps4.get("learning", 0),    weights4.get("learning", 0.15)),
-                    ("⚪ 移植性",  comps4.get("portability", 0), weights4.get("portability", 0.15)),
-                ]
-                for label4, score4, weight4 in rows_score:
-                    bar4 = int(score4 / 10)
-                    st.markdown(
-                        f"{label4}: **{score4:.0f}** (×{weight4:.0%}) "
-                        f"`{'█' * bar4}{'░' * (10 - bar4)}`"
-                    )
-            with col_r2:
-                total_cost4 = roi4.get("total_token_cost_usd", 0)
-                roi_val4    = roi4.get("roi")
-                st.metric("総トークンコスト(推定)", f"${total_cost4:.4f}")
-                st.metric("ROI", f"{roi_val4:.2f}" if roi_val4 else "N/A",
-                          help="(AIレベル×0.7 + 金銭収益×0.3) / トークンコスト")
-                st.caption(roi4.get("note", ""))
-
-        st.divider()
-
-        # ── 詳細KPI ────────────────────────────────────────────────────────────
-        st.markdown("#### 詳細KPI")
-        kpi_tab1, kpi_tab2, kpi_tab3, kpi_tab4 = st.tabs(
-            ["🔴 信頼性", "🟢 自律性", "🟢 効率性", "🟡 学習率"]
-        )
-
-        with kpi_tab1:
-            if rel4:
-                ov4 = rel4.get("overall", {})
-                r74 = rel4.get("recent_7d", {})
-                er4 = rel4.get("error_recurrence", {})
-                c1r, c2r, c3r, c4r = st.columns(4)
-                c1r.metric("成功率(全期間)", f"{ov4.get('success_rate_pct', 0)}%")
-                c2r.metric("成功率(直近7日)", f"{r74.get('success_rate_pct', 'N/A')}%")
-                c3r.metric("MTBF", f"{rel4.get('mtbf_hours','N/A')}h")
-                c4r.metric("エラー再発率", f"{er4.get('recurrence_rate_pct', 0)}%",
-                           delta_color="inverse")
-                st.caption(f"総実行: {ov4.get('total_runs',0)}件 / 成功: {ov4.get('success_count',0)} / 失敗: {ov4.get('failure_count',0)}")
-                if er4.get("recurring_errors"):
-                    st.markdown("**再発エラー:**")
-                    for err, cnt in er4["recurring_errors"].items():
-                        st.markdown(f"- `{err}`: {cnt}回")
-            else:
-                st.info("信頼性KPIデータなし")
-
-        with kpi_tab2:
-            if aut4:
-                cl4 = aut4.get("closed_tasks", {})
-                c1a, c2a, c3a = st.columns(3)
-                c1a.metric("自律完了率", f"{cl4.get('autonomy_rate_pct', 0)}%")
-                c2a.metric("介入率", f"{cl4.get('intervention_rate_pct', 0)}%")
-                c3a.metric("エージェント質問数", f"{aut4.get('agent_questions_total', 0)}件")
-                st.caption(
-                    f"完了タスク {cl4.get('total',0)}件 / 自律: {cl4.get('autonomous',0)} / 介入あり: {cl4.get('intervened',0)}"
-                )
-            else:
-                st.info("自律性KPIデータなし")
-
-        with kpi_tab3:
-            if eff4:
-                tok4  = eff4.get("tokens", {})
-                hai4  = eff4.get("haiku_ratio", {})
-                cst4  = eff4.get("cost", {})
-                pc4   = eff4.get("pc_load", {})
-                c1e, c2e, c3e, c4e = st.columns(4)
-                c1e.metric("Haiku比率(runs)", f"{hai4.get('by_runs_pct', 0)}%")
-                c2e.metric("推定コスト", f"${cst4.get('estimated_usd', 0):.4f}")
-                c3e.metric("コスト/タスク", f"${cst4.get('cost_per_task_usd', 0):.5f}" if cst4.get('cost_per_task_usd') else "N/A")
-                c4e.metric("CPU / RAM", f"{pc4.get('cpu_pct','?')}% / {pc4.get('ram_pct','?')}%")
-                st.caption(f"総トークン: {tok4.get('total', 0):,} (input: {tok4.get('input',0):,} / output: {tok4.get('output',0):,})")
-            else:
-                st.info("効率性KPIデータなし")
-
-        with kpi_tab4:
-            if lrn4:
-                er4l  = lrn4.get("error_recurrence", {})
-                mg4   = lrn4.get("memory_growth", {})
-                fp4   = lrn4.get("failure_pattern_improvement", {})
-                c1l, c2l, c3l = st.columns(3)
-                c1l.metric("エラー再発率", f"{er4l.get('recurrence_rate_pct', 0)}%")
-                c2l.metric("FBルール数", f"{mg4.get('feedback_rule_count', 0)}件")
-                c3l.metric("障害パターン解決率", f"{fp4.get('resolution_rate_pct', 0)}%")
-                if er4l.get("agent_recurring"):
-                    st.markdown("**エージェント別再発エラー:**")
-                    for k, v in list(er4l["agent_recurring"].items())[:5]:
-                        st.markdown(f"- `{k}`: {v}回")
-            else:
-                st.info("学習率KPIデータなし")
-
-        style.section_card_end()
-
 # ══════════════════════════════════════════════════════════════════════════════
-# 📈 Eval品質（旧 9_Eval品質.py）
+# 🔍 AI出力品質（旧: Eval品質 — エージェント出力スコア・評価判定）
 # ══════════════════════════════════════════════════════════════════════════════
 with tab5:
+    st.caption("🔍 AI出力品質: エージェントが生成したレポート・記事・分析の採点スコアと評価判定（推奨/条件付き/保留/却下）を追跡します")
+
     def _safe5(fn, default=None):
         try:
             return fn()
@@ -2080,22 +1969,37 @@ with tab8:
     sys_info8 = _safe8(lambda: data_loader.system_info(), {})
     ds8       = _safe8(lambda: data_loader.datasource(), {})
 
-    alerts8   = (sh8 or {}).get("alerts", []) if sh8 else []
+    # pipeline_statusから動的アラートを生成
+    pl_status8 = _safe8(lambda: data_loader.pipeline_status(), {})
+    pl_counts8 = pl_status8.get("counts", {}) if pl_status8 else {}
+    failed_pipes8 = [p for p in pl_status8.get("pipelines", [])
+                     if p.get("overall") == "failed"] if pl_status8 else []
+
+    alerts8_static = (sh8 or {}).get("alerts", []) if sh8 else []
+    alerts8_dynamic = [
+        {"level": "error", "message": f"パイプライン失敗: {p.get('name')} ({p.get('schedule','')})"}
+        for p in failed_pipes8
+    ]
+    alerts8 = alerts8_dynamic + alerts8_static
+
     pl_cnt8   = (sh8 or {}).get("pipeline_count", 0) if sh8 else 0
     sched8    = (sh8 or {}).get("scheduler", {}) if sh8 else {}
     sh_last8  = ((sh8 or {}).get("last_run", "") or "")[:16] if sh8 else ""
 
-    orphan8   = (sh8 or {}).get("orphan_process_count", 0) or 0
-    stale8    = (sh8 or {}).get("stale_output_count", 0) or 0
-    sched_cnt8 = sched8.get("total", pl_cnt8) if isinstance(sched8, dict) else pl_cnt8
+    orphan8    = (sh8 or {}).get("orphan_process_count", 0) or 0
+    stale8     = (sh8 or {}).get("stale_output_count", 0) or 0
+    sched_cnt8 = pl_counts8.get("ok", 0) + pl_counts8.get("failed", 0) + pl_counts8.get("never_ran", 0) or pl_cnt8
 
-    style.section_card_start("🩺 システム健全性サマリー")
-    mc1, mc2, mc3 = st.columns(3)
-    mc1.metric("🔄 孤立プロセス数", orphan8,
+    _health_color8 = "critical" if failed_pipes8 else "ok"
+    style.section_card_start("🩺 診断サマリー", "", _health_color8)
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    mc1.metric("🔴 パイプライン失敗", f"{len(failed_pipes8)}本",
+               delta="要確認" if failed_pipes8 else None, delta_color="inverse")
+    mc2.metric("✅ 正常稼働", f"{pl_counts8.get('ok', 0)}本")
+    mc3.metric("🔄 孤立プロセス", orphan8,
                delta="要確認" if orphan8 > 0 else None, delta_color="inverse")
-    mc2.metric("📦 放置成果物数", stale8,
+    mc4.metric("📦 放置成果物", stale8,
                delta="要確認" if stale8 > 5 else None, delta_color="inverse")
-    mc3.metric("⏱️ スケジューラ件数", sched_cnt8)
     if sh_last8:
         st.caption(f"最終更新: {sh_last8}")
     style.section_card_end()
