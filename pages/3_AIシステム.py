@@ -139,14 +139,30 @@ with tab1:
                     delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
                     delta_color="normal" if _rel_score >= 60 else "inverse")
         _kc2.metric("🟢 自律性 ×20%", f"{_aut_score:.0f}/100",
-                    delta=f"自律完了{_aut.get('closed_tasks',{}).get('autonomy_rate_pct',0)}%")
+                    delta=f"自律完了{_aut.get('closed_tasks',{}).get('autonomy_rate_pct',0)}%",
+                    help="自律完了率 = 人間の介入なしにClaudeが独立完了したタスクの割合")
         _kc3.metric("🟢 効率性 ×20%", f"{_eff_score:.0f}/100",
-                    delta=f"Haiku{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%")
+                    delta=f"Haiku比率{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%",
+                    help="Haiku比率 = 全エージェント実行のうち低コストモデル(Haiku)を使用した割合。高いほどコスト効率が良い")
         _kc4.metric("🟡 学習率 ×15%", f"{_lrn_score:.0f}/100",
-                    delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
+                    delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件",
+                    help="FBルール数 = MEMORYに蓄積されたフィードバックルールの総数。多いほど学習が進んでいる")
         _obs_score = _comps.get("observability", 0)
         _kc5.metric("👁️ 観測性 ×15%", f"{_obs_score:.0f}/100",
-                    delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse")
+                    delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse",
+                    help="ダッシュボードの情報整理度（分散・深さ・鮮度）を評価。問題が少ないほど高スコア")
+        with st.expander("📖 各スコアの説明"):
+            st.markdown("""
+| スコア | 重み | 意味 | 高い = |
+|--------|------|------|--------|
+| **信頼性** | ×30% | エージェント実行の成功率・エラー率 | パイプラインが安定稼働している |
+| **自律性** | ×20% | タスク自律完了率×40% + 実行品質×30% + 出力品質×30% | 人手介入なしで動く・JSON出力が正確・Evalスコアが高い |
+| **効率性** | ×20% | Haiku比率（低コストモデル使用率）+ トークン消費量 | コストを抑えて多くのタスクをこなしている |
+| **学習率** | ×15% | MEMORY蓄積フィードバックルール数 + Eval改善トレンド | 同じミスを繰り返さず知識が増えている |
+| **観測性** | ×15% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
+
+**グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
+""")
         style.kpi_wrap_end()
     else:
         st.warning("AIレベルスコアデータなし — run_kpi_collectors.pyを実行してください")
