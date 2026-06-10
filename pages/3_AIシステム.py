@@ -151,22 +151,14 @@ with tab1:
     else:
         st.warning("AIレベルスコアデータなし — run_kpi_collectors.pyを実行してください")
 
-    # ── パイプラインKPIサマリー ─────────────────────────────────────────────────
+    # ── システム構成サマリー（稼働状況の詳細はtab2参照）────────────────────────────
     total_pl = counts.get("total", 0) or len(DAILY_PIPELINES) + len(CHAIN_PIPELINES) + len(WEEKLY_PIPELINES)
-    failed_pl = counts.get("failed", 0)
-    ok_pl = counts.get("ok", 0)
-    integrated_pl = counts.get("integrated", 0)
 
     style.kpi_wrap_start("info")
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1, c2, c3 = st.columns(3)
     c1.metric("スケジューラ", f"{total_pl}本")
     c2.metric("エージェント", f"{len(AGENTS)}個")
     c3.metric("ページ数", "3")
-    c4.metric("正常", f"{ok_pl}本")
-    c5.metric("失敗", f"{failed_pl}本",
-              delta=f"-{failed_pl}" if failed_pl else None,
-              delta_color="inverse" if failed_pl else "off")
-    c6.metric("統合", f"{integrated_pl}本")
     style.kpi_wrap_end()
 
     subtab1, subtab2, subtab3 = st.tabs(["⏱️ 実行タイムライン", "🤖 エージェント構成", "📁 ファイル・フォルダ構成"])
@@ -815,6 +807,36 @@ with tab2:
                         })
                     st.dataframe(pd.DataFrame(rows7), use_container_width=True)
                 style.section_card_end()
+
+        # ── Eval品質スコア（tab4から統合）────────────────────────────────────────
+        def _safe_eval_t2(fn, default=None):
+            try: return fn()
+            except Exception: return default
+
+        eval_t2 = _safe_eval_t2(lambda: data_loader.eval_status(), {})
+        by_agent_eval_t2 = (eval_t2 or {}).get("by_agent", [])
+        if by_agent_eval_t2:
+            style.section_card_start("📊 エージェント別 Evalスコア（直近）", "", "info")
+            cols_ea = st.columns([2, 1, 1, 1, 3])
+            cols_ea[0].markdown("**エージェント**")
+            cols_ea[1].markdown("**平均スコア**")
+            cols_ea[2].markdown("**実験件数**")
+            cols_ea[3].markdown("**エラー率**")
+            cols_ea[4].markdown("**Verdict分布**")
+            for a_ea in sorted(by_agent_eval_t2, key=lambda x: -(x.get("avg_score") or 0)):
+                avg_ea   = a_ea.get("avg_score")
+                err_ea   = a_ea.get("error_rate_pct", 0)
+                v_ea     = a_ea.get("verdicts", {})
+                sico     = "🔴" if (avg_ea and avg_ea < 4) else ("🟡" if (avg_ea and avg_ea < 6) else "🟢")
+                eico     = "🔴" if err_ea > 20 else ("🟡" if err_ea > 5 else "🟢")
+                vstr     = " / ".join(f"{k[:6]}:{c}" for k, c in sorted(v_ea.items(), key=lambda x: -x[1])[:3]) or "—"
+                cols_eb  = st.columns([2, 1, 1, 1, 3])
+                cols_eb[0].code(a_ea.get("agent", "?"))
+                cols_eb[1].write(f"{sico} {avg_ea:.1f}" if avg_ea else "—")
+                cols_eb[2].write(str(a_ea.get("experiment_count", 0)))
+                cols_eb[3].write(f"{eico} {err_ea:.0f}%")
+                cols_eb[4].write(vstr)
+            style.section_card_end()
 
     # ── 診断・健全性 ────────────────────────────────────────────────────────────
     with tab_health:
@@ -1663,38 +1685,8 @@ with tab4:
             style.section_card_end()
     
         with tab5_2:
+            st.info("エージェント別スコア・Verdict分布は「⚙️ 稼働状況 > 🤖 エージェント実績」に統合しました。")
             if by_agent5:
-                style.section_card_start("📊 エージェント別スコア・Verdict分布", "", "info")
-                cols_h5b = st.columns([2, 1, 1, 1, 3])
-                cols_h5b[0].markdown("**エージェント**")
-                cols_h5b[1].markdown("**平均スコア**")
-                cols_h5b[2].markdown("**実験件数**")
-                cols_h5b[3].markdown("**エラー率**")
-                cols_h5b[4].markdown("**Verdict分布**")
-    
-                for a5 in sorted(by_agent5, key=lambda x: -(x.get("avg_score") or 0)):
-                    agent_name5  = a5.get("agent", "?")
-                    avg_s5       = a5.get("avg_score")
-                    exp_count5   = a5.get("experiment_count", 0)
-                    err_rate5    = a5.get("error_rate_pct", 0)
-                    verdicts5    = a5.get("verdicts", {})
-    
-                    score_icon5 = "🔴" if (avg_s5 and avg_s5 < 4) else ("🟡" if (avg_s5 and avg_s5 < 6) else "🟢")
-                    err_icon5   = "🔴" if err_rate5 > 20 else ("🟡" if err_rate5 > 5 else "🟢")
-    
-                    v_parts5 = []
-                    for k5, cnt5 in sorted(verdicts5.items(), key=lambda x: -x[1])[:3]:
-                        v_parts5.append(f"{k5[:6]}:{cnt5}")
-                    verdict_str5 = " / ".join(v_parts5) if v_parts5 else "—"
-    
-                    cols5b = st.columns([2, 1, 1, 1, 3])
-                    cols5b[0].code(agent_name5)
-                    cols5b[1].write(f"{score_icon5} {avg_s5:.1f}" if avg_s5 else "—")
-                    cols5b[2].write(str(exp_count5))
-                    cols5b[3].write(f"{err_icon5} {err_rate5:.0f}%")
-                    cols5b[4].write(verdict_str5)
-                style.section_card_end()
-    
                 problem_agents5 = [a5 for a5 in by_agent5
                                    if (a5.get("avg_score") or 10) < 5 or a5.get("error_rate_pct", 0) > 20]
                 if problem_agents5:
