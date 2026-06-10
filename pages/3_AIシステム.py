@@ -114,7 +114,44 @@ with tab1:
 
     counts = pl_status.get("counts", {}) if pl_status else {}
 
-    # KPIサマリー
+    # ── 🎯 AIレベルスコア（最上部・最優先表示）──────────────────────────────────
+    _roi = _safe(lambda: data_loader.roi_score(), {})
+    _rel = _safe(lambda: data_loader.reliability_kpi(), {})
+    _aut = _safe(lambda: data_loader.autonomy_kpi(), {})
+    _eff = _safe(lambda: data_loader.efficiency_kpi(), {})
+    _lrn = _safe(lambda: data_loader.learning_kpi(), {})
+
+    if _roi:
+        _comps = _roi.get("component_scores", {})
+        _grade = _roi.get("grade", "?")
+        _level = _roi.get("ai_level_score", 0)
+        _grade_color = {"A": "ok", "B": "ok", "C": "warn", "D": "critical", "F": "critical"}.get(_grade, "info")
+        _grade_emoji = {"A": "🟢", "B": "🟢", "C": "🟡", "D": "🔴", "F": "🔴"}.get(_grade, "⚪")
+
+        style.kpi_wrap_start(_grade_color)
+        st.markdown(f"### {_grade_emoji} AIレベルスコア: **{_level}/100** &nbsp; `[{_grade}]` &nbsp; ROI: `{_roi.get('roi') or 'N/A'}`")
+        _kc1, _kc2, _kc3, _kc4, _kc5 = st.columns(5)
+        _rel_score = _comps.get("reliability", 0)
+        _aut_score = _comps.get("autonomy", 0)
+        _eff_score = _comps.get("efficiency", 0)
+        _lrn_score = _comps.get("learning", 0)
+        _port_score = _comps.get("portability", 0)
+
+        _kc1.metric("🔴 信頼性 ×30%", f"{_rel_score:.0f}",
+                    delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
+                    delta_color="normal" if _rel_score >= 60 else "inverse")
+        _kc2.metric("🟢 自律性 ×20%", f"{_aut_score:.0f}",
+                    delta=f"自律完了{_aut.get('closed_tasks',{}).get('autonomy_rate_pct',0)}%")
+        _kc3.metric("🟢 効率性 ×20%", f"{_eff_score:.0f}",
+                    delta=f"Haiku{_eff.get('haiku_ratio',{}).get('by_runs_pct',0)}%")
+        _kc4.metric("🟡 学習率 ×15%", f"{_lrn_score:.0f}",
+                    delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
+        _kc5.metric("⚪ 移植性 ×15%", f"{_port_score:.0f}", delta="暫定値")
+        style.kpi_wrap_end()
+    else:
+        st.warning("AIレベルスコアデータなし — run_kpi_collectors.pyを実行してください")
+
+    # ── パイプラインKPIサマリー ─────────────────────────────────────────────────
     total_pl = counts.get("total", 0) or len(DAILY_PIPELINES) + len(CHAIN_PIPELINES) + len(WEEKLY_PIPELINES)
     failed_pl = counts.get("failed", 0)
     ok_pl = counts.get("ok", 0)
@@ -122,32 +159,15 @@ with tab1:
 
     style.kpi_wrap_start("info")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("タスク数", f"{total_pl}本")
+    c1.metric("スケジューラ", f"{total_pl}本")
     c2.metric("エージェント", f"{len(AGENTS)}個")
     c3.metric("ページ数", "3")
-    c4.metric("正常", f"{ok_pl}本", delta=None)
+    c4.metric("正常", f"{ok_pl}本")
     c5.metric("失敗", f"{failed_pl}本",
               delta=f"-{failed_pl}" if failed_pl else None,
               delta_color="inverse" if failed_pl else "off")
     c6.metric("統合", f"{integrated_pl}本")
     style.kpi_wrap_end()
-
-    # ── AIレベルスコア（ROI KPI）────────────────────────────────────────────────
-    _roi = _safe(lambda: data_loader.roi_score(), {})
-    if _roi:
-        _comps = _roi.get("component_scores", {})
-        _grade = _roi.get("grade", "?")
-        _level = _roi.get("ai_level_score", 0)
-        _grade_color = {"A": "ok", "B": "ok", "C": "warn", "D": "critical", "F": "critical"}.get(_grade, "info")
-        style.kpi_wrap_start(_grade_color)
-        _rc1, _rc2, _rc3, _rc4, _rc5, _rc6 = st.columns(6)
-        _rc1.metric("AIレベル", f"{_level}/100", delta=f"[{_grade}]")
-        _rc2.metric("🔴 信頼性", f"{_comps.get('reliability', 0):.0f}/100")
-        _rc3.metric("🟢 自律性", f"{_comps.get('autonomy', 0):.0f}/100")
-        _rc4.metric("🟢 効率性", f"{_comps.get('efficiency', 0):.0f}/100")
-        _rc5.metric("🟡 学習率", f"{_comps.get('learning', 0):.0f}/100")
-        _rc6.metric("ROI", f"{_roi.get('roi') or 'N/A'}")
-        style.kpi_wrap_end()
 
     subtab1, subtab2, subtab3 = st.tabs(["⏱️ 実行タイムライン", "🤖 エージェント構成", "📁 ファイル・フォルダ構成"])
 

@@ -413,26 +413,31 @@ def failure_patterns() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+@st.cache_data(ttl=300)
 def reliability_kpi() -> dict:
     fb = firebase_client.get_doc("dashboard", "reliability_kpi")
     return fb if isinstance(fb, dict) else {}
 
 
+@st.cache_data(ttl=300)
 def autonomy_kpi() -> dict:
     fb = firebase_client.get_doc("dashboard", "autonomy_kpi")
     return fb if isinstance(fb, dict) else {}
 
 
+@st.cache_data(ttl=300)
 def efficiency_kpi() -> dict:
     fb = firebase_client.get_doc("dashboard", "efficiency_kpi")
     return fb if isinstance(fb, dict) else {}
 
 
+@st.cache_data(ttl=300)
 def learning_kpi() -> dict:
     fb = firebase_client.get_doc("dashboard", "learning_kpi")
     return fb if isinstance(fb, dict) else {}
 
 
+@st.cache_data(ttl=300)
 def roi_score() -> dict:
     fb = firebase_client.get_doc("dashboard", "roi_score")
     return fb if isinstance(fb, dict) else {}
