@@ -1516,7 +1516,7 @@ with tab4:
                 for label4, score4, weight4 in rows_score:
                     bar4 = int(score4 / 10)
                     st.markdown(
-                        f"{label4}: **{score4:.0f}** (×{weight4:.0f%}) "
+                        f"{label4}: **{score4:.0f}** (×{weight4:.0%}) "
                         f"`{'█' * bar4}{'░' * (10 - bar4)}`"
                     )
             with col_r2:
