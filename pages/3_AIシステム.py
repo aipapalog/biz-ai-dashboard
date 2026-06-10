@@ -1164,13 +1164,16 @@ with tab4:
         except Exception:
             return default
 
-    tab_mem, tab_lv, tab_rule, tab_obsidian, tab_ctx, tab_learn, tab_outputs = st.tabs([
-        "🧠 mempalace × Obsidian", "🚀 レベルアップ", "⚙️ ルールエンジン",
-        "📖 エージェント体制", "📋 Sync/ai コンテキスト", "🛡️ 4層学習システム", "📦 生成物一覧",
+    # ── 7サブタブ → 4サブタブに統合（スクロール不要・最大2クリック）──────────
+    tab_knowledge, tab_growth, tab_ops, tab_outputs = st.tabs([
+        "🧠 メモリ・知識",     # mempalace + Sync/aiコンテキスト
+        "🚀 成長・改善",       # レベルアップ + 4層学習システム
+        "📖 体制・ルール",     # ルールエンジン + エージェント体制
+        "📦 生成物",           # 生成物一覧
     ])
-    tab_roi = None  # ROI・KPIはシステム概要タブ(tab1)に表示
 
-    with tab_mem:
+    with tab_knowledge:
+        # ── mempalace ─────────────────────────────────────────────────────────
         style.section_card_start("🧠 mempalace ナレッジ成長（直近14日）")
         mem = _safe4(lambda: data_loader.mempalace(), {})
         if mem:
@@ -1290,7 +1293,32 @@ with tab4:
                 st.markdown(f"{icon} **{folder}**  \n{desc}")
         style.section_card_end()
 
-    with tab_lv:
+        # ── Sync/ai コンテキスト（旧7ミニタブ → エキスパンダーに変換）──────────
+        brain4 = _safe4(lambda: data_loader.sync_brain(), {})
+        tasks4 = _safe4(lambda: data_loader.sync_tasks(), {})
+        ll4    = _safe4(lambda: data_loader.lessons_learned(), {})
+
+        style.section_card_start("📋 Sync/ai コンテキスト")
+        st.caption(f"最終更新: {(brain4 or {}).get('updated_at', '')[:16]}")
+
+        for label4, content4 in [
+            ("🟢 now.md",            (brain4 or {}).get("now", "")),
+            ("📌 Standing Orders",   (tasks4 or {}).get("standing_orders", "")),
+            ("🧩 コンテキスト",       (tasks4 or {}).get("claude_context", "")),
+            ("👤 me.md",             (brain4 or {}).get("me", "")),
+            ("🎨 brand_memory",      (brain4 or {}).get("brand_memory", "")),
+            ("🏗️ OSS移行計画",       (brain4 or {}).get("oss_migration_plan", "")),
+            ("📚 lessons_learned",   (ll4 or {}).get("content", "")),
+        ]:
+            with st.expander(label4, expanded=(label4 == "🟢 now.md")):
+                if content4:
+                    st.markdown(content4[:3000])
+                else:
+                    st.caption("データなし")
+        style.section_card_end()
+
+    with tab_growth:
+        # ── レベルアップ ──────────────────────────────────────────────────────
         style.section_card_start("🚀 エージェント レベルアップ状況")
         status_lv = _safe4(lambda: data_loader.levelup_status(), {})
         if status_lv:
@@ -1321,7 +1349,31 @@ with tab4:
             st.info("レベルアップ履歴がありません")
         style.section_card_end()
 
-    with tab_rule:
+        # ── 4層学習システム ───────────────────────────────────────────────────
+        ls4 = _safe4(lambda: data_loader.learning_system(), {})
+        style.section_card_start("🛡️ エラー再発防止：4層の多層防御")
+        if ls4:
+            active_count4 = ls4.get("active_count", 0)
+            total4        = ls4.get("total", 4)
+            overall4      = ls4.get("overall", "")
+            flow4         = ls4.get("flow", "")
+            c1, c2 = st.columns(2)
+            c1.metric("有効レイヤー", f"{active_count4}/{total4}層",
+                      delta="正常" if active_count4 == total4 else f"⚠ {total4 - active_count4}層未設定")
+            c2.markdown(f"**全体状態:** {overall4}")
+            for la in ls4.get("layers", []):
+                icon4       = "🟢" if la.get("active") else "⚪"
+                status_tag4 = f"✓ {la['status']}" if la.get("active") else la["status"]
+                with st.expander(f"{icon4} Layer {la['layer']}: {la['name']} — {status_tag4}", expanded=la.get("active", False)):
+                    st.markdown(f"**コンポーネント:** {la.get('components','')}")
+                    st.markdown(f"**動作内容:** {la.get('desc','')}")
+            st.markdown(f"**学習フロー:** {flow4}")
+        else:
+            st.info("学習システムデータがありません")
+        style.section_card_end()
+
+    with tab_ops:
+        # ── ルールエンジン ────────────────────────────────────────────────────
         rule_data = _safe4(lambda: data_loader.rule_engine(), {})
         style.section_card_start("⚙️ ルールエンジン状態")
         if rule_data:
@@ -1338,31 +1390,25 @@ with tab4:
             st.info("ルールエンジンデータがありません")
         style.section_card_end()
 
-        style.section_card_start("📋 主要ルール（CLAUDE.mdより）")
-        rules_list = [
-            ("🔴 会社NW接続時は完全停止",     "SWing/SWingS 検出→全ツール停止"),
-            ("🔴 自動化スクリプトでOpus禁止",  "claude-haiku-4-5 推奨。Opusは自動化禁止"),
-            ("🔴 subprocess.run直接禁止",       "safe_run/safe_popen に差し替え必須"),
-            ("🔴 AtLogonトリガー禁止",          "BSOD防止。21:00〜21:30の定時スケジューラのみ"),
-            ("🔴 Microsoft Store禁止",          "管理者権限なし。pip/scoopを使う"),
-            ("🔴 新規スクリプトはclaude -pのみ","APIクレジット消費禁止。CLIは無料"),
-            ("🟡 Haiku委譲（閾値9）",           "スコア≤9のタスクは全てHaiku"),
-            ("🟡 ダッシュボードはpython実行必須","mdファイル書き込み≠ダッシュボード反映"),
+        style.section_card_start("📋 主要ルール（CLAUDE.md）")
+        for rule_name, desc in [
+            ("🔴 会社NW接続時は完全停止",           "SWing/SWingS 検出→全ツール停止"),
+            ("🔴 自動化スクリプトでOpus禁止",         "claude-haiku-4-5 推奨。Opusは自動化禁止"),
+            ("🔴 subprocess.run直接禁止",             "safe_run/safe_popen に差し替え必須"),
+            ("🔴 AtLogonトリガー禁止",                "BSOD防止。21:00〜21:30の定時スケジューラのみ"),
+            ("🔴 Microsoft Store禁止",                "管理者権限なし。pip/scoopを使う"),
+            ("🟡 Haiku委譲（閾値9）",                 "スコア≤9のタスクは全てHaiku"),
             ("🟡 新規スクリプト追加は会長明示指示のみ","システムシンプル化原則"),
-        ]
-        for rule_name, desc in rules_list:
+        ]:
             st.markdown(f"**{rule_name}**  \n　{desc}")
         style.section_card_end()
 
-    with tab_obsidian:
+        # ── エージェント体制 ──────────────────────────────────────────────────
         agents_ctx4 = _safe4(lambda: data_loader.agents_context(), {})
         insights4   = _safe4(lambda: data_loader.agent_insights(), {})
-        style.section_card_start("📖 エージェント体制・施策サマリー")
+        style.section_card_start("📖 エージェント体制・成功パターン")
         if (agents_ctx4 or {}).get("content"):
             st.markdown(agents_ctx4["content"])
-        else:
-            st.info("エージェントコンテキストがありません")
-
         patterns4 = (insights4 or {}).get("success_patterns", {})
         if patterns4:
             style.section_title("🌟 成功パターンライブラリ")
@@ -1376,103 +1422,8 @@ with tab4:
                             ts4      = (item4.get("ts") or "")[:10]
                             color4   = "🟢" if score4 >= 8 else "🟡" if score4 >= 6 else "🔴"
                             st.write(f"{color4} {ts4} スコア{score4}: {summary4[:100]}")
-        style.section_card_end()
-
-    with tab_ctx:
-        brain4 = _safe4(lambda: data_loader.sync_brain(), {})
-        tasks4 = _safe4(lambda: data_loader.sync_tasks(), {})
-        ll4    = _safe4(lambda: data_loader.lessons_learned(), {})
-
-        style.section_card_start("📋 Sync/ai コンテキスト")
-        st.caption(f"最終更新: {(brain4 or {}).get('updated_at', '')[:16]}")
-
-        sub_now, sub_so, sub_ctx, sub_me, sub_brand, sub_oss, sub_ll = st.tabs([
-            "🟢 now.md", "📌 Standing Orders", "🧩 コンテキスト",
-            "👤 me.md", "🎨 brand_memory", "🏗️ OSS移行計画", "📚 lessons_learned"
-        ])
-
-        with sub_now:
-            now_content4 = (brain4 or {}).get("now", "")
-            if now_content4:
-                st.markdown(now_content4)
-            else:
-                st.info("now.mdデータがありません。firebase_dashboard_pusher.pyを実行してください。")
-
-        with sub_so:
-            so_content4 = (tasks4 or {}).get("standing_orders", "")
-            if so_content4:
-                st.markdown(so_content4)
-            else:
-                st.info("standing_ordersデータがありません。")
-
-        with sub_ctx:
-            ctx_content4 = (tasks4 or {}).get("claude_context", "")
-            ws4          = (tasks4 or {}).get("work_status", {})
-            if ctx_content4:
-                st.markdown(ctx_content4)
-            if ws4:
-                style.section_title("📊 work_status")
-                for k, v in ws4.items():
-                    st.write(f"**{k}:** {v}")
-
-        with sub_me:
-            me_content4 = (brain4 or {}).get("me", "")
-            if me_content4:
-                st.markdown(me_content4)
-            else:
-                st.info("me.mdデータがありません。")
-
-        with sub_brand:
-            brand_content4 = (brain4 or {}).get("brand_memory", "")
-            if brand_content4:
-                st.markdown(brand_content4)
-            else:
-                st.info("brand_memoryデータがありません。")
-
-        with sub_oss:
-            oss_content4 = (brain4 or {}).get("oss_migration_plan", "")
-            if oss_content4:
-                st.markdown(oss_content4)
-            else:
-                st.info("OSS移行計画データがありません。")
-
-        with sub_ll:
-            ll_content4 = (ll4 or {}).get("content", "")
-            if ll_content4:
-                st.markdown(ll_content4)
-            else:
-                st.info("lessons_learnedデータがありません。")
-        style.section_card_end()
-
-    with tab_learn:
-        ls4 = _safe4(lambda: data_loader.learning_system(), {})
-        style.section_card_start("🛡️ エラー再発防止・自律学習システム：4層の多層防御")
-        st.caption("失敗パターンの再発を防止 + 自律学習フィードバック実装")
-
-        if ls4:
-            active_count4 = ls4.get("active_count", 0)
-            total4        = ls4.get("total", 4)
-            overall4      = ls4.get("overall", "")
-            flow4         = ls4.get("flow", "")
-
-            c1, c2 = st.columns(2)
-            c1.metric("有効レイヤー", f"{active_count4}/{total4}層",
-                      delta="正常" if active_count4 == total4 else f"⚠ {total4 - active_count4}層未設定")
-            c2.markdown(f"**全体状態:** {overall4}")
-
-            layers4 = ls4.get("layers", [])
-            for la in layers4:
-                icon4       = "🟢" if la.get("active") else "⚪"
-                status_tag4 = f"✓ {la['status']}" if la.get("active") else la["status"]
-                with st.expander(f"{icon4} **Layer {la['layer']}: {la['name']}** — {status_tag4}", expanded=la.get("active", False)):
-                    st.markdown(f"**コンポーネント:** {la.get('components','')}")
-                    st.markdown(f"**動作内容:** {la.get('desc','')}")
-                    st.markdown(f"**ステータス:** `{la.get('status','')}`")
-
-            st.markdown(f"**学習フロー:** {flow4}")
-            st.caption(f"最終更新: {ls4.get('updated_at','')[:16]}")
-        else:
-            st.info("学習システムデータがありません。firebase_dashboard_pusher.pyを実行してください。")
+        if not (agents_ctx4 or {}).get("content") and not patterns4:
+            st.info("エージェント体制データがありません")
         style.section_card_end()
 
     with tab_outputs:
