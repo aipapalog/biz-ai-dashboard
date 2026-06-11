@@ -443,6 +443,12 @@ def roi_score() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+@st.cache_data(ttl=300)
+def model_usage_kpi() -> dict:
+    fb = firebase_client.get_doc("dashboard", "model_usage_kpi")
+    return fb if isinstance(fb, dict) else {}
+
+
 def last_updated() -> str:
     fb = firebase_client.get_doc("dashboard", "meta")
     return fb.get("last_updated", "") if fb else ""

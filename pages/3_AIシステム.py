@@ -133,22 +133,19 @@ with tab1:
         _kc1, _kc2, _kc3, _kc4, _kc5 = st.columns(5)
         _rel_score = _comps.get("reliability", 0)
         _aut_score = _comps.get("autonomy", 0)
-        _eff_score = _comps.get("efficiency", 0)
+        _mu_score  = _comps.get("model_usage", 0)
         _lrn_score = _comps.get("learning", 0)
-        _port_score = _comps.get("portability", 0)
 
         _kc1.metric("🔴 信頼性 ×30%", f"{_rel_score:.0f}/100",
                     delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
                     delta_color="normal" if _rel_score >= 60 else "inverse")
-        _kc2.metric("🟢 自律性 ×20%", f"{_aut_score:.0f}/100",
+        _kc2.metric("🟢 自律性 ×35%", f"{_aut_score:.0f}/100",
                     delta=f"問題解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% / 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
                     help="問題解決性×50% + 価値創出性×50%。放置タスク・アラート・KPIグレードで評価")
-        _cost_per_task = _eff.get("cost", {}).get("cost_per_task_usd")
-        _cpt_str = f"${_cost_per_task:.4f}/タスク" if _cost_per_task else "N/A"
-        _kc3.metric("🟢 効率性 ×20%", f"{_eff_score:.0f}/100",
-                    delta=_cpt_str,
-                    help="コスト効率: タスク完了コスト($0.01/タスクを目標)。Haiku比率の改善でROIが向上")
-        _kc4.metric("🟡 学習率 ×15%", f"{_lrn_score:.0f}/100",
+        _kc3.metric("🤖 モデル活用 ×10%", f"{_mu_score:.0f}/100",
+                    delta=f"CC適切性/Haiku適正/Sonnet昇格",
+                    help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
+        _kc4.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
                     delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件",
                     help="FBルール数 = MEMORYに蓄積されたフィードバックルールの総数。多いほど学習が進んでいる")
         _obs_score = _comps.get("observability", 0)
@@ -160,9 +157,9 @@ with tab1:
 | スコア | 重み | 計算式 | 高い = |
 |--------|------|--------|--------|
 | **信頼性** | ×30% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
-| **自律性** | ×20% | 問題解決性×50% + 価値創出性×50%（タスク自律率は参考値のみ） | 問題を放置せず・会長が望む価値を生み出す |
-| **効率性** | ×20% | コスト効率: タスク完了数÷実行コスト（目標$0.01/タスク） | 少ないコストで多くのタスクを完了する |
-| **学習率** | ×15% | MEMORY蓄積フィードバックルール数 + Eval改善トレンド | 同じミスを繰り返さず知識が増えている |
+| **自律性** | ×35% | 問題解決性×50% + 価値創出性×50%（タスク自律率は参考値のみ） | 問題を放置せず・会長が望む価値を生み出す |
+| **モデル活用** | ×10% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
+| **学習率** | ×10% | MEMORY蓄積フィードバックルール数 + Eval改善トレンド | 同じミスを繰り返さず知識が増えている |
 | **観測性** | ×15% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
@@ -237,17 +234,20 @@ with tab1:
             st.divider()
             _c_eff, _c_obs = st.columns(2)
             with _c_eff:
-                st.markdown("#### 🟢 効率性・学習率・ROI")
-                _eff_cost = _eff.get("cost", {})
-                _cpt      = _eff_cost.get("cost_per_task_usd")
-                _closed_n = _eff_cost.get("closed_tasks", 0)
-                _est_usd  = _eff_cost.get("estimated_usd", 0)
-                _haiku_runs = _eff.get("haiku_ratio", {}).get("by_runs_pct", 0)
-                st.markdown(f"**効率性: {_eff_score:.1f}/100** (コスト効率: 目標$0.01/タスク)")
-                st.markdown(f"- パイプラインコスト: ${_est_usd:.4f}")
-                st.markdown(f"- 完了タスク数: {_closed_n}件")
-                st.markdown(f"- コスト/タスク: ${_cpt:.6f}" if _cpt else "- コスト/タスク: N/A")
-                st.markdown(f"- Haiku比率(runs): {_haiku_runs}% → ROI向上に寄与")
+                st.markdown("#### 🤖 モデル活用・学習率・ROI")
+                _mu_data = _safe(lambda: data_loader.model_usage_kpi() if hasattr(data_loader, 'model_usage_kpi') else {}, {})
+                _mu_comps = _mu_data.get("components", {})
+                _mu_detail = _mu_data.get("details", {})
+                st.markdown(f"**モデル活用: {_mu_score:.1f}/100**")
+                st.markdown(f"""
+| 軸 | 重み | スコア |
+|----|------|--------|
+| CCセッション適切性 | ×50% | {_mu_comps.get('cc_appropriateness', 0):.0f}/100 |
+| パイプラインHaiku適正 | ×30% | {_mu_comps.get('haiku_fitness', 0):.0f}/100 |
+| Sonnet昇格パターン | ×20% | {_mu_comps.get('sonnet_escalation', 0):.0f}/100 |
+""")
+                _cc_d = _mu_detail.get("cc", {})
+                st.caption(f"CC: Sonnet {_cc_d.get('sonnet_ratio_pct','-')}% / Opus {_cc_d.get('opus_ratio_pct','-')}% / Haiku {_cc_d.get('haiku_ratio_pct','-')}%")
                 st.divider()
                 st.markdown(f"**学習率: {_lrn_score:.1f}/100** — FBルール {_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
                 st.divider()
@@ -261,16 +261,22 @@ with tab1:
                     st.markdown(f"**週次スコア変化: :{_color}[{_dir}{abs(_delta):.1f}pt]** &nbsp; ({_sc.get('oldest_score','?')} → {_sc.get('latest_score','?')} &nbsp; {_sc.get('oldest_date','?')}〜{_sc.get('latest_date','?')})")
                 st.divider()
                 if _roi_bk and isinstance(_roi_bk, dict):
-                    _period_str = ""
-                    if _cp.get("from") and _cp.get("to"):
-                        _period_str = f"（期間: {_cp['from']}〜{_cp['to']} {_cp.get('days','?')}日間）"
-                    st.markdown(f"**ROI: {_roi_bk.get('value','N/A')}**")
+                    _span = _roi_bk.get('window_span_str', '?')
+                    st.markdown(f"**ROI: {_roi_bk.get('value','N/A')}** &nbsp; `直近1億トークン({_span})`")
                     st.markdown(f"計算式: {_roi_bk.get('formula','')}")
-                    st.markdown(f"- 分子: AIレベルスコア = **{_roi_bk.get('numerator_ai_score','?')}**")
-                    st.markdown(f"- 分母: パイプライン${_roi_bk.get('pipeline_cost_usd',0):.4f}{_period_str} + CCセッション${_roi_bk.get('claude_code_cost_usd',0):.4f} = **${_roi_bk.get('denominator_total_cost_usd',0):.4f}**")
-                    _cc_track = _roi_bk.get("claude_code_tracking", "pending")
-                    if _cc_track == "pending":
-                        st.caption("⚠️ Claude Codeトークンは未追跡（pending）。分母は現在パイプラインコストのみ")
+                    _w_date  = _roi_bk.get('window_cutoff_date', '?')
+                    _w_days  = _roi_bk.get('window_days', 0)
+                    _w_tok   = _roi_bk.get('window_tokens', 0)
+                    _reached = _roi_bk.get('reached_1b_tokens', False)
+                    _s_start = _roi_bk.get('score_at_window_start', 0)
+                    _s_now   = _roi_bk.get('score_now', 0)
+                    _delta   = _roi_bk.get('numerator_delta_score', 0)
+                    _rp      = _roi_bk.get('retry_penalty_multiplier', 1)
+                    st.markdown(f"- 期間: {_w_date} 〜 今日 (**{_w_days}日間** / {_w_tok:,}tokens {'✓1億達成' if _reached else '※1億未達'})")
+                    st.markdown(f"- 分子: {_s_start}pt → {_s_now}pt = **{_delta:+.1f}pt**")
+                    st.markdown(f"- 分母: 1 × {_rp} = **{_rp:.3f}**")
+                    _cc_track = _roi_bk.get("cc_tracking", "pending")
+                    st.caption(f"{'✅' if _cc_track == 'active' else '⚠️'} CCトークン追跡: {_cc_track}")
             with _c_obs:
                 st.markdown("#### 👁️ 観測性スコア")
                 st.markdown(f"スコア: **{_obs_score:.1f}/100**")
