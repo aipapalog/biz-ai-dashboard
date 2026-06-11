@@ -154,7 +154,7 @@ with tab1:
         _delta_str = f"▲{_ai_delta:.1f}pt" if _ai_delta > 0 else (f"▼{abs(_ai_delta):.1f}pt" if _ai_delta < 0 else "→0pt")
         _kc4.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
                     delta=f"充実{_enrich:.0f} / 活用{_utilize:.0f}(AI {_delta_str})",
-                    help="知識充実＝Mempalace/ObsidianのデータとKGエッジ数。知識活用＝AIレベルが実際に改善した度合い（+10pt→100点、0pt→50点、-10pt→0点）")
+                    help="知識充実＝Mempalace/Obsidianの量と構造化。知識活用＝充実スコア×AI改善率（蓄積知識がAI向上にどれだけ結びついたか。知識があっても改善ゼロなら貢献ゼロ）")
         _obs_score = _comps.get("observability", 0)
         _kc5.metric("👁️ 観測性 ×15%", f"{_obs_score:.0f}/100",
                     delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse",
@@ -268,7 +268,7 @@ with tab1:
 | 軸 | 重み | スコア | 内訳 |
 |----|------|--------|------|
 | 知識充実 | ×50% | {_enrich2:.0f}/100 | Mempalace(量+構造) + Obsidian(量+構造) の平均 |
-| 知識活用 | ×50% | {_utilize2:.0f}/100 | AIレベル {_imp2.get('oldest_score',0)}→{_imp2.get('latest_score',0)} ({_dir2}{abs(_delta2):.1f}pt) |
+| 知識活用 | ×50% | {_utilize2:.0f}/100 | 充実{_enrich2:.0f} × AI改善率（{_imp2.get('oldest_score',0)}→{_imp2.get('latest_score',0)}, {_dir2}{abs(_delta2):.1f}pt） |
 | **合計** | | **{_lrn_score:.1f}/100** | |
 """)
                 st.markdown(f"""**📚 知識充実スコア内訳: {_enrich2:.0f}/100**
@@ -278,8 +278,10 @@ with tab1:
 | **Mempalace** | AIの知識パレス（長期記憶DB）。ドロワー＝記憶1件、KGエッジ＝知識同士のつながり | {_mp2.get('volume_score',0):.0f}/100（{_mp2.get('drawers',0):,}件 / 目標10,000） | {_mp2.get('structure_score',0):.0f}/100（{_mp2.get('edges',0)}KGエッジ / 目標200） |
 | **Obsidian** | ノートVault。知識の蓄積と`[[リンク]]`で構造化 | {_ob2.get('volume_score',0):.0f}/100（{_ob2.get('files',0)}件 / 目標200） | {_ob2.get('structure_score',0):.0f}/100（平均{_ob2.get('avg_links_per_file',0):.1f}リンク/件 / 目標5.0） |
 
-**🚀 知識活用スコア: {_utilize2:.0f}/100** — AIレベル改善量をスコア化（+10pt→100点 / 0pt→50点 / -10pt→0点）
-履歴: {_imp2.get('oldest_date','?')} {_imp2.get('oldest_score',0)}pt → {_imp2.get('latest_date','?')} {_imp2.get('latest_score',0)}pt（{_dir2}{abs(_delta2):.1f}pt, {_imp2.get('entry_count',0)}エントリ）
+**🚀 知識活用スコア: {_utilize2:.0f}/100** — 知識充実 × AI改善率の積
+計算式: {_enrich2:.1f}（充実） × {max(0.0, min(1.0, (_delta2+10)/20)):.2f}（改善率） = **{_utilize2:.1f}**
+改善率: AIレベル {_imp2.get('oldest_date','?')} {_imp2.get('oldest_score',0)}pt → {_imp2.get('latest_date','?')} {_imp2.get('latest_score',0)}pt（{_dir2}{abs(_delta2):.1f}pt / -10pt→0 / 0pt→0.5 / +10pt→1.0）
+意味: 蓄積した知識のうち、実際にAI向上に結びついた量
 """)
                 st.divider()
                 _roi_bk = _roi.get("roi")
