@@ -132,14 +132,14 @@ with left:
         st.markdown("**🔵 進行中（上位3件）**")
         for t in active_top:
             if isinstance(t, dict):
-                st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:40]}")
+                st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:60]}")
         if not active_top:
             st.caption("（なし）")
     with ta2:
         st.markdown("**🟡 確認待ち（上位3件）**")
         for t in verify_top:
             if isinstance(t, dict):
-                st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:40]}")
+                st.write(f"• {t.get('id','')}  {str(t.get('name',''))[:60]}")
         if not verify_top:
             st.caption("（なし）")
     if to_verify >= 5:

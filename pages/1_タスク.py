@@ -159,7 +159,7 @@ with tab1:
                                  "warn" if tv >= 5 else "info")
         if verify_top5:
             for t in verify_top5[:5]:
-                st.write(f"• `{t.get('id','')}` {str(t.get('name',''))[:38]} — {t.get('assignee','')}")
+                st.write(f"• `{t.get('id','')}` {str(t.get('name',''))[:60]} — {t.get('assignee','')}")
             st.caption("→ 「📋 タスクボード」タブで承認・差し戻し")
         else:
             st.info("確認待ちのタスクはありません")
@@ -168,7 +168,7 @@ with tab1:
         style.section_card_start("🔵 進行中タスク")
         if active_top5:
             for t in active_top5[:5]:
-                st.write(f"• `{t.get('id','')}` {str(t.get('name',''))[:38]} — {t.get('assignee','')}")
+                st.write(f"• `{t.get('id','')}` {str(t.get('name',''))[:60]} — {t.get('assignee','')}")
         else:
             st.info("進行中のタスクはありません")
         style.section_card_end()
@@ -270,7 +270,7 @@ with tab2:
     # ── カードHTML生成 ────────────────────────────────────────────────────────
     def make_card(t: dict) -> str:
         tid      = t.get("id", "")
-        title    = (t.get("name") or t.get("title") or "(無題)")[:42]
+        title    = (t.get("name") or t.get("title") or "(無題)")[:60]
         created  = (t.get("created_at") or "")
         date_str = created[5:10] if len(created) >= 10 else ""
         section  = t.get("section", "")
