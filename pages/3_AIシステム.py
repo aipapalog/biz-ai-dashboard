@@ -498,9 +498,10 @@ with tab2:
     all_outputs    = _safe2(lambda: data_loader.sync_outputs(), {})
     agent_run_data = _safe2(lambda: data_loader.agent_run_stats(), {})
 
-    tab_pl, tab_loop, tab_res, tab_sched, tab_agent, tab_health = st.tabs([
-        "⚙️ パイプライン", "🔄 ループログ", "💾 リソース", "⏱️ スケジュール", "🤖 エージェント実績", "🩺 診断・健全性"
+    tab_pl, tab_loop, tab_res, tab_sched, tab_health = st.tabs([
+        "⚙️ パイプライン", "🔄 ループログ", "💾 リソース", "⏱️ スケジュール", "🩺 実績・診断"
     ])
+    tab_agent = tab_health  # エージェント実績を診断タブに統合（6→5サブタブ）
 
     # ── パイプライン ────────────────────────────────────────────────────────────
     with tab_pl:
@@ -1419,13 +1420,13 @@ with tab4:
             return default
 
     # ── 4サブタブ + AI出力品質を統合 ──────────────────────────────────────────
-    tab_knowledge, tab_growth, tab_ops, tab_outputs, tab_eval = st.tabs([
+    tab_knowledge, tab_growth, tab_ops, tab_outputs = st.tabs([
         "🧠 メモリ・知識",     # mempalace + Sync/aiコンテキスト
         "🚀 成長・改善",       # レベルアップ + 4層学習システム
         "📖 体制・ルール",     # ルールエンジン + エージェント体制
-        "📦 生成物",           # 生成物一覧
-        "🔍 AI出力品質",       # エージェント出力スコア・評価判定
+        "📦 生成物・評価",     # 生成物一覧 + AI出力品質
     ])
+    tab_eval = tab_outputs  # AI出力品質を生成物タブに統合（5→4サブタブ）
 
     with tab_knowledge:
         # ── mempalace ─────────────────────────────────────────────────────────
