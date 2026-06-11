@@ -145,9 +145,11 @@ with tab1:
         _kc3.metric("🤖 モデル活用 ×10%", f"{_mu_score:.0f}/100",
                     delta=f"CC適切性/Haiku適正/Sonnet昇格",
                     help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
+        _lrn_k = _lrn.get('knowledge', {})
+        _fb_count = _lrn_k.get('feedback_rule_count', _lrn.get('memory_growth',{}).get('feedback_rule_count', 0))
         _kc4.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
-                    delta=f"FBルール{_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件",
-                    help="FBルール数 = MEMORYに蓄積されたフィードバックルールの総数。多いほど学習が進んでいる")
+                    delta=f"FB{_fb_count}件 / Mempalace {_lrn_k.get('mempalace',{}).get('drawers',0):,}件 / Obsidian {_lrn_k.get('obsidian',{}).get('files',0)}件",
+                    help="FBルール＝会長指摘から学んだ行動ルール集（feedback_*.md）。Mempalace＝知識パレスのドロワー数。Obsidian＝ノート数とリンク密度。どれも増えるほど高スコア")
         _obs_score = _comps.get("observability", 0)
         _kc5.metric("👁️ 観測性 ×15%", f"{_obs_score:.0f}/100",
                     delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse",
@@ -159,7 +161,7 @@ with tab1:
 | **信頼性** | ×30% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
 | **自律性** | ×35% | 問題解決性×50% + 価値創出性×50%（タスク自律率は参考値のみ） | 問題を放置せず・会長が望む価値を生み出す |
 | **モデル活用** | ×10% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
-| **学習率** | ×10% | MEMORY蓄積フィードバックルール数 + Eval改善トレンド | 同じミスを繰り返さず知識が増えている |
+| **学習率** | ×10% | FBルール(会長指摘から学んだルール集)×40% + Mempalace(知識パレス)×35% + Obsidian(ノート)×25%。各系統で量＋構造化を評価 | 同じミスを繰り返さず、知識が構造的に蓄積されている |
 | **観測性** | ×15% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
@@ -249,7 +251,33 @@ with tab1:
                 _cc_d = _mu_detail.get("cc", {})
                 st.caption(f"CC: Sonnet {_cc_d.get('sonnet_ratio_pct','-')}% / Opus {_cc_d.get('opus_ratio_pct','-')}% / Haiku {_cc_d.get('haiku_ratio_pct','-')}%")
                 st.divider()
-                st.markdown(f"**学習率: {_lrn_score:.1f}/100** — FBルール {_lrn.get('memory_growth',{}).get('feedback_rule_count',0)}件")
+                _lrn_k2   = _lrn.get('knowledge', {})
+                _mp       = _lrn_k2.get('mempalace', {})
+                _ob       = _lrn_k2.get('obsidian', {})
+                _fb2      = _lrn_k2.get('feedback_rule_count', _lrn.get('memory_growth',{}).get('feedback_rule_count', 0))
+                _fb_sc    = _lrn_k2.get('fb_score', 0)
+                _knw_sc   = _lrn_k2.get('knowledge_score', 0)
+                _err_rate = _lrn.get('error_recurrence', {}).get('recurrence_rate_pct', 0)
+                _res_rate = _lrn.get('failure_pattern_improvement', {}).get('resolution_rate_pct', 0)
+                st.markdown(f"**学習率: {_lrn_score:.1f}/100**")
+                st.markdown(f"""
+| 軸 | 重み | スコア | 内訳 |
+|----|------|--------|------|
+| エラー再発スコア | ×50% | {max(0, 100-_err_rate):.0f}/100 | 再発率 {_err_rate}% |
+| 知識充実スコア | ×30% | {_knw_sc:.0f}/100 | FB{_fb2}件 / Mempalace / Obsidian |
+| 故障解決率 | ×20% | {_res_rate:.0f}/100 | 既知パターンの解決率 |
+| **合計** | | **{_lrn_score:.1f}/100** | |
+""")
+                st.markdown(f"""**🧠 知識充実スコア内訳: {_knw_sc:.0f}/100**
+
+| 知識系統 | 説明 | 量スコア | 構造スコア | 合計 | 重み |
+|---------|------|---------|-----------|------|------|
+| **FBルール** | 会長の指摘・指示から学んだ行動ルール集（`feedback_*.md`）。指摘されるたびに1件追加 | {_fb_sc:.0f}/100 | — | {_fb_sc:.0f} | ×40% |
+| **Mempalace** | AIの知識パレス（長期記憶DB）。ドロワー＝記憶の最小単位、KGエッジ＝知識間のつながり | {_mp.get('volume_score',0):.0f}/100<br>({_mp.get('drawers',0):,}件) | {_mp.get('structure_score',0):.0f}/100<br>(KGエッジ{_mp.get('edges',0)}本) | {_mp.get('score',0):.0f} | ×35% |
+| **Obsidian** | ノートVault。ファイル数＝知識量、`[[リンク]]`数＝構造化度 | {_ob.get('volume_score',0):.0f}/100<br>({_ob.get('files',0)}件) | {_ob.get('structure_score',0):.0f}/100<br>(平均{_ob.get('avg_links_per_file',0):.1f}リンク/件) | {_ob.get('score',0):.0f} | ×25% |
+
+目標: FBルール50件で量満点 / Mempalace 10,000ドロワー+200KGエッジで満点 / Obsidian 200ファイル+5リンク/ファイルで満点
+""")
                 st.divider()
                 _roi_bk = _roi.get("roi")
                 _sc = _roi.get("score_change", {})
