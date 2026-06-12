@@ -145,17 +145,20 @@ with tab1:
         _kc3.metric("🤖 モデル活用 ×5%", f"{_mu_score:.0f}/100",
                     delta=f"CC適切性/Haiku適正/Sonnet昇格",
                     help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
-        _mp_d   = _lrn.get('mempalace', {})
-        _ob_d   = _lrn.get('obsidian', {})
         _enrich = _lrn.get('enrichment_score', 0)
         _ut_d   = _lrn.get('utilization', {})
         _ut_s   = _lrn.get('utilization_score', 0)
         _ut_n   = _ut_d.get('total_sessions', 0)
-        _ut_u   = _ut_d.get('utilized_sessions', 0)
-        _ut_label = f"充実{_enrich:.0f} / 活用{_ut_s:.0f}" if _ut_n >= 5 else f"充実{_enrich:.0f} / 活用: データ蓄積中({_ut_n}件)"
+        _und_s  = _lrn.get('understanding_score', 0)
+        _und_d  = _lrn.get('user_understanding', {})
+        _mem_d  = _und_d.get('memory', {})
+        if _ut_n >= 5:
+            _ut_label = f"充実{_enrich:.0f} 活用{_ut_s:.0f} 理解{_und_s:.0f}"
+        else:
+            _ut_label = f"充実{_enrich:.0f} 理解{_und_s:.0f} / 活用蓄積中({_ut_n}件)"
         _kc4.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
                     delta=_ut_label,
-                    help="知識充実(Mempalace/Obsidian量+構造)×50% + 知識活用(Mempalace参照セッション率)×50%。5セッション未満はデータ蓄積中")
+                    help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)+Obsidian/Preferences。5セッション未満は充実+理解度の平均")
         _obs_score = _comps.get("observability", 0)
         _mod_score = _comps.get("modernity", 0)
         _kc5.metric("👁️ 観測性 ×10%", f"{_obs_score:.0f}/100",
@@ -173,7 +176,7 @@ with tab1:
 | **信頼性** | ×25% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
 | **自律性** | ×30% | 問題解決性×50% + 価値創出性×50%（タスク自律率は参考値のみ） | 問題を放置せず・会長が望む価値を生み出す |
 | **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
-| **学習率** | ×10% | 知識充実×50% + 知識活用×50%。充実＝Mempalace/Obsidianの量と構造化。活用＝AIレベルが実際に改善したか | 知識が蓄積・構造化され、AIレベル向上に貢献している |
+| **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33%。理解度＝MEMORY.md蓄積量+Obsidian/Preferences深さ | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
 | **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 | **モダン度** | ×20% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）の充足度÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
 
