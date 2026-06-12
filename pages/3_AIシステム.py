@@ -112,13 +112,6 @@ with tab1:
 
     counts = pl_status.get("counts", {}) if pl_status else {}
 
-    # メトリクスカードのラベル・delta を折り返し表示（6列でも切れないように）
-    st.markdown("""<style>
-[data-testid="stMetricLabel"] { white-space: normal !important; overflow: visible !important; font-size: 12px !important; }
-[data-testid="stMetricDelta"] > div { white-space: normal !important; overflow: visible !important; font-size: 11px !important; }
-[data-testid="metric-container"] { overflow: visible !important; }
-</style>""", unsafe_allow_html=True)
-
     # ── 🎯 AIレベルスコア（最上部・最優先表示）──────────────────────────────────
     _roi = _safe(lambda: data_loader.roi_score(), {})
     _rel = _safe(lambda: data_loader.reliability_kpi(), {})
@@ -152,14 +145,14 @@ with tab1:
         _mu_score  = _comps.get("model_usage", 0)
         _lrn_score = _comps.get("learning", 0)
 
-        _kc1.metric("🔴 信頼性 ×25%", f"{_rel_score:.0f}/100",
+        _kc1.metric("信頼性 ×25%", f"{_rel_score:.0f}/100",
                     delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
                     delta_color="normal" if _rel_score >= 60 else "inverse")
-        _kc2.metric("🟢 自律性 ×30%", f"{_aut_score:.0f}/100",
-                    delta=f"問題解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% / 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
+        _kc2.metric("自律性 ×30%", f"{_aut_score:.0f}/100",
+                    delta=f"解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
                     help="問題解決性×50% + 価値創出性×50%。放置タスク・アラート・KPIグレードで評価")
-        _kc3.metric("🤖 モデル活用 ×5%", f"{_mu_score:.0f}/100",
-                    delta=f"CC適切性/Haiku適正/Sonnet昇格",
+        _kc3.metric("モデル活用 ×5%", f"{_mu_score:.0f}/100",
+                    delta="CC/Haiku/Sonnet",
                     help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
         _enrich = _lrn.get('enrichment_score', 0)
         _ut_d   = _lrn.get('utilization', {})
@@ -171,18 +164,18 @@ with tab1:
         if _ut_n >= 5:
             _ut_label = f"充実{_enrich:.0f} 活用{_ut_s:.0f} 理解{_und_s:.0f}"
         else:
-            _ut_label = f"充実{_enrich:.0f} 理解{_und_s:.0f} / 活用蓄積中({_ut_n}件)"
-        _kc4.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
+            _ut_label = f"充実{_enrich:.0f} 理解{_und_s:.0f}"
+        _kc4.metric("学習率 ×10%", f"{_lrn_score:.0f}/100",
                     delta=_ut_label,
-                    help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)+Obsidian/Preferences。5セッション未満は充実+理解度の平均")
+                    help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)+Obsidian/Preferences")
         _obs_score = _comps.get("observability", 0)
         _mod_score = _comps.get("modernity", 0)
-        _kc5.metric("👁️ 観測性 ×10%", f"{_obs_score:.0f}/100",
-                    delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse",
+        _kc5.metric("観測性 ×10%", f"{_obs_score:.0f}/100",
+                    delta="UI品質・精度", delta_color="normal" if _obs_score >= 70 else "inverse",
                     help="ダッシュボードの情報整理度（分散・深さ・鮮度）を評価。問題が少ないほど高スコア")
         _mod_data = _roi.get("modernity_detail", {})
-        _kc6.metric("🔵 モダン度 ×20%", f"{_mod_score:.0f}/100",
-                    delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌ / 18項目",
+        _kc6.metric("モダン度 ×20%", f"{_mod_score:.0f}/100",
+                    delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
                     delta_color="normal" if _mod_score >= 60 else "inverse",
                     help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度。✅=2点/⚠️=1点/❌=0点")
         with st.expander("📖 各スコアの定義"):
