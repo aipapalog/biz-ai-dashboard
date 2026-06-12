@@ -130,19 +130,19 @@ with tab1:
         _roi_dict = _roi.get("roi") or {}
         _roi_val  = _roi_dict.get("value", "N/A") if isinstance(_roi_dict, dict) else "N/A"
         st.markdown(f"### {_grade_emoji} AIレベルスコア: **{_level}/100** &nbsp; `[{_grade}]` &nbsp; ROI: `{_roi_val}`")
-        _kc1, _kc2, _kc3, _kc4, _kc5 = st.columns(5)
+        _kc1, _kc2, _kc3, _kc4, _kc5, _kc6 = st.columns(6)
         _rel_score = _comps.get("reliability", 0)
         _aut_score = _comps.get("autonomy", 0)
         _mu_score  = _comps.get("model_usage", 0)
         _lrn_score = _comps.get("learning", 0)
 
-        _kc1.metric("🔴 信頼性 ×30%", f"{_rel_score:.0f}/100",
+        _kc1.metric("🔴 信頼性 ×25%", f"{_rel_score:.0f}/100",
                     delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
                     delta_color="normal" if _rel_score >= 60 else "inverse")
-        _kc2.metric("🟢 自律性 ×35%", f"{_aut_score:.0f}/100",
+        _kc2.metric("🟢 自律性 ×30%", f"{_aut_score:.0f}/100",
                     delta=f"問題解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% / 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
                     help="問題解決性×50% + 価値創出性×50%。放置タスク・アラート・KPIグレードで評価")
-        _kc3.metric("🤖 モデル活用 ×10%", f"{_mu_score:.0f}/100",
+        _kc3.metric("🤖 モデル活用 ×5%", f"{_mu_score:.0f}/100",
                     delta=f"CC適切性/Haiku適正/Sonnet昇格",
                     help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
         _mp_d   = _lrn.get('mempalace', {})
@@ -157,18 +157,25 @@ with tab1:
                     delta=_ut_label,
                     help="知識充実(Mempalace/Obsidian量+構造)×50% + 知識活用(Mempalace参照セッション率)×50%。5セッション未満はデータ蓄積中")
         _obs_score = _comps.get("observability", 0)
-        _kc5.metric("👁️ 観測性 ×15%", f"{_obs_score:.0f}/100",
+        _mod_score = _comps.get("modernity", 0)
+        _kc5.metric("👁️ 観測性 ×10%", f"{_obs_score:.0f}/100",
                     delta="UI品質・健全性精度", delta_color="normal" if _obs_score >= 70 else "inverse",
                     help="ダッシュボードの情報整理度（分散・深さ・鮮度）を評価。問題が少ないほど高スコア")
+        _mod_data = _roi.get("modernity_detail", {})
+        _kc6.metric("🔵 モダン度 ×20%", f"{_mod_score:.0f}/100",
+                    delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌ / 18項目",
+                    delta_color="normal" if _mod_score >= 60 else "inverse",
+                    help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度。✅=2点/⚠️=1点/❌=0点")
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
 | スコア | 重み | 計算式 | 高い = |
 |--------|------|--------|--------|
-| **信頼性** | ×30% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
-| **自律性** | ×35% | 問題解決性×50% + 価値創出性×50%（タスク自律率は参考値のみ） | 問題を放置せず・会長が望む価値を生み出す |
-| **モデル活用** | ×10% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
+| **信頼性** | ×25% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
+| **自律性** | ×30% | 問題解決性×50% + 価値創出性×50%（タスク自律率は参考値のみ） | 問題を放置せず・会長が望む価値を生み出す |
+| **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
 | **学習率** | ×10% | 知識充実×50% + 知識活用×50%。充実＝Mempalace/Obsidianの量と構造化。活用＝AIレベルが実際に改善したか | 知識が蓄積・構造化され、AIレベル向上に貢献している |
-| **観測性** | ×15% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
+| **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
+| **モダン度** | ×20% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）の充足度÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
 """)
@@ -315,6 +322,21 @@ with tab1:
                 _obs_issues = _roi.get("observability_issues", [])
                 for _iss in _obs_issues:
                     st.markdown(f"- {_iss}")
+
+            st.divider()
+            st.markdown("#### 🔵 モダン度スコア")
+            _mod_bk = _mod_data.get("breakdown", {})
+            _mod_cols = st.columns(3)
+            _cat_list = list(_mod_bk.items())
+            for _ci, (_cat, _cdata) in enumerate(_cat_list):
+                _sub = _cdata.get("subtotal", 0)
+                _max = _cdata.get("max", 0)
+                with _mod_cols[_ci % 3]:
+                    st.markdown(f"**{_cat}** ({_sub}/{_max}点)")
+                    for _item in _cdata.get("items", []):
+                        st.markdown(f"- {_item}")
+            if _mod_data.get("next_action"):
+                st.info(f"💡 次のアクション: {_mod_data['next_action']}")
 
         style.kpi_wrap_end()
     else:
