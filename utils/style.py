@@ -15,7 +15,9 @@ GLOBAL_CSS = """
         padding: 14px 16px;
     }
     div[data-testid="stMetricValue"] { font-size: 1.45rem; font-weight: 700; line-height: 1.3; }
-    div[data-testid="stMetricLabel"] p { font-size: 0.75rem; color: #9aa4b2; white-space: normal !important; word-break: keep-all; line-height: 1.35; }
+    div[data-testid="stMetricLabel"] p { font-size: 0.75rem; color: #9aa4b2; white-space: normal !important; word-break: break-all; line-height: 1.35; }
+    div[data-testid="stMetricDelta"] { white-space: normal !important; overflow: visible !important; }
+    div[data-testid="stMetricDelta"] div { white-space: normal !important; overflow: visible !important; font-size: 0.72rem !important; line-height: 1.4 !important; }
 
     /* ── KPI 優先度カラー（左ボーダーで重要度を表現） ───
        使い方: 親 div に kpi-* クラスを当てた上で内部の st.metric を着色する。

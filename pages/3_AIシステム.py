@@ -136,7 +136,16 @@ with tab1:
         style.kpi_wrap_start(_grade_color)
         _roi_dict = _roi.get("roi") or {}
         _roi_val  = _roi_dict.get("value", "N/A") if isinstance(_roi_dict, dict) else "N/A"
-        st.markdown(f"### {_grade_emoji} AIレベルスコア: **{_level}/100** &nbsp; `[{_grade}]` &nbsp; ROI: `{_roi_val}`")
+        st.markdown(
+            f'<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:12px">'
+            f'<span style="font-size:2.2rem;font-weight:800;line-height:1">{_grade_emoji} {_level}</span>'
+            f'<span style="font-size:1.1rem;opacity:0.55;font-weight:400">/100</span>'
+            f'<span style="font-size:1.3rem;font-weight:700;letter-spacing:0.02em">[{_grade}]</span>'
+            f'<span style="font-size:0.9rem;color:#9aa4b2">AIレベルスコア</span>'
+            f'<span style="font-size:0.85rem;color:#9aa4b2;margin-left:8px">ROI: <code style="font-size:0.85rem">{_roi_val}</code></span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
         _kc1, _kc2, _kc3, _kc4, _kc5, _kc6 = st.columns(6)
         _rel_score = _comps.get("reliability", 0)
         _aut_score = _comps.get("autonomy", 0)
