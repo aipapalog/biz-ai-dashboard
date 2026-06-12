@@ -112,6 +112,13 @@ with tab1:
 
     counts = pl_status.get("counts", {}) if pl_status else {}
 
+    # メトリクスカードのラベル・delta を折り返し表示（6列でも切れないように）
+    st.markdown("""<style>
+[data-testid="stMetricLabel"] { white-space: normal !important; overflow: visible !important; font-size: 12px !important; }
+[data-testid="stMetricDelta"] > div { white-space: normal !important; overflow: visible !important; font-size: 11px !important; }
+[data-testid="metric-container"] { overflow: visible !important; }
+</style>""", unsafe_allow_html=True)
+
     # ── 🎯 AIレベルスコア（最上部・最優先表示）──────────────────────────────────
     _roi = _safe(lambda: data_loader.roi_score(), {})
     _rel = _safe(lambda: data_loader.reliability_kpi(), {})
