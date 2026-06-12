@@ -346,11 +346,42 @@ with tab1:
                     _cc_track = _roi_bk.get("cc_tracking", "pending")
                     st.caption(f"{'✅' if _cc_track == 'active' else '⚠️'} CCトークン追跡: {_cc_track}")
             with _c_obs:
-                st.markdown("#### 👁️ 観測性スコア")
+                st.markdown("#### 👁️ 観測性スコア（9軸）")
                 st.markdown(f"スコア: **{_obs_score:.1f}/100**")
+                _obs_det = _roi.get("observability_detail", {})
+                _obs_dims = _obs_det.get("dimensions", {})
+                _obs_w    = _obs_det.get("weights", {})
+                _dim_label = {
+                    "freshness":     ("🕐", "鮮度",     "Few"),
+                    "sufficiency":   ("📦", "完全性",   "Few"),
+                    "context":       ("📊", "文脈性",   "Few"),
+                    "actionability": ("🎯", "アクション性", "Few"),
+                    "clarity":       ("🔍", "明瞭性",   "Few"),
+                    "accuracy":      ("✔️",  "正確性",   "Few"),
+                    "metrics":       ("📈", "メトリクス", "SRE"),
+                    "logs":          ("📋", "ログ",     "SRE"),
+                    "traces":        ("🔗", "トレース", "SRE"),
+                }
+                if _obs_dims:
+                    _rows_obs = []
+                    for _dk, (_icon, _dname, _grp) in _dim_label.items():
+                        _dv = _obs_dims.get(_dk, {})
+                        _ds = _dv.get("score", 0)
+                        _dn = _dv.get("note", "")
+                        _dw = int(_obs_w.get(_dk, 0) * 100)
+                        _rows_obs.append(
+                            f"| {_icon} **{_dname}** | {_grp} | ×{_dw}% | {_ds}/100 | {_dn} |"
+                        )
+                    st.markdown(
+                        "| 軸 | 系統 | 重み | スコア | 備考 |\n"
+                        "|---|---|---|---|---|\n" +
+                        "\n".join(_rows_obs)
+                    )
                 _obs_issues = _roi.get("observability_issues", [])
-                for _iss in _obs_issues:
-                    st.markdown(f"- {_iss}")
+                if _obs_issues:
+                    st.markdown("**ペナルティ:**")
+                    for _iss in _obs_issues:
+                        st.markdown(f"- {_iss}")
 
             st.divider()
             st.markdown("#### 🔵 モダン度スコア")
