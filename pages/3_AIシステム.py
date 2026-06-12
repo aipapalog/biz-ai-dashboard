@@ -118,6 +118,7 @@ with tab1:
     _aut = _safe(lambda: data_loader.autonomy_kpi(), {})
     _eff = _safe(lambda: data_loader.efficiency_kpi(), {})
     _lrn = _safe(lambda: data_loader.learning_kpi(), {})
+    _gh  = _safe(lambda: data_loader.anthropic_github_kpi(), {})
 
     if _roi:
         _comps = _roi.get("component_scores", {})
@@ -139,21 +140,39 @@ with tab1:
             f'</div>',
             unsafe_allow_html=True
         )
-        _kc1, _kc2, _kc3, _kc4, _kc5, _kc6 = st.columns(6)
+        # ── 行1: 重み大のKPI（4列）──────────────────────────────────────────────
+        _kc1, _kc2, _kc3, _kc4 = st.columns(4)
         _rel_score = _comps.get("reliability", 0)
         _aut_score = _comps.get("autonomy", 0)
-        _mu_score  = _comps.get("model_usage", 0)
-        _lrn_score = _comps.get("learning", 0)
+        _mod_score = _comps.get("modernity", 0)
+        _gh_score  = _comps.get("anthropic_github", 0)
+        _mod_data  = _roi.get("modernity_detail", {})
+        _gh_repos  = _gh.get("repos", [])
+        _gh_top    = _gh.get("top_opportunity", "")
+        _gh_active = sum(1 for r in _gh_repos if r.get("status") == "active")
 
-        _kc1.metric("信頼性 ×25%", f"{_rel_score:.0f}/100",
-                    delta=f"成功率{_rel.get('overall',{}).get('success_rate_pct',0)}%",
-                    delta_color="normal" if _rel_score >= 60 else "inverse")
-        _kc2.metric("自律性 ×30%", f"{_aut_score:.0f}/100",
+        _kc1.metric("🔴 信頼性 ×20%", f"{_rel_score:.0f}/100",
+                    delta=f"成功率 {_rel.get('overall',{}).get('success_rate_pct',0)}%",
+                    delta_color="normal" if _rel_score >= 60 else "inverse",
+                    help="エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15%")
+        _kc2.metric("🟠 自律性 ×25%", f"{_aut_score:.0f}/100",
                     delta=f"解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
                     help="問題解決性×50% + 価値創出性×50%。放置タスク・アラート・KPIグレードで評価")
-        _kc3.metric("モデル活用 ×5%", f"{_mu_score:.0f}/100",
-                    delta="CC/Haiku/Sonnet",
-                    help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
+        _kc3.metric("🟣 モダン度 ×20%", f"{_mod_score:.0f}/100",
+                    delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
+                    delta_color="normal" if _mod_score >= 60 else "inverse",
+                    help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度。✅=2点/⚠️=1点/❌=0点")
+        _kc4.metric("🔵 GitHub活用 ×10%", f"{_gh_score:.0f}/100",
+                    delta=f"活用中 {_gh_active}/{len(_gh_repos)} リポジトリ",
+                    delta_color="normal" if _gh_score >= 50 else "inverse",
+                    help=f"Anthropic公式7リポジトリの活用充足度。次の一手: {_gh_top}")
+
+        # ── 行2: 残りKPI（3列）─────────────────────────────────────────────────
+        st.write("")
+        _kc5, _kc6, _kc7 = st.columns(3)
+        _mu_score  = _comps.get("model_usage", 0)
+        _lrn_score = _comps.get("learning", 0)
+        _obs_score = _comps.get("observability", 0)
         _enrich = _lrn.get('enrichment_score', 0)
         _ut_d   = _lrn.get('utilization', {})
         _ut_s   = _lrn.get('utilization_score', 0)
@@ -165,29 +184,27 @@ with tab1:
             _ut_label = f"充実{_enrich:.0f} 活用{_ut_s:.0f} 理解{_und_s:.0f}"
         else:
             _ut_label = f"充実{_enrich:.0f} 理解{_und_s:.0f}"
-        _kc4.metric("学習率 ×10%", f"{_lrn_score:.0f}/100",
+        _kc5.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
                     delta=_ut_label,
                     help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)+Obsidian/Preferences")
-        _obs_score = _comps.get("observability", 0)
-        _mod_score = _comps.get("modernity", 0)
-        _kc5.metric("観測性 ×10%", f"{_obs_score:.0f}/100",
+        _kc6.metric("🟢 観測性 ×10%", f"{_obs_score:.0f}/100",
                     delta="UI品質・精度", delta_color="normal" if _obs_score >= 70 else "inverse",
-                    help="ダッシュボードの情報整理度（分散・深さ・鮮度）を評価。問題が少ないほど高スコア")
-        _mod_data = _roi.get("modernity_detail", {})
-        _kc6.metric("モダン度 ×20%", f"{_mod_score:.0f}/100",
-                    delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
-                    delta_color="normal" if _mod_score >= 60 else "inverse",
-                    help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度。✅=2点/⚠️=1点/❌=0点")
+                    help="ダッシュボードの情報集約度・UI深さ・データ鮮度を評価。問題が少ないほど高スコア")
+        _kc7.metric("⚪ モデル活用 ×5%", f"{_mu_score:.0f}/100",
+                    delta="CC/Haiku/Sonnet",
+                    help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
+
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
 | スコア | 重み | 計算式 | 高い = |
 |--------|------|--------|--------|
-| **信頼性** | ×25% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
-| **自律性** | ×30% | 問題解決性×50% + 価値創出性×50%（タスク自律率は参考値のみ） | 問題を放置せず・会長が望む価値を生み出す |
-| **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
-| **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33%。理解度＝MEMORY.md蓄積量+Obsidian/Preferences深さ | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
-| **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
-| **モダン度** | ×20% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）の充足度÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
+| 🔴 **信頼性** | ×20% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
+| 🟠 **自律性** | ×25% | 問題解決性×50% + 価値創出性×50% | 問題を放置せず・会長が望む価値を生み出す |
+| 🟣 **モダン度** | ×20% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
+| 🔵 **GitHub活用** | ×10% | Anthropic公式7リポジトリ（skills/SDK/Cookbooks等）の活用充足度 | フル活用でAIシステムが高度化 |
+| 🟡 **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
+| 🟢 **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
+| ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
 """)
@@ -349,6 +366,33 @@ with tab1:
                         st.markdown(f"- {_item}")
             if _mod_data.get("next_action"):
                 st.info(f"💡 次のアクション: {_mod_data['next_action']}")
+
+            st.divider()
+            st.markdown("#### 🔵 GitHub活用スコア")
+            if _gh_repos:
+                _status_icon = {"active": "✅", "partial": "⚠️", "not_started": "❌"}
+                _rows = []
+                for _r in _gh_repos:
+                    _icon = _status_icon.get(_r.get("status", ""), "❓")
+                    _rows.append(
+                        f"| {_r.get('rank','?')} | [{_r.get('name','')}]({_r.get('url','')}) "
+                        f"| {_r.get('weight',0)*100:.0f}% "
+                        f"| {_r.get('utilization',0)}/100 "
+                        f"| {_r.get('contribution',0):.1f}pt "
+                        f"| {_icon} {_r.get('status','')} "
+                        f"| {_r.get('note','')} |"
+                    )
+                st.markdown(
+                    "| # | リポジトリ | 重み | 活用度 | 寄与 | 状態 | メモ |\n"
+                    "|---|-----------|------|--------|------|------|------|\n" +
+                    "\n".join(_rows)
+                )
+                _gh_opp = _gh.get("top_opportunity", "")
+                if _gh_opp:
+                    st.info(f"💡 最優先アクション: {_gh_opp}")
+                st.caption(f"評価日: {_gh.get('assessed_at','')} / 次回見直し: {_gh.get('next_review','')}")
+            else:
+                st.caption("データなし — anthropic_github_kpi.json を確認してください")
 
         style.kpi_wrap_end()
     else:
