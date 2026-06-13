@@ -307,21 +307,24 @@ with tab1:
 - 低AIスコア放置: -{_la.get('penalty',0)}pt
 """)
                 _rev = _vc.get("revenue_contribution", {})
-                _ws  = _vc.get("work_support", {})
+                _wc  = _vc.get("work_contribution", {})
                 _cd  = _vc.get("context_depth", {})
                 _cd_mem = _cd.get("memory_files", {})
                 _cd_now = _cd.get("now_freshness", {})
                 _cd_ord = _cd.get("standing_orders", {})
+                _wc_recent = _wc.get("recent", [])
                 st.markdown(f"""**価値創出性内訳（会長目標への貢献度）:**
 
-| 軸 | 重み | 値 | スコア |
-|----|------|-----|--------|
-| 💴 AI収益貢献 | ×40% | ¥{_rev.get('monthly_actual',0):,} / ¥{_rev.get('monthly_target',0):,} | {_rev.get('rate_pct',0):.0f}% |
-| 💼 業務支援達成 | ×35% | {_ws.get('closed_count',0)}/{_ws.get('target',15)}件 | {_ws.get('rate_pct',0):.0f}% |
-| 🧠 業務文脈把握 | ×25% | memory{_cd_mem.get('count',0)}件/now.md{_cd_now.get('age_days',99)}日前/orders{_cd_ord.get('active_count',0)}件 | {_cd.get('context_depth_pct',0):.0f}% |
-
-*AI収益ゼロ時は bizdev 系タスク進捗で最大30%*
+| 軸 | 重み | 実績 | スコア |
+|----|------|------|--------|
+| 💴 AI収益達成 | ×45% | ¥{_rev.get('monthly_actual',0):,} / 目標¥{_rev.get('monthly_target',0):,} | {_rev.get('rate_pct',0):.0f}% |
+| 💼 会社業務貢献 | ×30% | {_wc.get('logged_count',0)}/{_wc.get('target',10)}件記録 | {_wc.get('rate_pct',0):.0f}% |
+| 🧠 業務文脈把握 | ×25% | memory{_cd_mem.get('count',0)}件 / now.md{_cd_now.get('age_days',99)}日前 / orders{_cd_ord.get('active_count',0)}件 | {_cd.get('context_depth_pct',0):.0f}% |
 """)
+                if _wc_recent:
+                    st.caption("最近の業務貢献記録: " + " / ".join(e.get("description","")[:20] for e in _wc_recent))
+                else:
+                    st.caption("💡 会社業務での成果を `work_contribution_log.json` に記録するとスコアが上昇します")
 
             st.divider()
             _c_eff, _c_obs = st.columns(2)
