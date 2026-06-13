@@ -12,10 +12,23 @@ style.inject()
 
 st.markdown("""
 <style>
-.kb-card{background:white;border-radius:6px;padding:8px 10px;margin-bottom:6px;
-         box-shadow:0 1px 3px rgba(0,0,0,.1);border-left:3px solid #ddd;cursor:default}
-.kb-card:hover{box-shadow:0 2px 6px rgba(0,0,0,.18)}
-.kb-cell{vertical-align:top;padding:8px;min-width:230px;background:#f8f9fa;border-radius:6px}
+/* Kanban カードボタン */
+div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] > button {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 6px !important;
+    text-align: left !important;
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+    white-space: pre-wrap !important;
+    line-height: 1.5 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08) !important;
+    transition: box-shadow .15s !important;
+}
+div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] > button:hover {
+    box-shadow: 0 3px 8px rgba(0,0,0,.18) !important;
+    border-color: #1976d2 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -267,66 +280,12 @@ with tab2:
 
     st.caption(f"ボード表示: **{len(active_kb)} 件**（open/進行中/確認待ち） | 完了済み: {len(closed_tasks)} 件")
 
-    # ── カードHTML生成 ────────────────────────────────────────────────────────
-    def make_card(t: dict) -> str:
-        tid      = t.get("id", "")
-        title    = (t.get("name") or t.get("title") or "(無題)")
-        created  = (t.get("created_at") or "")
-        date_str = created[5:10] if len(created) >= 10 else ""
-        section  = t.get("section", "")
-        assignee = t.get("assignee", "")
-        priority = t.get("priority", "")
-        border   = PRIORITY_COLORS.get(priority, "#ddd")
-        p_icon   = PRIORITY_ICONS.get(priority, "")
-        return (
-            f'<div class="kb-card" style="border-left-color:{border};border-left-width:4px">'
-            f'<div style="font-size:11px;font-weight:700;color:#333;margin-bottom:3px;word-break:break-all">{title}</div>'
-            f'<div style="display:flex;justify-content:space-between;align-items:center">'
-            f'<span style="font-size:10px;color:#aaa">{tid} · {date_str}</span>'
-            f'<span style="font-size:10px">{p_icon}</span></div>'
-            f'<div style="font-size:9px;color:#999;margin-top:2px">{section}</div>'
-            f'<div style="font-size:9px;margin-top:2px;color:#2e7d32;font-weight:600">👤 {assignee}</div>'
-            f'</div>'
-        )
-
-    # ── ボードHTML生成 ────────────────────────────────────────────────────────
     STATUS_COLS = [
-        ("open",        "🟢 Open",   "#388e3c"),
-        ("in_progress", "🔵 進行中", "#1565c0"),
-        ("to_verify",   "👀 To Verify", "#6a1b9a"),
+        ("open",        "🟢 Open",      "#388e3c"),
+        ("in_progress", "🔵 進行中",    "#1565c0"),
+        ("to_verify",   "👀 確認待ち",  "#6a1b9a"),
     ]
-    assignees = ["会長", "社長"]
-
-    header_cells = '<th style="width:70px"></th>' + "".join(
-        f'<th style="padding:8px 4px;font-size:12px;font-weight:700;color:{color};'
-        f'text-align:center;border-bottom:2px solid {color}">{label}</th>'
-        for _, label, color in STATUS_COLS
-    )
-
-    rows_html = ""
-    for assignee in assignees:
-        cells = (
-            f'<td style="padding:6px 10px 6px 0;white-space:nowrap;vertical-align:top;padding-top:14px">'
-            f'<span style="font-size:13px;font-weight:700;color:#333">👤 {assignee}</span></td>'
-        )
-        for status, _, _ in STATUS_COLS:
-            group = sorted(
-                [t for t in active_kb if t.get("assignee") == assignee and t.get("status") == status],
-                key=lambda t: PRIORITY_ORDER.get(t.get("priority", ""), 3)
-            )
-            cards_html = "".join(make_card(t) for t in group[:20])
-            if len(group) > 20:
-                cards_html += f'<div style="font-size:10px;color:#aaa;text-align:center">…他 {len(group)-20} 件</div>'
-            cells += f'<td class="kb-cell">{cards_html}</td>'
-        rows_html += f"<tr>{cells}</tr>"
-
-    board_html = (
-        '<div style="overflow-x:auto">'
-        '<table style="width:100%;border-collapse:separate;border-spacing:6px">'
-        f'<thead><tr>{header_cells}</tr></thead>'
-        f'<tbody>{rows_html}</tbody>'
-        '</table></div>'
-    )
+    PRIORITY_MARKER = {"high": "🔴", "medium": "🟡", "low": "🟢"}
 
     # ── タブ ──────────────────────────────────────────────────────────────────
     tab_board, tab_list, tab_new = st.tabs(["📌 ボード", "✏️ 編集・詳細", "➕ 新規起票"])
@@ -390,24 +349,50 @@ with tab2:
 
     _all_assignees_global = sorted({t.get("assignee","") for t in tasks if t.get("assignee","")})
 
-    with tab_board:
-        st.markdown(board_html, unsafe_allow_html=True)
+    @st.dialog("📋 タスク詳細", width="large")
+    def _task_dialog(t: dict):
+        _show_task_detail(t, _all_assignees_global, form_prefix="dlg")
 
-        # ── タスク詳細パネル ──────────────────────────────────────────────────
-        st.divider()
-        st.markdown("#### 🔍 タスク詳細を開く")
-        board_opts_map = {
-            f"{t.get('id','')} [{t.get('status','')}] {(t.get('name') or t.get('title',''))[:80]}": t
-            for t in sorted(active_kb, key=lambda x: (x.get("assignee",""), x.get("status",""), PRIORITY_ORDER.get(x.get("priority",""),3)))
-        }
-        sel_label = st.selectbox("タスクを選択", ["（選択してください）"] + list(board_opts_map.keys()), key="bd_sel_task")
-        if sel_label != "（選択してください）" and sel_label in board_opts_map:
-            with st.container(border=True):
-                _show_task_detail(board_opts_map[sel_label], _all_assignees_global, form_prefix="bd")
+    with tab_board:
+        # ── 担当者フィルター ──────────────────────────────────────────────────
+        _af_opts = ["すべて"] + sorted({t.get("assignee","") for t in active_kb if t.get("assignee","")})
+        _af = st.pills("担当者", _af_opts, default="すべて", key="kb_af")
+        _board_tasks = active_kb if _af == "すべて" else [t for t in active_kb if t.get("assignee","") == _af]
+
+        # ── 3列Kanbanボード ───────────────────────────────────────────────────
+        _kb_cols = st.columns(3)
+        for _ci, (status, label, color) in enumerate(STATUS_COLS):
+            _group = sorted(
+                [t for t in _board_tasks if t.get("status") == status],
+                key=lambda t: PRIORITY_ORDER.get(t.get("priority",""), 3)
+            )
+            with _kb_cols[_ci]:
+                st.markdown(
+                    f'<div style="font-weight:700;font-size:13px;color:{color};'
+                    f'border-bottom:2px solid {color};padding-bottom:4px;margin-bottom:8px">'
+                    f'{label}&nbsp;<span style="background:{color};color:white;border-radius:10px;'
+                    f'padding:1px 8px;font-size:11px">{len(_group)}</span></div>',
+                    unsafe_allow_html=True
+                )
+                for t in _group[:25]:
+                    _tid      = t.get("id","")
+                    _name     = (t.get("name") or t.get("title") or "(無題)")
+                    _priority = t.get("priority","")
+                    _assignee = t.get("assignee","")
+                    _created  = (t.get("created_at") or "")
+                    _date     = _created[5:10] if len(_created) >= 10 else ""
+                    _marker   = PRIORITY_MARKER.get(_priority, "⬜")
+                    _label    = f"{_marker} {_name[:52]}\n{_tid}  👤{_assignee}  {_date}"
+                    if st.button(_label, key=f"card_{_tid}", use_container_width=True):
+                        _task_dialog(t)
+                if len(_group) > 25:
+                    st.caption(f"…他 {len(_group)-25} 件")
 
         with st.expander(f"✅ 完了済み（{len(closed_tasks)} 件）", expanded=False):
             for t in closed_tasks[:50]:
-                st.markdown(make_card(t), unsafe_allow_html=True)
+                _tid  = t.get("id","")
+                _name = (t.get("name") or t.get("title") or "(無題)")
+                st.caption(f"✅ {_tid} — {_name[:80]}")
             if len(closed_tasks) > 50:
                 st.caption(f"…他 {len(closed_tasks)-50} 件")
 
