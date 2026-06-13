@@ -163,7 +163,7 @@ with tab1:
                     delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
                     delta_color="normal" if _mod_score >= 60 else "inverse",
                     help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度。✅=2点/⚠️=1点/❌=0点")
-        _kc4.metric("🔵 GitHub活用 ×10%", f"{_gh_score:.0f}/100",
+        _kc4.metric("🔵 GitHub活用 ×5%", f"{_gh_score:.0f}/100",
                     delta=f"活用中 {_gh_active}/{len(_gh_repos)} リポジトリ",
                     delta_color="normal" if _gh_score >= 50 else "inverse",
                     help=f"Anthropic公式7リポジトリの活用充足度。次の一手: {_gh_top}")
@@ -240,7 +240,7 @@ with tab1:
 | 🔴 **信頼性** | ×20% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
 | 🟠 **自律性** | ×25% | 問題解決性×40% + 価値創出性×40% + 自律実行率×20% | 問題を放置せず・収益/業務目標に貢献し・会長の業務を深く把握している |
 | 🟣 **モダン度** | ×20% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
-| 🔵 **GitHub活用** | ×10% | Anthropic公式7リポジトリ（skills/SDK/Cookbooks等）の活用充足度 | フル活用でAIシステムが高度化 |
+| 🔵 **GitHub活用** | ×5% | Anthropic公式5リポジトリ（skills/SDK/Cookbooks等）の活用充足度 | フル活用でAIシステムが高度化 |
 | 🟡 **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
 | 🟢 **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 | ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
