@@ -119,6 +119,7 @@ with tab1:
     _eff = _safe(lambda: data_loader.efficiency_kpi(), {})
     _lrn = _safe(lambda: data_loader.learning_kpi(), {})
     _gh  = _safe(lambda: data_loader.anthropic_github_kpi(), {})
+    _arch = _safe(lambda: data_loader.architecture_kpi() if hasattr(data_loader, 'architecture_kpi') else {}, {})
 
     if _roi:
         _comps = _roi.get("component_scores", {})
@@ -194,6 +195,44 @@ with tab1:
                     delta="CC/Haiku/Sonnet",
                     help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
 
+        # ── 行3: アーキテクチャ再評価（マクロ視点） ────────────────────────────
+        st.write("")
+        _arch_score = _arch.get("score", 0)
+        _arch_staleness = _arch.get("review_staleness", {})
+        _arch_issues = _arch.get("structural_issues", {})
+        _arch_open = _arch_issues.get("open_count", 0)
+        _arch_penalty = _arch_issues.get("penalty_pt", 0)
+        _arch_days = _arch_staleness.get("days_since", 0)
+        _arch_color = "normal" if _arch_score >= 60 else "inverse"
+        _arch_col1, _arch_col2, _arch_col3 = st.columns([2, 1, 1])
+        _arch_col1.metric(
+            "🏗️ アーキテクチャ再評価 ×10%",
+            f"{_arch_score:.0f}/100",
+            delta=f"構造問題 {_arch_open}件 open / ペナルティ -{_arch_penalty}pt",
+            delta_color=_arch_color,
+            help="マクロ視点でシステム構成をゼロベースで問い直す習慣の定着度。鮮度（週次-5pt）＋構造問題ペナルティ（HIGH:-15pt / MED:-7pt）"
+        )
+        _arch_col2.metric(
+            "最終レビュー",
+            f"{_arch_staleness.get('last_review_date', '未実施')}",
+            delta=f"{_arch_days}日前",
+            delta_color="normal" if _arch_days < 14 else "inverse"
+        )
+        _arch_col3.metric(
+            "鮮度ペナルティ",
+            f"-{_arch_staleness.get('penalty_pt', 0)}pt",
+            delta="14日以内なら0pt",
+            delta_color="normal" if _arch_staleness.get('penalty_pt', 0) == 0 else "inverse"
+        )
+        if _arch_issues.get("issues"):
+            with st.expander(f"🔍 未解決構造問題 ({_arch_open}件)"):
+                for _issue in _arch_issues["issues"]:
+                    _sev = _issue.get("severity", "")
+                    _sev_icon = "🔴" if _sev == "high" else "🟡"
+                    _desc = _issue.get("description") or _issue.get("id", "")
+                    st.markdown(f"{_sev_icon} **{_issue.get('id','')}** — {_desc}")
+                st.caption(f"マクロ視点での構造問題が残る限り、信頼性・自律性・モデル活用にも -{min(_arch_issues.get('open_count',0)*2,6)}ptのペナルティが適用されます")
+
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
 | スコア | 重み | 計算式 | 高い = |
@@ -205,6 +244,7 @@ with tab1:
 | 🟡 **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
 | 🟢 **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 | ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
+| 🏗️ **アーキテクチャ再評価** | ×10% | 100pt − 鮮度ペナルティ(週次-5pt) − 構造問題(HIGH-15/MED-7) | ゼロベースのマクロ設計レビューが定期実施・構造問題が閉じている |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
 """)
