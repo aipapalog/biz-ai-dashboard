@@ -158,7 +158,7 @@ with tab1:
                     help="エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15%")
         _kc2.metric("🟠 自律性 ×25%", f"{_aut_score:.0f}/100",
                     delta=f"解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
-                    help="問題解決性×50% + 価値創出性×50%。放置タスク・アラート・KPIグレードで評価")
+                    help="問題解決性×40% + 価値創出性×40% + 自律実行率×20%。価値創出=AI収益×40%+業務支援×35%+文脈把握×25%")
         _kc3.metric("🟣 モダン度 ×20%", f"{_mod_score:.0f}/100",
                     delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
                     delta_color="normal" if _mod_score >= 60 else "inverse",
@@ -238,7 +238,7 @@ with tab1:
 | スコア | 重み | 計算式 | 高い = |
 |--------|------|--------|--------|
 | 🔴 **信頼性** | ×20% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
-| 🟠 **自律性** | ×25% | 問題解決性×50% + 価値創出性×50% | 問題を放置せず・会長が望む価値を生み出す |
+| 🟠 **自律性** | ×25% | 問題解決性×40% + 価値創出性×40% + 自律実行率×20% | 問題を放置せず・収益/業務目標に貢献し・会長の業務を深く把握している |
 | 🟣 **モダン度** | ×20% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
 | 🔵 **GitHub活用** | ×10% | Anthropic公式7リポジトリ（skills/SDK/Cookbooks等）の活用充足度 | フル活用でAIシステムが高度化 |
 | 🟡 **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
@@ -306,13 +306,21 @@ with tab1:
 - ダッシュボードアラート {_da.get('count',0)}件: -{_da.get('penalty',0)}pt
 - 低AIスコア放置: -{_la.get('penalty',0)}pt
 """)
-                _hp  = _vc.get("high_priority", {})
-                _fb  = _vc.get("positive_feedback", {})
-                _kpi = _vc.get("kpi_achievement", {})
-                st.markdown(f"""**価値創出性内訳:**
-- 高優先度完了率 {_hp.get('closed',0)}/{_hp.get('total',0)}件: {_hp.get('rate_pct',0)}%
-- 会長ポジティブFB率: {_fb.get('rate_pct',0)}%（{_fb.get('positive_count',0)}/{_fb.get('tasks_with_user_comment',0)}件）
-- KPI目標達成度: {_kpi.get('rate_pct',0)}%（目標{_kpi.get('target',65)}pt / 現在{_kpi.get('current_ai_score',0)}pt）
+                _rev = _vc.get("revenue_contribution", {})
+                _ws  = _vc.get("work_support", {})
+                _cd  = _vc.get("context_depth", {})
+                _cd_mem = _cd.get("memory_files", {})
+                _cd_now = _cd.get("now_freshness", {})
+                _cd_ord = _cd.get("standing_orders", {})
+                st.markdown(f"""**価値創出性内訳（会長目標への貢献度）:**
+
+| 軸 | 重み | 値 | スコア |
+|----|------|-----|--------|
+| 💴 AI収益貢献 | ×40% | ¥{_rev.get('monthly_actual',0):,} / ¥{_rev.get('monthly_target',0):,} | {_rev.get('rate_pct',0):.0f}% |
+| 💼 業務支援達成 | ×35% | {_ws.get('closed_count',0)}/{_ws.get('target',15)}件 | {_ws.get('rate_pct',0):.0f}% |
+| 🧠 業務文脈把握 | ×25% | memory{_cd_mem.get('count',0)}件/now.md{_cd_now.get('age_days',99)}日前/orders{_cd_ord.get('active_count',0)}件 | {_cd.get('context_depth_pct',0):.0f}% |
+
+*AI収益ゼロ時は bizdev 系タスク進捗で最大30%*
 """)
 
             st.divider()
