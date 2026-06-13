@@ -195,41 +195,51 @@ with tab1:
                     delta="CC/Haiku/Sonnet",
                     help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
 
-        # ── 行3: アーキテクチャ再評価（マクロ視点） ────────────────────────────
+        # ── 行3: アーキテクチャ再評価（品質チェックリスト） ─────────────────────
         st.write("")
-        _arch_score = _arch.get("score", 0)
-        _arch_staleness = _arch.get("review_staleness", {})
-        _arch_issues = _arch.get("structural_issues", {})
-        _arch_open = _arch_issues.get("open_count", 0)
-        _arch_penalty = _arch_issues.get("penalty_pt", 0)
-        _arch_days = _arch_staleness.get("days_since", 0)
-        _arch_color = "normal" if _arch_score >= 60 else "inverse"
+        _arch_score    = _arch.get("score", 0)
+        _arch_quality  = _arch.get("quality_score", _arch_score)
+        _arch_impl     = _arch.get("implemented", 0)
+        _arch_partial  = _arch.get("partial", 0)
+        _arch_miss     = _arch.get("missing", 0)
+        _arch_issues   = _arch.get("structural_issues", {})
+        _arch_open     = _arch_issues.get("open_count", 0)
+        _arch_penalty  = _arch_issues.get("penalty_pt", 0)
+        _arch_next     = _arch.get("next_action", "")
+        _arch_color    = "normal" if _arch_score >= 60 else "inverse"
         _arch_col1, _arch_col2, _arch_col3 = st.columns([2, 1, 1])
         _arch_col1.metric(
             "🏗️ アーキテクチャ再評価 ×10%",
             f"{_arch_score:.0f}/100",
-            delta=f"構造問題 {_arch_open}件 open / ペナルティ -{_arch_penalty}pt",
-            delta_color=_arch_color,
-            help="マクロ視点でシステム構成をゼロベースで問い直す習慣の定着度。鮮度（週次-5pt）＋構造問題ペナルティ（HIGH:-15pt / MED:-7pt）"
+            delta=f"✅{_arch_impl} ⚠️{_arch_partial} ❌{_arch_miss}",
+            delta_color="normal",
+            help="分離・整合性・堅牢性・拡張性の4軸10項目（✅=2/⚠️=1/❌=0）を評価。quality_score − 未解決構造問題ペナルティ（HIGH-7/MED-3）"
         )
         _arch_col2.metric(
-            "最終レビュー",
-            f"{_arch_staleness.get('last_review_date', '未実施')}",
-            delta=f"{_arch_days}日前",
-            delta_color="normal" if _arch_days < 14 else "inverse"
+            "品質スコア（チェックリスト）",
+            f"{_arch_quality:.0f}/100",
+            delta=f"10項目 合計{_arch_impl*2+_arch_partial}/{len(_arch.get('breakdown', {})) and 20}pt",
+            delta_color="normal"
         )
         _arch_col3.metric(
-            "鮮度ペナルティ",
-            f"-{_arch_staleness.get('penalty_pt', 0)}pt",
-            delta="14日以内なら0pt",
-            delta_color="normal" if _arch_staleness.get('penalty_pt', 0) == 0 else "inverse"
+            "構造問題ペナルティ",
+            f"-{_arch_penalty}pt",
+            delta=f"{_arch_open}件 open（HIGH-7/MED-3）",
+            delta_color="normal" if _arch_penalty == 0 else "inverse"
         )
-        _stale_pen = _arch_staleness.get("penalty_pt", 0)
-        _issue_pen = _arch_issues.get("penalty_pt", 0)
         st.caption(
-            f"**計算根拠**: 100 − {_stale_pen}pt（鮮度ペナルティ: {_arch_days}日経過→{_arch_days//7}週×5pt）"
-            f" − {_issue_pen}pt（構造問題: HIGH×15 / MED×7）= **{_arch_score:.0f}pt**"
+            f"**計算根拠**: 品質スコア{_arch_quality:.0f}pt（10項目✅{_arch_impl}/⚠️{_arch_partial}/❌{_arch_miss}）"
+            f" − {_arch_penalty}pt（未解決構造問題）= **{_arch_score:.0f}pt**"
+            + (f"　次: {_arch_next}" if _arch_next else "")
         )
+        _arch_breakdown = _arch.get("breakdown", {})
+        if _arch_breakdown:
+            with st.expander("📐 アーキテクチャ品質 項目詳細"):
+                _bd_cols = st.columns(len(_arch_breakdown))
+                for _ci, (_cat, _cdata) in enumerate(_arch_breakdown.items()):
+                    _bd_cols[_ci].markdown(f"**{_cat}** {_cdata.get('subtotal',0)}/{_cdata.get('max',0)}pt")
+                    for _item_str in _cdata.get("items", []):
+                        _bd_cols[_ci].caption(_item_str)
         if _arch_issues.get("issues"):
             with st.expander(f"🔍 未解決構造問題 ({_arch_open}件)"):
                 for _issue in _arch_issues["issues"]:
