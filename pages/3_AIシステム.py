@@ -1795,6 +1795,7 @@ with tab4:
         st.markdown("- 🧠 **mempalace**: Claude セッション間記憶継続・KGグラフ検索・自動集約")
         st.markdown("- 📓 **Obsidian**: ビジュアルグラフ・手動編集・Web記事クリップ・ルール閲覧")
         st.markdown("- 📥 **raw/ → wiki/**: Web記事を投入→AIがコンパイル→知識ページ生成（Karpathyパターン）")
+        st.markdown("- 📬 **日次チェックイン**: 毎日18:30に自動送信→返信をIMAP取得→Haiku分析→**checkin_knowledge.md（Obsidian）+ mempalace diary** に自動記録")
         st.markdown("- 🔄 **週次同期**: Obsidian → mempalace KGバックアップ（毎週日曜 21:27）")
 
         obs = _safe4(lambda: data_loader.obsidian_stats(), {})
