@@ -232,14 +232,6 @@ with tab1:
             f" − {_arch_penalty}pt（未解決構造問題）= **{_arch_score:.0f}pt**"
             + (f"　次: {_arch_next}" if _arch_next else "")
         )
-        _arch_breakdown = _arch.get("breakdown", {})
-        if _arch_breakdown:
-            with st.expander("📐 アーキテクチャ品質 項目詳細"):
-                _bd_cols = st.columns(len(_arch_breakdown))
-                for _ci, (_cat, _cdata) in enumerate(_arch_breakdown.items()):
-                    _bd_cols[_ci].markdown(f"**{_cat}** {_cdata.get('subtotal',0)}/{_cdata.get('max',0)}pt")
-                    for _item_str in _cdata.get("items", []):
-                        _bd_cols[_ci].caption(_item_str)
         if _arch_issues.get("issues"):
             with st.expander(f"🔍 未解決構造問題 ({_arch_open}件)"):
                 for _issue in _arch_issues["issues"]:
@@ -537,6 +529,27 @@ with tab1:
                 st.caption(f"評価日: {_gh.get('assessed_at','')} / 次回見直し: {_gh.get('next_review','')}")
             else:
                 st.caption("データなし — anthropic_github_kpi.json を確認してください")
+
+            st.divider()
+            st.markdown("#### 🏗️ アーキテクチャ再評価スコア")
+            _arch_bk = _arch.get("breakdown", {})
+            if _arch_bk:
+                _arch_bk_cols = st.columns(len(_arch_bk))
+                for _ci, (_cat, _cdata) in enumerate(_arch_bk.items()):
+                    _sub = _cdata.get("subtotal", 0)
+                    _max = _cdata.get("max", 0)
+                    with _arch_bk_cols[_ci]:
+                        st.markdown(f"**{_cat}** ({_sub}/{_max}点)")
+                        for _item in _cdata.get("items", []):
+                            st.markdown(f"- {_item}")
+            _arch_struct = _arch.get("structural_issues", {})
+            if _arch_struct.get("issues"):
+                st.markdown("**未解決構造問題（ペナルティ対象）:**")
+                for _si in _arch_struct["issues"]:
+                    _sev_icon = "🔴" if _si.get("severity") == "high" else "🟡"
+                    st.markdown(f"- {_sev_icon} **{_si.get('id','')}** — {_si.get('description','')}")
+            if _arch.get("next_action"):
+                st.info(f"💡 次のアクション: {_arch['next_action']}")
 
         style.kpi_wrap_end()
     else:
