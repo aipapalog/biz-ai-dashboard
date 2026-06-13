@@ -224,6 +224,12 @@ with tab1:
             delta="14日以内なら0pt",
             delta_color="normal" if _arch_staleness.get('penalty_pt', 0) == 0 else "inverse"
         )
+        _stale_pen = _arch_staleness.get("penalty_pt", 0)
+        _issue_pen = _arch_issues.get("penalty_pt", 0)
+        st.caption(
+            f"**計算根拠**: 100 − {_stale_pen}pt（鮮度ペナルティ: {_arch_days}日経過→{_arch_days//7}週×5pt）"
+            f" − {_issue_pen}pt（構造問題: HIGH×15 / MED×7）= **{_arch_score:.0f}pt**"
+        )
         if _arch_issues.get("issues"):
             with st.expander(f"🔍 未解決構造問題 ({_arch_open}件)"):
                 for _issue in _arch_issues["issues"]:
