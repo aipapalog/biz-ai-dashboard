@@ -266,6 +266,30 @@ with tab1:
                 _tgt_rows += f"| {_kname} | {int(_know)} | {_ktgt} | {_rate}% |\n"
             st.markdown(_tgt_rows)
 
+            # 推奨アクション（目標未達KPIから自動生成）
+            _gap_list = sorted(
+                [(_ktgt - _know, _kname, _know, _ktgt) for _kname, _know, _ktgt in _kpi_targets if _know < _ktgt],
+                reverse=True
+            )
+            if _gap_list:
+                st.divider()
+                st.markdown("**🎯 推奨アクション（ギャップ大順）**")
+                _action_map = {
+                    "信頼性":       ("リトライ率削減（agent_frameworkプロンプト改善）",         "reliability", 2),
+                    "自律性":       ("company_context補完（now.mdに現業詳細・成果記録を追記）",  "autonomy",    5),
+                    "観測性":       ("actionabilityUI追加 or logs/metricsの収集強化",            "observability", 2),
+                    "モデル活用":   ("Sonnetの利用比率最適化・CC活用状況の確認",                  "model_usage", 2),
+                    "モダン度":     ("ツールユース実装（行動系）",                               "modernity",   5),
+                    "GitHub活用":   ("defending-code-reference-harness実装（SQA業務向け）",      "anthropic_github", 3),
+                    "アーキ再評価": ("構造問題クローズ or 週次レビュー実施",                       "architecture", 2),
+                    "学習率":       ("mempalaceトンネル追加 or Obsidianリンク密度向上",           "learning_rate", 1),
+                    "AIレベル計":   ("上記KPIを1つ改善",                                         "total",       0),
+                }
+                for _gap, _kname, _know, _ktgt in _gap_list[:3]:
+                    _pure = _kname.replace("🔴 ","").replace("🟠 ","").replace("🟡 ","").replace("🟢 ","").replace("⚪ ","").replace("🟣 ","").replace("🔵 ","").replace("🏗️ ","").replace("🎯 **","").replace("**","")
+                    _action, _, _impact = _action_map.get(_pure, (f"{_pure}スコア改善", _pure, 1))
+                    st.markdown(f"- **{_kname}** {int(_know)}→目標{_ktgt}（gap {int(_gap)}pt）: {_action} _(+{_impact}pt見込み)_")
+
         with st.expander("🔍 計算根拠（全内訳）"):
             _c_rel, _c_aut = st.columns(2)
 
