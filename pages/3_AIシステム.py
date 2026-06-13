@@ -55,22 +55,22 @@ AGENTS = [
 ]
 
 FOLDERS = [
-    ("🟢", "agents/",                   "メインスクリプト群（100+ファイル）",       "chains/agent_framework/tools等"),
-    ("🟢", "agents/data/",              "キャッシュ・データファイル（JSON/JSONL）", "単一ライター原則遵守"),
+    ("🟢", "agents/",                   "メインスクリプト群（各エージェント・ツール・ライブラリ）", "agent_framework/flows/data/logs等を含む"),
+    ("🟢", "agents/data/",              "KPIスコア・キャッシュ（JSON/JSONL）",    "単一ライター原則遵守"),
     ("🟢", "agents/logs/",              "実行ログ（JSONL・テキスト・biz_pdca）",   "日次ローテーション"),
+    ("🟢", "agents/flows/",             "Prefectフロー定義（4フロー）",            "daily/content/strategy/maintenance"),
     ("🟢", "agents/platforms/",         "外部PF連携（Gumroad/KDP/Etsy/Payhip）", "pending多数"),
     ("🟢", "streamlit_dashboard/",      "Streamlitダッシュボード（3ページ）",       "push→自動デプロイ"),
-    ("🟢", "skills/",                   "Claude Codeスキル定義",                  "セッション内で起動"),
     ("🔴", "agents/_archive_20260602/", "2026-06-02以前のアーカイブ",             "削除候補"),
 ]
 
 DATA_FILES = [
-    ("kanban_tasks.json",    "KanbanタスクDB（KT-XXX管理・単一情報源）",    "Firestoreプライマリ"),
-    ("business_status.json", "収益・事業状況（BizDevタブの基盤）",          "daily_driver.py"),
-    ("agents_prompts.json",  "エージェントプロンプト定義（9エージェント）",  "mempalace_maintenance.py"),
-    ("agent_runs.jsonl",     "エージェント実行ログ（24h/7d統計ベース）",    "agent_framework.py"),
-    ("datasource.json",      "リアルタイム実行状態・IDEステータスバー",      "daily_driver.py"),
-    ("experiments.jsonl",    "A/B実験ログ（500件→levelup優先度計算）",      "agent_framework.py"),
+    ("kanban_tasks.json",        "KanbanタスクDB（KT-XXX管理・単一情報源）",    "Firestoreプライマリ"),
+    ("business_status.json",     "収益・事業状況（BizDevタブの基盤）",          "daily_driver.py"),
+    ("agents_prompts.json",      "エージェントプロンプト定義（9エージェント）",  "mempalace_maintenance.py"),
+    ("data/ai_score_history.jsonl", "AIスコア履歴（KPI計算ベース）",            "agent_framework.py"),
+    ("data/api_usage_log.jsonl", "API使用量ログ（コスト管理）",                  "daily_driver.py"),
+    ("levelup_status.json",      "AIレベルアップ状況・スコア詳細",              "agent_levelup.py"),
 ]
 
 # ─── ページ設定 ───────────────────────────────────────────────────────────────
