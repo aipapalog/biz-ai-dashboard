@@ -248,6 +248,23 @@ with tab1:
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
 """)
+            _kpi_targets = [
+                ("🔴 信頼性",       _comps.get("reliability", 0),       75),
+                ("🟠 自律性",       _comps.get("autonomy", 0),          70),
+                ("🟡 学習率",       _comps.get("learning_rate", 0),     92),
+                ("🟢 観測性",       _comps.get("observability", 0),     85),
+                ("⚪ モデル活用",    _comps.get("model_usage", 0),       70),
+                ("🟣 モダン度",     _comps.get("modernity", 0),         80),
+                ("🔵 GitHub活用",   _comps.get("anthropic_github", 0),  70),
+                ("🏗️ アーキ再評価", _comps.get("architecture", 0),      95),
+                ("🎯 **AIレベル計**", _level,                           80),
+            ]
+            st.markdown("**📊 KPI数値目標（現在 → 目標）**")
+            _tgt_rows = "| KPI | 現在 | 目標 | 達成率 |\n|-----|------|------|--------|\n"
+            for _kname, _know, _ktgt in _kpi_targets:
+                _rate = min(int((_know / _ktgt * 100) if _ktgt else 100), 100)
+                _tgt_rows += f"| {_kname} | {int(_know)} | {_ktgt} | {_rate}% |\n"
+            st.markdown(_tgt_rows)
 
         with st.expander("🔍 計算根拠（全内訳）"):
             _c_rel, _c_aut = st.columns(2)
