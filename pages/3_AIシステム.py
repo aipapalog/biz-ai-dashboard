@@ -158,7 +158,7 @@ with tab1:
                     help="エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15%")
         _kc2.metric("🟠 自律性 ×25%", f"{_aut_score:.0f}/100",
                     delta=f"解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
-                    help="問題解決性×40% + 価値創出性×40% + 自律実行率×20%。価値創出=AI収益×40%+業務支援×35%+文脈把握×25%")
+                    help="問題解決性×40% + 価値創出性×40% + 自律実行率×20%。価値創出=AI収益×45%+会社業務貢献×55%(実績×50%+文脈×50%)")
         _kc3.metric("🟣 モダン度 ×20%", f"{_mod_score:.0f}/100",
                     delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
                     delta_color="normal" if _mod_score >= 60 else "inverse",
@@ -306,21 +306,26 @@ with tab1:
 - ダッシュボードアラート {_da.get('count',0)}件: -{_da.get('penalty',0)}pt
 - 低AIスコア放置: -{_la.get('penalty',0)}pt
 """)
-                _rev = _vc.get("revenue_contribution", {})
-                _wc  = _vc.get("work_contribution", {})
-                _cd  = _vc.get("context_depth", {})
-                _cd_mem = _cd.get("memory_files", {})
-                _cd_now = _cd.get("now_freshness", {})
-                _cd_ord = _cd.get("standing_orders", {})
+                _rev  = _vc.get("revenue_contribution", {})
+                _cc   = _vc.get("company_contribution", {})
+                _wc   = _cc.get("contribution_log", {})
+                _ctx  = _cc.get("company_context", {})
+                _ctx_asp = _ctx.get("aspects", [])
                 _wc_recent = _wc.get("recent", [])
+                _ctx_known   = [a["aspect"] for a in _ctx_asp if a.get("known")]
+                _ctx_unknown = [a["aspect"] for a in _ctx_asp if not a.get("known")]
                 st.markdown(f"""**価値創出性内訳（会長目標への貢献度）:**
 
 | 軸 | 重み | 実績 | スコア |
 |----|------|------|--------|
 | 💴 AI収益達成 | ×45% | ¥{_rev.get('monthly_actual',0):,} / 目標¥{_rev.get('monthly_target',0):,} | {_rev.get('rate_pct',0):.0f}% |
-| 💼 会社業務貢献 | ×30% | {_wc.get('logged_count',0)}/{_wc.get('target',10)}件記録 | {_wc.get('rate_pct',0):.0f}% |
-| 🧠 業務文脈把握 | ×25% | memory{_cd_mem.get('count',0)}件 / now.md{_cd_now.get('age_days',99)}日前 / orders{_cd_ord.get('active_count',0)}件 | {_cd.get('context_depth_pct',0):.0f}% |
+| 🏢 会社業務貢献 | ×55% | 実績{_wc.get('logged_count',0)}件 / 文脈{_ctx.get('known_count',0)}/{_ctx.get('total_aspects',5)}観点 | {_cc.get('company_score_pct',0):.0f}% |
 """)
+                st.caption(f"  ↳ 実績記録(×50%): {_wc.get('logged_count',0)}/{_wc.get('target',10)}件 → {_wc.get('rate_pct',0):.0f}%")
+                if _ctx_known:
+                    st.caption(f"  ↳ 会社文脈把握(×50%): 把握済み {' / '.join(_ctx_known)}  未把握 {' / '.join(_ctx_unknown) if _ctx_unknown else 'なし'}")
+                else:
+                    st.caption(f"  ↳ 会社文脈把握(×50%): 0/{_ctx.get('total_aspects',5)}観点")
                 if _wc_recent:
                     st.caption("最近の業務貢献記録: " + " / ".join(e.get("description","")[:20] for e in _wc_recent))
                 else:
