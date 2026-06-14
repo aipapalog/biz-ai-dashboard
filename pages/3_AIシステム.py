@@ -415,25 +415,35 @@ with tab1:
                       delta=f"モダン度{_mod_score:.0f} アーキ{_arch_score:.0f}{_tf_warn}",
                       delta_color="normal" if _tf_score >= 80 else "inverse",
                       help="モダン度+アーキテクチャの平均。天井=静的チェックリスト完了・外部ベンチマーク比較で次のレベルへ")
-            with st.expander("📊 モダン度内訳（18項目）"):
+            with st.expander("📊 モダン度内訳（18項目・各2pt満点）"):
                 _mod_bk = _mod_data.get("breakdown", {})
                 if _mod_bk:
-                    _mod_rows = ["| カテゴリ | 取得 | 満点 | 達成率 |\n|---|---|---|---|"]
+                    def _parse_score(s):
+                        return 2 if s.startswith("✅") else (1 if "⚠" in s else 0)
+                    _rows = ["| カテゴリ | 項目 | 点数 | /満点 |\n|---|---|---|---|"]
                     for _cat, _cdata in _mod_bk.items():
                         _sub = _cdata.get("subtotal", 0)
                         _max_m = _cdata.get("max", 0)
-                        _rate = int(_sub / _max_m * 100) if _max_m else 0
-                        _mod_rows.append(f"| {_cat} | {_sub}pt | {_max_m}pt | {_rate}% |")
-                    st.markdown("\n".join(_mod_rows))
-            with st.expander("📊 アーキテクチャ内訳（10項目）"):
+                        _rows.append(f"| **{_cat}** | **(小計)** | **{_sub}** | **{_max_m}** |")
+                        for _item_str in _cdata.get("items", []):
+                            _sc = _parse_score(_item_str)
+                            _name = _item_str.split(" ", 1)[1] if " " in _item_str else _item_str
+                            _rows.append(f"| | {_item_str[:2]} {_name} | {_sc} | 2 |")
+                    st.markdown("\n".join(_rows))
+            with st.expander("📊 アーキテクチャ内訳（10項目・各2pt満点）"):
                 _arch_bk = _arch.get("breakdown", {})
                 if _arch_bk:
-                    _ab_rows = ["| カテゴリ | 取得 | 満点 | 達成率 |\n|---|---|---|---|"]
+                    def _parse_score_a(s):
+                        return 2 if s.startswith("✅") else (1 if "⚠" in s else 0)
+                    _ab_rows = ["| カテゴリ | 項目 | 点数 | /満点 |\n|---|---|---|---|"]
                     for _cat, _cdata in _arch_bk.items():
                         _sub = _cdata.get("subtotal", 0)
                         _max_a = _cdata.get("max", 0)
-                        _rate = int(_sub / _max_a * 100) if _max_a else 0
-                        _ab_rows.append(f"| {_cat} | {_sub}pt | {_max_a}pt | {_rate}% |")
+                        _ab_rows.append(f"| **{_cat}** | **(小計)** | **{_sub}** | **{_max_a}** |")
+                        for _item_str in _cdata.get("items", []):
+                            _sc = _parse_score_a(_item_str)
+                            _name = _item_str.split(" ", 1)[1] if " " in _item_str else _item_str
+                            _ab_rows.append(f"| | {_item_str[:2]} {_name} | {_sc} | 2 |")
                     st.markdown("\n".join(_ab_rows))
                 if _arch_issues.get("issues"):
                     st.markdown(f"⚠️ **構造問題 {_arch_open}件 (-{_arch_penalty}pt)**")
