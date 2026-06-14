@@ -113,20 +113,17 @@ def kanban_tasks() -> list:
     fb_doc = firebase_client.get_doc("dashboard", "kanban_active")
     if fb_doc and fb_doc.get("tasks"):
         return [t for t in fb_doc["tasks"] if isinstance(t, dict)]
-    data = _local("kanban_tasks.json", {})
-    if isinstance(data, dict) and "tasks" in data:
-        return [t for t in data["tasks"] if isinstance(t, dict)]
     return []
 
 
 def business_status() -> dict:
     fb = firebase_client.get_doc("dashboard", "business_status")
-    return fb if fb else _local("business_status.json", {})
+    return fb if isinstance(fb, dict) else {}
 
 
 def pf_watch() -> dict:
     fb = firebase_client.get_doc("dashboard", "pf_watch")
-    return fb if fb else _local("pf_watch.json", {})
+    return fb if isinstance(fb, dict) else {}
 
 
 def system_info() -> dict:
@@ -400,7 +397,7 @@ def obsidian_stats() -> dict:
 
 def datasource() -> dict:
     fb = firebase_client.get_doc("dashboard", "datasource")
-    return fb if fb else _local("data/datasource.json", {})
+    return fb if isinstance(fb, dict) else {}
 
 
 def eval_status() -> dict:
