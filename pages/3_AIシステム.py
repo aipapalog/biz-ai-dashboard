@@ -370,6 +370,13 @@ with tab1:
                 if _gh_opp:
                     st.caption(f"💡 {_gh_opp}")
                 st.caption(f"評価: {_gh.get('assessed_at','')} / 次回: {_gh.get('next_review','')}")
+                _gh_excl = _gh.get("excluded", [])
+                if _gh_excl:
+                    st.markdown("**🚫 不採用・除外リポジトリ（採用しない理由）:**")
+                    for _ex in _gh_excl:
+                        _st_icon = "🔴" if _ex.get("status") == "恒久除外" else "🟡"
+                        st.markdown(f"{_st_icon} **{_ex.get('name','')}** `{_ex.get('status','除外')}`")
+                        st.caption(f"　{_ex.get('reason','')}")
 
         _r3c1 = st.container(border=True)
         _r3c2 = st.container(border=True)
