@@ -153,6 +153,7 @@ with tab1:
         _rec_score  = _comps.get("recovery", 0)
         _mod_data    = _roi.get("modernity_detail", {})
         _gh_repos    = _gh.get("repos", [])
+        _gh_oss      = _gh.get("oss_tools", [])
         _arch_quality= _arch.get("quality_score", _arch_score)
         _arch_impl   = _arch.get("implemented", 0)
         _arch_partial= _arch.get("partial", 0)
@@ -353,19 +354,32 @@ with tab1:
 
         with _r2c3:
             _gh_active = sum(1 for r in _gh_repos if r.get("status") == "active")
+            _oss_active = sum(1 for r in _gh_oss if r.get("status") == "active")
+            _gh_anthropic_score = _gh.get("anthropic_repos_score", _gh_score)
+            _gh_oss_score = _gh.get("oss_tools_score", 0)
             st.metric("🔵 GitHub活用 ×5%", f"{_gh_score:.0f}/100",
-                      delta=f"{_gh_active}/{len(_gh_repos)} 活用中",
+                      delta=f"Anthropic:{_gh_anthropic_score} / OSS:{_gh_oss_score}",
                       delta_color="normal" if _gh_score >= 50 else "inverse",
-                      help=f"Anthropic公式リポジトリ活用充足度。次: {_gh.get('top_opportunity','')}")
+                      help=f"Anthropic公式+導入済みOSSリポジトリ活用充足度。次: {_gh.get('top_opportunity','')}")
             with st.expander("📊 内訳"):
                 _s_icon = {"active":"✅", "partial":"⚠️", "not_started":"❌"}
+                st.markdown("**Anthropic 公式リポジトリ**")
                 for _r in _gh_repos:
                     st.markdown(
                         f"{_s_icon.get(_r.get('status',''),'❓')} **{_r.get('name','')}** "
                         f"— 活用{_r.get('utilization',0)}/100 (+{_r.get('contribution',0):.1f}pt)"
                     )
                     if _r.get("note"):
-                        st.caption(f"　{_r['note'][:50]}")
+                        st.caption(f"　{_r['note'][:60]}")
+                if _gh_oss:
+                    st.markdown("**導入済み OSS ツール**")
+                    for _r in _gh_oss:
+                        st.markdown(
+                            f"{_s_icon.get(_r.get('status',''),'❓')} **{_r.get('name','')}** "
+                            f"— 活用{_r.get('utilization',0)}/100 (+{_r.get('contribution',0):.1f}pt)"
+                        )
+                        if _r.get("note"):
+                            st.caption(f"　{_r['note'][:60]}")
                 _gh_opp = _gh.get("top_opportunity", "")
                 if _gh_opp:
                     st.caption(f"💡 {_gh_opp}")
