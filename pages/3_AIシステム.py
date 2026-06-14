@@ -159,7 +159,7 @@ with tab1:
         _kc2.metric("🟠 自律性 ×25%", f"{_aut_score:.0f}/100",
                     delta=f"解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
                     help="問題解決性×40% + 価値創出性×40% + 自律実行率×20%。価値創出=AI収益×45%+会社業務貢献×55%(実績×50%+文脈×50%)")
-        _kc3.metric("🟣 モダン度 ×20%", f"{_mod_score:.0f}/100",
+        _kc3.metric("🟣 モダン度 ×10%", f"{_mod_score:.0f}/100",
                     delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
                     delta_color="normal" if _mod_score >= 60 else "inverse",
                     help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度。✅=2点/⚠️=1点/❌=0点")
@@ -241,18 +241,48 @@ with tab1:
                     st.markdown(f"{_sev_icon} **{_issue.get('id','')}** — {_desc}")
                 st.caption(f"マクロ視点での構造問題が残る限り、信頼性・自律性・モデル活用にも -{min(_arch_issues.get('open_count',0)*2,6)}ptのペナルティが適用されます")
 
+        # ── 行4: 復旧性（PC故障時の耐性チェックリスト）─────────────────────────
+        st.write("")
+        _rec_detail  = _roi.get("recovery_detail", {})
+        _rec_score   = _comps.get("recovery", 0)
+        _rec_impl    = _rec_detail.get("implemented", 0)
+        _rec_partial = _rec_detail.get("partial", 0)
+        _rec_miss    = _rec_detail.get("missing", 0)
+        _rec_next    = _rec_detail.get("next_action", "")
+        _rec_items   = _rec_detail.get("items", [])
+        _rec_col1, _rec_col2 = st.columns([2, 2])
+        _rec_col1.metric(
+            "🔄 復旧性 ×5%",
+            f"{_rec_score:.0f}/100",
+            delta=f"✅{_rec_impl} ⚠️{_rec_partial} ❌{_rec_miss}",
+            delta_color="normal" if _rec_score >= 60 else "inverse",
+            help="PC故障時の復旧容易性。Cloud Scheduler/Cloud Functions/anthropic-sdk/Firestore/GitHub管理の6項目（✅=2/⚠️=1/❌=0）"
+        )
+        _rec_col2.metric(
+            "次のアクション",
+            "→",
+            delta=_rec_next if _rec_next else "（未設定）",
+            delta_color="off"
+        )
+        if _rec_items:
+            with st.expander(f"📋 復旧性チェックリスト ({_rec_impl}✅/{_rec_partial}⚠️/{_rec_miss}❌)"):
+                for _item in _rec_items:
+                    st.markdown(f"{_item.get('label','?')} **{_item.get('name','')}** — {_item.get('category','')}")
+                st.caption("Cloud Scheduler・anthropic-sdk・Cloud Functions導入でスコアが向上します")
+
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
 | スコア | 重み | 計算式 | 高い = |
 |--------|------|--------|--------|
 | 🔴 **信頼性** | ×20% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
 | 🟠 **自律性** | ×25% | 問題解決性×40% + 価値創出性×40% + 自律実行率×20% | 問題を放置せず・収益/業務目標に貢献し・会長の業務を深く把握している |
-| 🟣 **モダン度** | ×20% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
+| 🟣 **モダン度** | ×10% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
 | 🔵 **GitHub活用** | ×5% | Anthropic公式5リポジトリ（skills/SDK/Cookbooks等）の活用充足度 | フル活用でAIシステムが高度化 |
 | 🟡 **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
 | 🟢 **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 | ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
 | 🏗️ **アーキテクチャ再評価** | ×10% | 10項目チェックリスト（分離・整合性・堅牢性・拡張性）−構造問題ペナルティ(HIGH-7/MED-3) | 分離が明確・データ整合性が保たれ・堅牢に動作し・拡張しやすい |
+| 🔄 **復旧性** | ×5% | 6項目チェックリスト（スケジュール・実行環境・API・データ・バックアップ・依存性）÷12×100 | PC故障時でもすぐ復旧・継続できる（Cloud化が進むほど高い） |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
 """)
@@ -265,6 +295,7 @@ with tab1:
                 ("🟣 モダン度",     _comps.get("modernity", 0),         80),
                 ("🔵 GitHub活用",   _comps.get("anthropic_github", 0),  70),
                 ("🏗️ アーキ再評価", _comps.get("architecture", 0),      95),
+                ("🔄 復旧性",        _comps.get("recovery", 0),         70),
                 ("🎯 **AIレベル計**", _level,                           80),
             ]
             st.markdown("**📊 KPI数値目標（現在 → 目標）**")
@@ -290,6 +321,7 @@ with tab1:
                     "モダン度":     ("ツールユース実装（行動系）",                               "modernity",   5),
                     "GitHub活用":   ("defending-code-reference-harness実装（SQA業務向け）",      "anthropic_github", 3),
                     "アーキ再評価": ("構造問題クローズ or 週次レビュー実施",                       "architecture", 2),
+                    "復旧性":       ("Cloud Scheduler導入 or anthropic-sdk化（+16.7pt/項目）",    "recovery",     17),
                     "学習率":       ("mempalaceトンネル追加 or Obsidianリンク密度向上",           "learning_rate", 1),
                     "AIレベル計":   ("上記KPIを1つ改善",                                         "total",       0),
                 }
