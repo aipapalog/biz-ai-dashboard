@@ -125,8 +125,8 @@ with tab1:
         _comps = _roi.get("component_scores", {})
         _grade = _roi.get("grade", "?")
         _level = _roi.get("ai_level_score", 0)
-        _grade_color = {"A": "ok", "B": "ok", "C": "warn", "D": "critical", "F": "critical"}.get(_grade, "info")
-        _grade_emoji = {"A": "🟢", "B": "🟢", "C": "🟡", "D": "🔴", "F": "🔴"}.get(_grade, "⚪")
+        _grade_color = {"S": "ok", "A": "ok", "B": "ok", "C": "warn", "D": "critical", "F": "critical"}.get(_grade, "info")
+        _grade_emoji = {"S": "🏆", "A": "🟢", "B": "🟢", "C": "🟡", "D": "🔴", "F": "🔴"}.get(_grade, "⚪")
 
         style.kpi_wrap_start(_grade_color)
         _roi_dict = _roi.get("roi") or {}
@@ -489,29 +489,33 @@ with tab1:
             st.markdown("""
 | スコア | 重み | 計算式 | 高い = |
 |--------|------|--------|--------|
-| 🔴 **信頼性** | ×20% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% | 安定動作・出力品質・PC負荷が良好 |
-| 🟠 **自律性** | ×25% | 問題解決性×40% + 価値創出性×40% + 自律実行率×20% | 問題を放置せず・収益/業務目標に貢献し・会長の業務を深く把握している |
-| 🟣 **モダン度** | ×10% | モダンAIシステム18項目（✅=2/⚠️=1/❌=0）÷36×100 | AI設計・品質・運用が最新ベストプラクティスを充足 |
-| 🔵 **GitHub活用** | ×5% | Anthropic公式5リポジトリ（skills/SDK/Cookbooks等）の活用充足度 | フル活用でAIシステムが高度化 |
-| 🟡 **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
-| 🟢 **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
-| ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
-| 🏗️ **アーキテクチャ** | ×10% | 10項目チェックリスト（分離・整合性・堅牢性・拡張性）−構造問題ペナルティ(HIGH-7/MED-3) | 分離が明確・データ整合性が保たれ・堅牢に動作し・拡張しやすい |
-| 🔄 **復旧性** | ×5% | 5項目チェックリスト（setup.ps1/nightly_git_sync/Firestoreファースト/GitHub管理/Windows非依存）÷10×100 | PC故障時でもすぐ復旧・継続できる（GitHub一本化戦略、2026-06-14確定） |
+| 🔴 **信頼性** | ×20% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% − フロー停止ペナルティ×0.5 | 安定動作・出力品質・フロー継続稼働 |
+| 🟠 **自律性** | ×20% | 問題解決性×40% + 価値創出性×40% + 自律実行率×20% − フロー停止ペナルティ | 問題を放置せず・収益貢献し・フローが止まっていない |
+| 🟡 **学習率** | ×8% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され続けている |
+| 🟢 **観測性** | ×7% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
+| ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | 適切なモデル選択・Haiku活用 |
+| 🔧 **技術基盤** | ×5% | (モダン度+アーキテクチャ) ÷ 2 | 静的チェックリスト完備（天井=外部ベンチマーク要） |
+| 🔵 **GitHub活用** | ×5% | Anthropic公式5リポジトリの活用充足度 | フル活用でAIシステムが高度化 |
+| 🔄 **復旧性** | ×5% | 5項目チェックリスト（setup.ps1/GitHub/Firestore等）÷10×100 | PC故障時でも即復旧できる |
+| 📉 **介入率** | ×10% | Kanban承認待ち比率の逆数（低い比率=高スコア） | 会長介入なしで完結するタスクが多い |
+| 📚 **知識外部化** | ×5% | CLAUDE.md量+rules/件数+エージェント定義数+memory/件数 | 判断がルール化・エージェント化されている |
+| 🎯 **採択正解率** | ×5% | AI提案採択後の事後正解率（outcome_log.json蓄積中） | AIの判断を信頼できる実績がある |
 
-**グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
+**グレード基準**: S≥95（フロー無人稼働+介入改善中）/ A≥80 / B≥65 / C≥50 / D≥35 / F
 """)
             _kpi_targets = [
-                ("🔴 信頼性",       _comps.get("reliability", 0),       75),
-                ("🟠 自律性",       _comps.get("autonomy", 0),          70),
-                ("🟡 学習率",       _comps.get("learning_rate", 0),     92),
-                ("🟢 観測性",       _comps.get("observability", 0),     85),
-                ("⚪ モデル活用",    _comps.get("model_usage", 0),       70),
-                ("🟣 モダン度",     _comps.get("modernity", 0),         80),
-                ("🔵 GitHub活用",   _comps.get("anthropic_github", 0),  70),
-                ("🏗️ アーキテクチャ", _comps.get("architecture", 0),      95),
-                ("🔄 復旧性",        _comps.get("recovery", 0),         70),
-                ("🎯 **AIレベル計**", _level,                           80),
+                ("🔴 信頼性",       _comps.get("reliability", 0),           75),
+                ("🟠 自律性",       _comps.get("autonomy", 0),              70),
+                ("🟡 学習率",       _comps.get("learning_rate", 0),         92),
+                ("🟢 観測性",       _comps.get("observability", 0),         85),
+                ("⚪ モデル活用",    _comps.get("model_usage", 0),           70),
+                ("🔧 技術基盤",      _comps.get("tech_foundation", 0),      100),
+                ("🔵 GitHub活用",   _comps.get("anthropic_github", 0),      70),
+                ("🔄 復旧性",        _comps.get("recovery", 0),             70),
+                ("📉 介入率",        _comps.get("intervention_trend", 0),   80),
+                ("📚 知識外部化",    _comps.get("knowledge_extern", 0),    100),
+                ("🎯 採択正解率",    _comps.get("adoption_accuracy", 0),    80),
+                ("🏆 **AIレベル計**", _level,                               80),
             ]
             st.markdown("**📊 KPI数値目標（現在 → 目標）**")
             _tgt_rows = "| KPI | 現在 | 目標 | 達成率 |\n|-----|------|------|--------|\n"
@@ -529,15 +533,17 @@ with tab1:
                 st.divider()
                 st.markdown("**🎯 推奨アクション（ギャップ大順）**")
                 _action_map = {
-                    "信頼性":       ("リトライ率削減（agent_frameworkプロンプト改善）",         "reliability", 2),
-                    "自律性":       ("company_context補完（now.mdに現業詳細・成果記録を追記）",  "autonomy",    5),
+                    "信頼性":       ("Prefectフロー再稼働（strategy/content/daily停止中）",      "reliability", 5),
+                    "自律性":       ("Prefectフロー再稼働（フロー停止=自律性ペナルティ直結）",    "autonomy",    8),
                     "観測性":       ("actionabilityUI追加 or logs/metricsの収集強化",            "observability", 2),
                     "モデル活用":   ("Sonnetの利用比率最適化・CC活用状況の確認",                  "model_usage", 2),
-                    "モダン度":     ("ツールユース実装（行動系）",                               "modernity",   5),
+                    "技術基盤":     ("✅ 100点達成済み（モダン度+アーキ平均）静的チェックリスト完了", "tech_foundation", 0),
                     "GitHub活用":   ("defending-code-reference-harness実装（SQA業務向け）",      "anthropic_github", 3),
-                    "アーキテクチャ": ("構造問題クローズ or 週次レビュー実施",                       "architecture", 2),
-                    "復旧性":       ("✅ 100点達成済み（GitHub一本化+mempalace→GDrive確定）",        "recovery",      0),
+                    "復旧性":       ("✅ 100点達成済み（GitHub一本化+mempalace→GDrive確定）",    "recovery",      0),
                     "学習率":       ("mempalaceトンネル追加 or Obsidianリンク密度向上",           "learning_rate", 1),
+                    "介入率":       ("承認待ちタスクを会長→社長に移譲 or 自動化でクローズ加速",    "intervention_trend", 5),
+                    "知識外部化":   ("✅ 100点達成済み（CLAUDE.md+rules+agents+memory充実）",    "knowledge_extern", 0),
+                    "採択正解率":   ("outcome_log.json作成→AI提案の正誤を記録開始（5件でスコア有効化）", "adoption_accuracy", 15),
                     "AIレベル計":   ("上記KPIを1つ改善",                                         "total",       0),
                 }
                 for _gap, _kname, _know, _ktgt in _gap_list[:3]:
