@@ -141,7 +141,7 @@ with tab1:
             f'</div>',
             unsafe_allow_html=True
         )
-        # ── KPI グリッド（3行×3列 — 各スコアを展開で内訳確認）──────────────────
+        # ── KPI 一覧（1列フル幅 — 根拠の幅を確保）────────────────────────────────
         _rel_score  = _comps.get("reliability", 0)
         _aut_score  = _comps.get("autonomy", 0)
         _lrn_score  = _comps.get("learning", 0)
@@ -179,8 +179,9 @@ with tab1:
         _res_pct     = _ac.get("problem_resolution_pct", 0)
         _val_pct     = _ac.get("value_creation_pct", 0)
 
-        # ── 行1: 信頼性 / 自律性 / 学習率 ─────────────────────────────────────
-        _r1c1, _r1c2, _r1c3 = st.columns(3)
+        _r1c1 = st.container(border=True)
+        _r1c2 = st.container(border=True)
+        _r1c3 = st.container(border=True)
 
         with _r1c1:
             st.metric("🔴 信頼性 ×20%", f"{_rel_score:.0f}/100",
@@ -197,12 +198,12 @@ with tab1:
                 _oq_s = _oq.get("score_100", 0)
                 _pc_s = _pc.get("pc_stability_score", 50)
                 st.markdown(
-                    f"| 軸 | ×重み | pt |\n|----|-------|----|\n"
-                    f"| エージェント | ×30% | {_ag_s*0.30:.1f} |\n"
-                    f"| パイプライン | ×20% | {_pl_r*0.20:.1f} |\n"
-                    f"| 出力品質 | ×35% | {_oq_s*0.35:.1f} |\n"
-                    f"| PC安定性 | ×15% | {_pc_s*0.15:.1f} |\n"
-                    f"| **計** | | **{_rel_score:.1f}** |"
+                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
+                    f"| エージェント信頼性 | {_ag_s:.0f}/100 | ×30% | {_ag_s*0.30:.1f} |\n"
+                    f"| パイプライン成功率 | {_pl_r:.0f}% | ×20% | {_pl_r*0.20:.1f} |\n"
+                    f"| 出力品質 | {_oq_s:.0f}/100 | ×35% | {_oq_s*0.35:.1f} |\n"
+                    f"| PC安定性 | {_pc_s:.0f}/100 | ×15% | {_pc_s*0.15:.1f} |\n"
+                    f"| **計** | | | **{_rel_score:.1f}** |"
                 )
                 _failed = [p.get("name","") for p in _pl.get("pipelines",[]) if p.get("status")=="failed"]
                 if _failed:
@@ -224,11 +225,11 @@ with tab1:
                 _pen = _pr.get("total_penalty", 0)
                 _closure_pct = _ac.get("task_closure_rate_pct", 0)
                 st.markdown(
-                    f"| 軸 | ×重み | pt |\n|----|-------|----|\n"
-                    f"| 問題解決 | ×50% | {_res_pct*0.50:.1f} |\n"
-                    f"| 価値創出 | ×50% | {_val_pct*0.50:.1f} |\n"
-                    f"| **計** | | **{_aut_score:.1f}** |\n"
-                    f"| [参考]自律率 | — | {_closure_pct:.0f}% |"
+                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
+                    f"| 問題解決性 | {_res_pct:.0f}% | ×50% | {_res_pct*0.50:.1f} |\n"
+                    f"| 価値創出性 | {_val_pct:.0f}% | ×50% | {_val_pct*0.50:.1f} |\n"
+                    f"| **計** | | | **{_aut_score:.1f}** |\n"
+                    f"| [参考]タスク自律率 | {_closure_pct:.0f}% | — | — |"
                 )
                 if _pen > 0:
                     _bt = _pr.get("blocked_tasks", {})
@@ -267,19 +268,19 @@ with tab1:
                 _utilize2 = _lrn.get('utilization_score', 0)
                 _ut_d2    = _lrn.get('utilization', {})
                 st.markdown(
-                    f"| 軸 | ×重み | スコア |\n|----|-------|--------|\n"
-                    f"| 知識充実 | ×34% | {_enrich:.0f} |\n"
-                    f"| 知識活用 | ×33% | {_utilize2:.0f} |\n"
-                    f"| 理解度 | ×33% | {_und_s:.0f} |\n"
-                    f"| **計** | | **{_lrn_score:.1f}** |"
+                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
+                    f"| 知識充実 | {_enrich:.0f}/100 | ×34% | {_enrich*0.34:.1f} |\n"
+                    f"| 知識活用 | {_utilize2:.0f}/100 | ×33% | {_utilize2*0.33:.1f} |\n"
+                    f"| ユーザー理解度 | {_und_s:.0f}/100 | ×33% | {_und_s*0.33:.1f} |\n"
+                    f"| **計** | | | **{_lrn_score:.1f}** |"
                 )
                 st.caption(f"Mempalace: {_mp2.get('drawers',0):,}件 / {_mp2.get('edges',0)}KGエッジ")
                 st.caption(f"Obsidian: {_ob2.get('files',0)}件 / 平均{_ob2.get('avg_links_per_file',0):.1f}リンク/件")
                 st.caption(f"活用: 直近7日 {_ut_d2.get('utilized_sessions',0)}/{_ut_d2.get('total_sessions',0)}セッション")
 
-        # ── 行2: 観測性 / モデル活用 / GitHub活用 ─────────────────────────────
-        st.write("")
-        _r2c1, _r2c2, _r2c3 = st.columns(3)
+        _r2c1 = st.container(border=True)
+        _r2c2 = st.container(border=True)
+        _r2c3 = st.container(border=True)
 
         with _r2c1:
             st.metric("🟢 観測性 ×10%", f"{_obs_score:.0f}/100",
@@ -299,6 +300,8 @@ with tab1:
                     "metrics":       ("📈", "指標"),
                     "logs":          ("📋", "ログ"),
                     "traces":        ("🔗", "トレース"),
+                    "macro_utility": ("🏗️", "マクロ"),
+                    "readability":   ("👁️", "見やすさ"),
                 }
                 if _obs_dims:
                     _rows_obs = ["| 軸 | ×重み | スコア | メモ |\n|---|---|---|---|"]
@@ -326,11 +329,11 @@ with tab1:
                 _hk_s = _mu_comps.get('haiku_fitness', 0)
                 _so_s = _mu_comps.get('sonnet_escalation', 0)
                 st.markdown(
-                    f"| 軸 | ×重み | スコア |\n|----|-------|--------|\n"
-                    f"| CC適切性 | ×50% | {_cc_s:.0f} |\n"
-                    f"| Haiku適正 | ×30% | {_hk_s:.0f} |\n"
-                    f"| Sonnet昇格 | ×20% | {_so_s:.0f} |\n"
-                    f"| **計** | | **{_mu_score:.1f}** |"
+                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
+                    f"| CCセッション適切性 | {_cc_s:.0f}/100 | ×50% | {_cc_s*0.50:.1f} |\n"
+                    f"| Haiku適正 | {_hk_s:.0f}/100 | ×30% | {_hk_s*0.30:.1f} |\n"
+                    f"| Sonnet昇格 | {_so_s:.0f}/100 | ×20% | {_so_s*0.20:.1f} |\n"
+                    f"| **計** | | | **{_mu_score:.1f}** |"
                 )
                 st.caption(
                     f"CC比率: Sonnet {_cc_d.get('sonnet_ratio_pct','-')}% / "
@@ -368,9 +371,9 @@ with tab1:
                     st.caption(f"💡 {_gh_opp}")
                 st.caption(f"評価: {_gh.get('assessed_at','')} / 次回: {_gh.get('next_review','')}")
 
-        # ── 行3: モダン度 / アーキテクチャ / 復旧性 ────────────────────────────
-        st.write("")
-        _r3c1, _r3c2, _r3c3 = st.columns(3)
+        _r3c1 = st.container(border=True)
+        _r3c2 = st.container(border=True)
+        _r3c3 = st.container(border=True)
 
         with _r3c1:
             st.metric("🟣 モダン度 ×10%", f"{_mod_score:.0f}/100",
@@ -379,28 +382,40 @@ with tab1:
                       help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度")
             with st.expander("📊 内訳"):
                 _mod_bk = _mod_data.get("breakdown", {})
-                for _cat, _cdata in list(_mod_bk.items()):
-                    _sub = _cdata.get("subtotal", 0)
-                    _max_m = _cdata.get("max", 0)
-                    st.markdown(f"**{_cat}** {_sub}/{_max_m}pt")
-                    for _item in _cdata.get("items", []):
-                        st.markdown(f"　{_item}")
+                if _mod_bk:
+                    _mod_rows = ["| カテゴリ | 取得 | 満点 | 達成率 |\n|---|---|---|---|"]
+                    for _cat, _cdata in _mod_bk.items():
+                        _sub = _cdata.get("subtotal", 0)
+                        _max_m = _cdata.get("max", 0)
+                        _rate = int(_sub / _max_m * 100) if _max_m else 0
+                        _mod_rows.append(f"| {_cat} | {_sub}pt | {_max_m}pt | {_rate}% |")
+                    st.markdown("\n".join(_mod_rows))
+                    st.markdown("**各カテゴリ充足項目:**")
+                    for _cat, _cdata in _mod_bk.items():
+                        for _item in _cdata.get("items", []):
+                            st.markdown(f"　{_item}")
                 if _mod_data.get("next_action"):
                     st.caption(f"💡 次: {_mod_data['next_action']}")
 
         with _r3c2:
-            st.metric("🏗️ アーキ再評価 ×10%", f"{_arch_score:.0f}/100",
+            st.metric("🏗️ アーキテクチャ ×10%", f"{_arch_score:.0f}/100",
                       delta=f"✅{_arch_impl} ⚠️{_arch_partial} ❌{_arch_miss}  -{_arch_penalty}pt",
                       delta_color="normal" if _arch_score >= 60 else "inverse",
                       help="10項目チェックリスト（分離・整合性・堅牢性・拡張性）− 構造問題ペナルティ（HIGH-7/MED-3）")
             with st.expander("📊 内訳"):
                 _arch_bk = _arch.get("breakdown", {})
-                for _cat, _cdata in _arch_bk.items():
-                    _sub = _cdata.get("subtotal", 0)
-                    _max_a = _cdata.get("max", 0)
-                    st.markdown(f"**{_cat}** {_sub}/{_max_a}pt")
-                    for _item in _cdata.get("items", []):
-                        st.markdown(f"　{_item}")
+                if _arch_bk:
+                    _ab_rows = ["| カテゴリ | 取得 | 満点 | 達成率 |\n|---|---|---|---|"]
+                    for _cat, _cdata in _arch_bk.items():
+                        _sub = _cdata.get("subtotal", 0)
+                        _max_a = _cdata.get("max", 0)
+                        _rate = int(_sub / _max_a * 100) if _max_a else 0
+                        _ab_rows.append(f"| {_cat} | {_sub}pt | {_max_a}pt | {_rate}% |")
+                    st.markdown("\n".join(_ab_rows))
+                    st.markdown("**各カテゴリ充足項目:**")
+                    for _cat, _cdata in _arch_bk.items():
+                        for _item in _cdata.get("items", []):
+                            st.markdown(f"　{_item}")
                 _fld = _arch.get("folder_detail", {})
                 if _fld and _fld.get("checks"):
                     st.markdown(f"**フォルダ構成** {_fld.get('score',0):.0f}/100")
@@ -441,7 +456,7 @@ with tab1:
 | 🟡 **学習率** | ×10% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され、ユーザーへの理解が深まっている |
 | 🟢 **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 | ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
-| 🏗️ **アーキテクチャ再評価** | ×10% | 10項目チェックリスト（分離・整合性・堅牢性・拡張性）−構造問題ペナルティ(HIGH-7/MED-3) | 分離が明確・データ整合性が保たれ・堅牢に動作し・拡張しやすい |
+| 🏗️ **アーキテクチャ** | ×10% | 10項目チェックリスト（分離・整合性・堅牢性・拡張性）−構造問題ペナルティ(HIGH-7/MED-3) | 分離が明確・データ整合性が保たれ・堅牢に動作し・拡張しやすい |
 | 🔄 **復旧性** | ×5% | 6項目チェックリスト（スケジュール・実行環境・API・データ・バックアップ・依存性）÷12×100 | PC故障時でもすぐ復旧・継続できる（Cloud化が進むほど高い） |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
@@ -454,7 +469,7 @@ with tab1:
                 ("⚪ モデル活用",    _comps.get("model_usage", 0),       70),
                 ("🟣 モダン度",     _comps.get("modernity", 0),         80),
                 ("🔵 GitHub活用",   _comps.get("anthropic_github", 0),  70),
-                ("🏗️ アーキ再評価", _comps.get("architecture", 0),      95),
+                ("🏗️ アーキテクチャ", _comps.get("architecture", 0),      95),
                 ("🔄 復旧性",        _comps.get("recovery", 0),         70),
                 ("🎯 **AIレベル計**", _level,                           80),
             ]
@@ -480,7 +495,7 @@ with tab1:
                     "モデル活用":   ("Sonnetの利用比率最適化・CC活用状況の確認",                  "model_usage", 2),
                     "モダン度":     ("ツールユース実装（行動系）",                               "modernity",   5),
                     "GitHub活用":   ("defending-code-reference-harness実装（SQA業務向け）",      "anthropic_github", 3),
-                    "アーキ再評価": ("構造問題クローズ or 週次レビュー実施",                       "architecture", 2),
+                    "アーキテクチャ": ("構造問題クローズ or 週次レビュー実施",                       "architecture", 2),
                     "復旧性":       ("Cloud Scheduler導入 or anthropic-sdk化（+16.7pt/項目）",    "recovery",     17),
                     "学習率":       ("mempalaceトンネル追加 or Obsidianリンク密度向上",           "learning_rate", 1),
                     "AIレベル計":   ("上記KPIを1つ改善",                                         "total",       0),
