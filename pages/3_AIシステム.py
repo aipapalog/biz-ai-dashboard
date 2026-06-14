@@ -440,7 +440,7 @@ with tab1:
             st.metric("🔄 復旧性 ×5%", f"{_rec_score:.0f}/100",
                       delta=f"✅{_rec_impl} ⚠️{_rec_partial} ❌{_rec_miss}",
                       delta_color="normal" if _rec_score >= 60 else "inverse",
-                      help="Cloud Scheduler/Cloud Functions/anthropic-sdk/Firestore/GitHub管理/Windows非依存の6項目")
+                      help="setup.ps1/nightly_git_sync/Firestore/GitHub管理/Windows非依存の5項目（2026-06-14 GitHub一本化戦略確定）")
             with st.expander("📊 内訳"):
                 for _item in _rec_items:
                     _ev = _item.get("evidence", "")
@@ -451,6 +451,18 @@ with tab1:
                     st.caption(f"自動検出: {_rec_at} UTC")
                 if _rec_next:
                     st.caption(f"💡 次: {_rec_next}")
+                _rec_bk = _rec_detail.get("backup_strategy", {})
+                if _rec_bk:
+                    st.markdown("**💾 バックアップ戦略（2026-06-14確定）:**")
+                    st.caption(f"方針: {_rec_bk.get('principle','')}")
+                    st.markdown("📦 **GitHub保存対象:**")
+                    for _g in _rec_bk.get("github", []):
+                        st.caption(f"　• {_g}")
+                    st.markdown("☁️ **Google Drive保存対象:**")
+                    for _gd in _rec_bk.get("google_drive", []):
+                        st.caption(f"　• {_gd}")
+                    st.caption(f"🔑 secrets: {_rec_bk.get('secrets','')}")
+                    st.caption(f"🔧 復元手順: {_rec_bk.get('restore_steps','')}")
                 _rec_excl = _rec_detail.get("excluded", [])
                 if _rec_excl:
                     st.markdown("**🚫 不採用・除外項目（導入しない理由）:**")
@@ -471,7 +483,7 @@ with tab1:
 | 🟢 **観測性** | ×10% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
 | ⚪ **モデル活用** | ×5% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | Sonnet/OpusをCCで活用・Haikuをパイプラインで適切に使う |
 | 🏗️ **アーキテクチャ** | ×10% | 10項目チェックリスト（分離・整合性・堅牢性・拡張性）−構造問題ペナルティ(HIGH-7/MED-3) | 分離が明確・データ整合性が保たれ・堅牢に動作し・拡張しやすい |
-| 🔄 **復旧性** | ×5% | 6項目チェックリスト（スケジュール・実行環境・API・データ・バックアップ・依存性）÷12×100 | PC故障時でもすぐ復旧・継続できる（Cloud化が進むほど高い） |
+| 🔄 **復旧性** | ×5% | 5項目チェックリスト（setup.ps1/nightly_git_sync/Firestoreファースト/GitHub管理/Windows非依存）÷10×100 | PC故障時でもすぐ復旧・継続できる（GitHub一本化戦略、2026-06-14確定） |
 
 **グレード基準**: A≥80 / B≥65 / C≥50 / D≥35 / F<35
 """)
@@ -510,7 +522,7 @@ with tab1:
                     "モダン度":     ("ツールユース実装（行動系）",                               "modernity",   5),
                     "GitHub活用":   ("defending-code-reference-harness実装（SQA業務向け）",      "anthropic_github", 3),
                     "アーキテクチャ": ("構造問題クローズ or 週次レビュー実施",                       "architecture", 2),
-                    "復旧性":       ("Cloud Scheduler導入 or anthropic-sdk化（+16.7pt/項目）",    "recovery",     17),
+                    "復旧性":       ("✅ 100点達成済み（GitHub一本化+mempalace→GDrive確定）",        "recovery",      0),
                     "学習率":       ("mempalaceトンネル追加 or Obsidianリンク密度向上",           "learning_rate", 1),
                     "AIレベル計":   ("上記KPIを1つ改善",                                         "total",       0),
                 }
