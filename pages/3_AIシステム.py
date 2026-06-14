@@ -451,6 +451,13 @@ with tab1:
                     st.caption(f"自動検出: {_rec_at} UTC")
                 if _rec_next:
                     st.caption(f"💡 次: {_rec_next}")
+                _rec_excl = _rec_detail.get("excluded", [])
+                if _rec_excl:
+                    st.markdown("**🚫 不採用・除外項目（導入しない理由）:**")
+                    for _ex in _rec_excl:
+                        _ex_icon = "🔴" if _ex.get("status") == "恒久除外" else "🟡"
+                        st.markdown(f"{_ex_icon} **{_ex.get('name','')}** `{_ex.get('status','除外')}`")
+                        st.caption(f"　{_ex.get('reason','')}")
 
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
