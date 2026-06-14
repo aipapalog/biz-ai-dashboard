@@ -131,6 +131,17 @@ GLOBAL_CSS = """
     .status-red    { color: #F38BA8; font-weight: 700; }
     .status-yellow { color: #F9E2AF; font-weight: 700; }
 
+    /* ── テキスト選択を有効化（Streamlit デフォルトが user-select:none を多用するため強制上書き）── */
+    p, span, div, h1, h2, h3, h4, li, td, th, code, pre,
+    .stMarkdown, .stMarkdown *,
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricDelta"],
+    div[data-testid="stText"], div[data-testid="stText"] * {
+        user-select: text !important;
+        -webkit-user-select: text !important;
+    }
+
     /* ── ページ見出し（大きすぎるデフォルトh1を抑制）─── */
     h1 { font-size: 1.45rem !important; font-weight: 700; letter-spacing: -0.02em; padding-bottom: 0.3rem; color: #e2e8f0; }
     h2 { font-size: 1.15rem !important; font-weight: 600; color: #cdd6f4; }
