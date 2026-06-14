@@ -265,10 +265,15 @@ with tab1:
             delta_color="off"
         )
         if _rec_items:
+            _rec_at = _rec_detail.get("assessed_at", "")[:16].replace("T", " ")
             with st.expander(f"📋 復旧性チェックリスト ({_rec_impl}✅/{_rec_partial}⚠️/{_rec_miss}❌)"):
                 for _item in _rec_items:
-                    st.markdown(f"{_item.get('label','?')} **{_item.get('name','')}** — {_item.get('category','')}")
-                st.caption("Cloud Scheduler・anthropic-sdk・Cloud Functions導入でスコアが向上します")
+                    _ev = _item.get("evidence", "")
+                    st.markdown(f"{_item.get('label','?')} **{_item.get('name','')}**")
+                    if _ev:
+                        st.caption(f"　根拠: {_ev}")
+                if _rec_at:
+                    st.caption(f"自動検出: {_rec_at} UTC")
 
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
