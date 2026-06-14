@@ -179,6 +179,18 @@ with tab1:
         _ac          = _aut.get("components", {})
         _res_pct     = _ac.get("problem_resolution_pct", 0)
         _val_pct     = _ac.get("value_creation_pct", 0)
+        # 新指標（v2）
+        _tf_score    = _comps.get("tech_foundation", 0)
+        _it_score    = _comps.get("intervention_trend", 0)
+        _ke_score    = _comps.get("knowledge_extern", 0)
+        _aa_score    = _comps.get("adoption_accuracy", 0)
+        _tf_detail   = _roi.get("tech_foundation_detail", {})
+        _it_detail   = _roi.get("intervention_trend_detail", {})
+        _ke_detail   = _roi.get("knowledge_extern_detail", {})
+        _aa_detail   = _roi.get("adoption_accuracy_detail", {})
+        _flow_pen    = _roi.get("flow_penalty", {})
+        _flow_issues = _flow_pen.get("issues", [])
+        _flow_pt     = _flow_pen.get("penalty", 0)
 
         _r1c1 = st.container(border=True)
         _r1c2 = st.container(border=True)
@@ -211,10 +223,11 @@ with tab1:
                     st.caption(f"⚠️ 失敗: {', '.join(_failed)}")
 
         with _r1c2:
-            st.metric("🟠 自律性 ×25%", f"{_aut_score:.0f}/100",
-                      delta=f"解決{_res_pct:.0f}% 価値{_val_pct:.0f}%",
+            _pen_note = f" ⚠️フロー停止-{_flow_pt:.0f}pt" if _flow_pt else ""
+            st.metric("🟠 自律性 ×20%", f"{_aut_score:.0f}/100",
+                      delta=f"解決{_res_pct:.0f}% 価値{_val_pct:.0f}%{_pen_note}",
                       delta_color="normal" if _aut_score >= 60 else "inverse",
-                      help="問題解決性×50% + 価値創出性×50%")
+                      help="問題解決性×50% + 価値創出性×50% − フロー停止ペナルティ")
             with st.expander("📊 内訳"):
                 _pr  = _aut.get("problem_resolution", {})
                 _vc  = _aut.get("value_creation", {})
@@ -259,7 +272,7 @@ with tab1:
 
         with _r1c3:
             _ut_label = f"充実{_enrich:.0f} 活用{_ut_s:.0f} 理解{_und_s:.0f}" if _ut_n >= 5 else f"充実{_enrich:.0f} 理解{_und_s:.0f}"
-            st.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
+            st.metric("🟡 学習率 ×8%", f"{_lrn_score:.0f}/100",
                       delta=_ut_label,
                       delta_color="normal" if _lrn_score >= 60 else "inverse",
                       help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)")
@@ -284,7 +297,7 @@ with tab1:
         _r2c3 = st.container(border=True)
 
         with _r2c1:
-            st.metric("🟢 観測性 ×10%", f"{_obs_score:.0f}/100",
+            st.metric("🟢 観測性 ×7%", f"{_obs_score:.0f}/100",
                       delta="UI品質・精度", delta_color="normal" if _obs_score >= 70 else "inverse",
                       help="ダッシュボードの情報集約度・UI深さ・データ鮮度を評価。問題が少ないほど高スコア")
             with st.expander("📊 内訳"):
@@ -397,11 +410,12 @@ with tab1:
         _r3c3 = st.container(border=True)
 
         with _r3c1:
-            st.metric("🟣 モダン度 ×10%", f"{_mod_score:.0f}/100",
-                      delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
-                      delta_color="normal" if _mod_score >= 60 else "inverse",
-                      help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度")
-            with st.expander("📊 内訳"):
+            _tf_warn = " ⚠️天井" if _tf_detail.get("ceiling_warning") else ""
+            st.metric("🔧 技術基盤 ×5%", f"{_tf_score:.0f}/100",
+                      delta=f"モダン度{_mod_score:.0f} アーキ{_arch_score:.0f}{_tf_warn}",
+                      delta_color="normal" if _tf_score >= 80 else "inverse",
+                      help="モダン度+アーキテクチャの平均。天井=静的チェックリスト完了・外部ベンチマーク比較で次のレベルへ")
+            with st.expander("📊 モダン度内訳（18項目）"):
                 _mod_bk = _mod_data.get("breakdown", {})
                 if _mod_bk:
                     _mod_rows = ["| カテゴリ | 取得 | 満点 | 達成率 |\n|---|---|---|---|"]
@@ -411,19 +425,7 @@ with tab1:
                         _rate = int(_sub / _max_m * 100) if _max_m else 0
                         _mod_rows.append(f"| {_cat} | {_sub}pt | {_max_m}pt | {_rate}% |")
                     st.markdown("\n".join(_mod_rows))
-                    st.markdown("**各カテゴリ充足項目:**")
-                    for _cat, _cdata in _mod_bk.items():
-                        for _item in _cdata.get("items", []):
-                            st.markdown(f"　{_item}")
-                if _mod_data.get("next_action"):
-                    st.caption(f"💡 次: {_mod_data['next_action']}")
-
-        with _r3c2:
-            st.metric("🏗️ アーキテクチャ ×10%", f"{_arch_score:.0f}/100",
-                      delta=f"✅{_arch_impl} ⚠️{_arch_partial} ❌{_arch_miss}  -{_arch_penalty}pt",
-                      delta_color="normal" if _arch_score >= 60 else "inverse",
-                      help="10項目チェックリスト（分離・整合性・堅牢性・拡張性）− 構造問題ペナルティ（HIGH-7/MED-3）")
-            with st.expander("📊 内訳"):
+            with st.expander("📊 アーキテクチャ内訳（10項目）"):
                 _arch_bk = _arch.get("breakdown", {})
                 if _arch_bk:
                     _ab_rows = ["| カテゴリ | 取得 | 満点 | 達成率 |\n|---|---|---|---|"]
@@ -433,22 +435,34 @@ with tab1:
                         _rate = int(_sub / _max_a * 100) if _max_a else 0
                         _ab_rows.append(f"| {_cat} | {_sub}pt | {_max_a}pt | {_rate}% |")
                     st.markdown("\n".join(_ab_rows))
-                    st.markdown("**各カテゴリ充足項目:**")
-                    for _cat, _cdata in _arch_bk.items():
-                        for _item in _cdata.get("items", []):
-                            st.markdown(f"　{_item}")
-                _fld = _arch.get("folder_detail", {})
-                if _fld and _fld.get("checks"):
-                    st.markdown(f"**フォルダ構成** {_fld.get('score',0):.0f}/100")
-                    for _fc in _fld["checks"]:
-                        st.markdown(f"　{_fc.get('icon','?')} {_fc.get('label','')} — {_fc.get('detail','')}")
                 if _arch_issues.get("issues"):
                     st.markdown(f"⚠️ **構造問題 {_arch_open}件 (-{_arch_penalty}pt)**")
                     for _si in _arch_issues["issues"]:
                         _sv_ic = "🔴" if _si.get("severity") == "high" else "🟡"
                         st.markdown(f"　{_sv_ic} **{_si.get('id','')}** — {_si.get('description','')}")
-                if _arch_next:
-                    st.caption(f"💡 次: {_arch_next}")
+
+        with _r3c2:
+            _it_ratio = _it_detail.get("pending_ratio")
+            _it_ratio_str = f"承認待ち{_it_ratio*100:.0f}%" if _it_ratio is not None else "集計中"
+            _it_open  = _it_detail.get("total_open", 0)
+            st.metric("📉 介入率 ×10%", f"{_it_score:.0f}/100",
+                      delta=f"{_it_ratio_str} / open{_it_open}件",
+                      delta_color="normal" if _it_score >= 70 else "inverse",
+                      help="Kanban承認待ち比率の逆数。比率低い=会長介入なしで完結するタスクが多い=真の自律化")
+            with st.expander("📊 内訳"):
+                if _it_ratio is not None:
+                    st.markdown(
+                        f"| 指標 | 値 |\n|---|---|\n"
+                        f"| 承認待ちタスク | {_it_detail.get('pending_count',0)}件 |\n"
+                        f"| オープンタスク合計 | {_it_open}件 |\n"
+                        f"| 承認待ち比率 | {_it_ratio*100:.1f}% |\n"
+                        f"| スコア | {_it_score}/100 |"
+                    )
+                st.caption(_it_detail.get("note", ""))
+                if _flow_issues:
+                    st.markdown("**⚠️ フロー停止ペナルティ（自律性に適用）:**")
+                    for _fi in _flow_issues:
+                        st.caption(f"　{_fi}")
 
         with _r3c3:
             st.metric("🔄 復旧性 ×5%", f"{_rec_score:.0f}/100",
@@ -466,6 +480,7 @@ with tab1:
                 if _rec_next:
                     st.caption(f"💡 次: {_rec_next}")
                 _rec_bk = _rec_detail.get("backup_strategy", {})
+
                 if _rec_bk:
                     st.markdown("**💾 バックアップ戦略（2026-06-14確定）:**")
                     st.caption(f"方針: {_rec_bk.get('principle','')}")
@@ -484,6 +499,37 @@ with tab1:
                         _ex_icon = "🔴" if _ex.get("status") == "恒久除外" else "🟡"
                         st.markdown(f"{_ex_icon} **{_ex.get('name','')}** `{_ex.get('status','除外')}`")
                         st.caption(f"　{_ex.get('reason','')}")
+
+        _r4c1 = st.container(border=True)
+        _r4c2 = st.container(border=True)
+
+        with _r4c1:
+            _ke_dets = _ke_detail.get("details", {})
+            st.metric("📚 知識外部化 ×5%", f"{_ke_score:.0f}/100",
+                      delta="CLAUDE.md+rules+agents+memory",
+                      delta_color="normal" if _ke_score >= 80 else "inverse",
+                      help="ルール・エージェント・記憶として外部化された知識量。判断がコードとして残っているほど高スコア")
+            with st.expander("📊 内訳"):
+                if _ke_dets:
+                    for _k, _v in _ke_dets.items():
+                        st.caption(f"　{_k}: {_v}")
+                else:
+                    st.caption("データなし")
+
+        with _r4c2:
+            _aa_outcomes = _aa_detail.get("outcomes", 0)
+            _aa_note     = _aa_detail.get("note", "")
+            st.metric("🎯 採択正解率 ×5%", f"{_aa_score:.0f}/100",
+                      delta=f"記録済み{_aa_outcomes}件" if _aa_outcomes else "データ蓄積中",
+                      delta_color="off",
+                      help="AI提案を採択後に正しかった率。outcome_log.jsonに5件以上記録されると有効化")
+            with st.expander("📊 詳細"):
+                st.caption(_aa_note or "outcome_log.json が存在すれば自動計算")
+                st.markdown(
+                    "**有効化手順:**\n"
+                    "`.claude/scripts/agents/data/outcome_log.json` を作成し、"
+                    "`[{\"correct\": true/false, \"proposal\": \"...\"}]` 形式で5件以上記録"
+                )
 
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
