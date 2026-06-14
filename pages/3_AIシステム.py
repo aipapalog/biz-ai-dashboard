@@ -141,139 +141,294 @@ with tab1:
             f'</div>',
             unsafe_allow_html=True
         )
-        # ── 行1: 重み大のKPI（4列）──────────────────────────────────────────────
-        _kc1, _kc2, _kc3, _kc4 = st.columns(4)
-        _rel_score = _comps.get("reliability", 0)
-        _aut_score = _comps.get("autonomy", 0)
-        _mod_score = _comps.get("modernity", 0)
-        _gh_score  = _comps.get("anthropic_github", 0)
-        _mod_data  = _roi.get("modernity_detail", {})
-        _gh_repos  = _gh.get("repos", [])
-        _gh_top    = _gh.get("top_opportunity", "")
-        _gh_active = sum(1 for r in _gh_repos if r.get("status") == "active")
-
-        _kc1.metric("🔴 信頼性 ×20%", f"{_rel_score:.0f}/100",
-                    delta=f"成功率 {_rel.get('overall',{}).get('success_rate_pct',0)}%",
-                    delta_color="normal" if _rel_score >= 60 else "inverse",
-                    help="エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15%")
-        _kc2.metric("🟠 自律性 ×25%", f"{_aut_score:.0f}/100",
-                    delta=f"解決{_aut.get('components',{}).get('problem_resolution_pct',0)}% 価値{_aut.get('components',{}).get('value_creation_pct',0)}%",
-                    help="問題解決性×40% + 価値創出性×40% + 自律実行率×20%。価値創出=AI収益×45%+会社業務貢献×55%(実績×50%+文脈×50%)")
-        _kc3.metric("🟣 モダン度 ×10%", f"{_mod_score:.0f}/100",
-                    delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
-                    delta_color="normal" if _mod_score >= 60 else "inverse",
-                    help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度。✅=2点/⚠️=1点/❌=0点")
-        _kc4.metric("🔵 GitHub活用 ×5%", f"{_gh_score:.0f}/100",
-                    delta=f"活用中 {_gh_active}/{len(_gh_repos)} リポジトリ",
-                    delta_color="normal" if _gh_score >= 50 else "inverse",
-                    help=f"Anthropic公式7リポジトリの活用充足度。次の一手: {_gh_top}")
-
-        # ── 行2: 残りKPI（3列）─────────────────────────────────────────────────
-        st.write("")
-        _kc5, _kc6, _kc7 = st.columns(3)
-        _mu_score  = _comps.get("model_usage", 0)
-        _lrn_score = _comps.get("learning", 0)
-        _obs_score = _comps.get("observability", 0)
-        _enrich = _lrn.get('enrichment_score', 0)
-        _ut_d   = _lrn.get('utilization', {})
-        _ut_s   = _lrn.get('utilization_score', 0)
-        _ut_n   = _ut_d.get('total_sessions', 0)
-        _und_s  = _lrn.get('understanding_score', 0)
-        _und_d  = _lrn.get('user_understanding', {})
-        _mem_d  = _und_d.get('memory', {})
-        if _ut_n >= 5:
-            _ut_label = f"充実{_enrich:.0f} 活用{_ut_s:.0f} 理解{_und_s:.0f}"
-        else:
-            _ut_label = f"充実{_enrich:.0f} 理解{_und_s:.0f}"
-        _kc5.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
-                    delta=_ut_label,
-                    help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)+Obsidian/Preferences")
-        _kc6.metric("🟢 観測性 ×10%", f"{_obs_score:.0f}/100",
-                    delta="UI品質・精度", delta_color="normal" if _obs_score >= 70 else "inverse",
-                    help="ダッシュボードの情報集約度・UI深さ・データ鮮度を評価。問題が少ないほど高スコア")
-        _kc7.metric("⚪ モデル活用 ×5%", f"{_mu_score:.0f}/100",
-                    delta="CC/Haiku/Sonnet",
-                    help="CCセッション適切性×50% + パイプラインHaiku適正×30% + Sonnet昇格パターン×20%")
-
-        # ── 行3: アーキテクチャ再評価（品質チェックリスト） ─────────────────────
-        st.write("")
-        _arch_score    = _arch.get("score", 0)
-        _arch_quality  = _arch.get("quality_score", _arch_score)
-        _arch_impl     = _arch.get("implemented", 0)
-        _arch_partial  = _arch.get("partial", 0)
-        _arch_miss     = _arch.get("missing", 0)
-        _arch_issues   = _arch.get("structural_issues", {})
-        _arch_open     = _arch_issues.get("open_count", 0)
-        _arch_penalty  = _arch_issues.get("penalty_pt", 0)
-        _arch_next     = _arch.get("next_action", "")
-        _arch_color    = "normal" if _arch_score >= 60 else "inverse"
-        _arch_col1, _arch_col2, _arch_col3 = st.columns([2, 1, 1])
-        _arch_col1.metric(
-            "🏗️ アーキテクチャ再評価 ×10%",
-            f"{_arch_score:.0f}/100",
-            delta=f"✅{_arch_impl} ⚠️{_arch_partial} ❌{_arch_miss}",
-            delta_color="normal",
-            help="分離・整合性・堅牢性・拡張性の4軸10項目（✅=2/⚠️=1/❌=0）を評価。quality_score − 未解決構造問題ペナルティ（HIGH-7/MED-3）"
-        )
-        _arch_col2.metric(
-            "品質スコア（チェックリスト）",
-            f"{_arch_quality:.0f}/100",
-            delta=f"10項目 合計{_arch_impl*2+_arch_partial}/{len(_arch.get('breakdown', {})) and 20}pt",
-            delta_color="normal"
-        )
-        _arch_col3.metric(
-            "構造問題ペナルティ",
-            f"-{_arch_penalty}pt",
-            delta=f"{_arch_open}件 open（HIGH-7/MED-3）",
-            delta_color="normal" if _arch_penalty == 0 else "inverse"
-        )
-        st.caption(
-            f"**計算根拠**: 品質スコア{_arch_quality:.0f}pt（10項目✅{_arch_impl}/⚠️{_arch_partial}/❌{_arch_miss}）"
-            f" − {_arch_penalty}pt（未解決構造問題）= **{_arch_score:.0f}pt**"
-            + (f"　次: {_arch_next}" if _arch_next else "")
-        )
-        if _arch_issues.get("issues"):
-            with st.expander(f"🔍 未解決構造問題 ({_arch_open}件)"):
-                for _issue in _arch_issues["issues"]:
-                    _sev = _issue.get("severity", "")
-                    _sev_icon = "🔴" if _sev == "high" else "🟡"
-                    _desc = _issue.get("description") or _issue.get("id", "")
-                    st.markdown(f"{_sev_icon} **{_issue.get('id','')}** — {_desc}")
-                st.caption(f"マクロ視点での構造問題が残る限り、信頼性・自律性・モデル活用にも -{min(_arch_issues.get('open_count',0)*2,6)}ptのペナルティが適用されます")
-
-        # ── 行4: 復旧性（PC故障時の耐性チェックリスト）─────────────────────────
-        st.write("")
+        # ── KPI グリッド（3行×3列 — 各スコアを展開で内訳確認）──────────────────
+        _rel_score  = _comps.get("reliability", 0)
+        _aut_score  = _comps.get("autonomy", 0)
+        _lrn_score  = _comps.get("learning", 0)
+        _obs_score  = _comps.get("observability", 0)
+        _mu_score   = _comps.get("model_usage", 0)
+        _mod_score  = _comps.get("modernity", 0)
+        _gh_score   = _comps.get("anthropic_github", 0)
+        _arch_score = _comps.get("architecture", 0)
+        _rec_score  = _comps.get("recovery", 0)
+        _mod_data    = _roi.get("modernity_detail", {})
+        _gh_repos    = _gh.get("repos", [])
+        _arch_quality= _arch.get("quality_score", _arch_score)
+        _arch_impl   = _arch.get("implemented", 0)
+        _arch_partial= _arch.get("partial", 0)
+        _arch_miss   = _arch.get("missing", 0)
+        _arch_issues = _arch.get("structural_issues", {})
+        _arch_penalty= _arch_issues.get("penalty_pt", 0)
+        _arch_open   = _arch_issues.get("open_count", 0)
+        _arch_next   = _arch.get("next_action", "")
         _rec_detail  = _roi.get("recovery_detail", {})
-        _rec_score   = _comps.get("recovery", 0)
         _rec_impl    = _rec_detail.get("implemented", 0)
         _rec_partial = _rec_detail.get("partial", 0)
         _rec_miss    = _rec_detail.get("missing", 0)
-        _rec_next    = _rec_detail.get("next_action", "")
         _rec_items   = _rec_detail.get("items", [])
-        _rec_col1, _rec_col2 = st.columns([2, 2])
-        _rec_col1.metric(
-            "🔄 復旧性 ×5%",
-            f"{_rec_score:.0f}/100",
-            delta=f"✅{_rec_impl} ⚠️{_rec_partial} ❌{_rec_miss}",
-            delta_color="normal" if _rec_score >= 60 else "inverse",
-            help="PC故障時の復旧容易性。Cloud Scheduler/Cloud Functions/anthropic-sdk/Firestore/GitHub管理の6項目（✅=2/⚠️=1/❌=0）"
-        )
-        _rec_col2.metric(
-            "次のアクション",
-            "→",
-            delta=_rec_next if _rec_next else "（未設定）",
-            delta_color="off"
-        )
-        if _rec_items:
-            _rec_at = _rec_detail.get("assessed_at", "")[:16].replace("T", " ")
-            with st.expander(f"📋 復旧性チェックリスト ({_rec_impl}✅/{_rec_partial}⚠️/{_rec_miss}❌)"):
+        _rec_next    = _rec_detail.get("next_action", "")
+        _rec_at      = _rec_detail.get("assessed_at", "")[:16].replace("T", " ")
+        _enrich      = _lrn.get('enrichment_score', 0)
+        _ut_d        = _lrn.get('utilization', {})
+        _ut_s        = _lrn.get('utilization_score', 0)
+        _ut_n        = _ut_d.get('total_sessions', 0)
+        _und_s       = _lrn.get('understanding_score', 0)
+        _und_d       = _lrn.get('user_understanding', {})
+        _mem_d       = _und_d.get('memory', {})
+        _ac          = _aut.get("components", {})
+        _res_pct     = _ac.get("problem_resolution_pct", 0)
+        _val_pct     = _ac.get("value_creation_pct", 0)
+
+        # ── 行1: 信頼性 / 自律性 / 学習率 ─────────────────────────────────────
+        _r1c1, _r1c2, _r1c3 = st.columns(3)
+
+        with _r1c1:
+            st.metric("🔴 信頼性 ×20%", f"{_rel_score:.0f}/100",
+                      delta=f"成功率 {_rel.get('overall',{}).get('success_rate_pct',0)}%",
+                      delta_color="normal" if _rel_score >= 60 else "inverse",
+                      help="エージェント×30% + パイプライン×20% + 出力品質×35% + PC安定性×15%")
+            with st.expander("📊 内訳"):
+                _ag  = _rel.get("agent_reliability", {})
+                _pl  = _rel.get("pipeline_reliability", {})
+                _oq  = _rel.get("output_quality", {})
+                _pc  = _rel.get("pc_stability", {})
+                _ag_s = _ag.get("agent_score", 0)
+                _pl_r = _pl.get("pipeline_success_rate_pct") or 0
+                _oq_s = _oq.get("score_100", 0)
+                _pc_s = _pc.get("pc_stability_score", 50)
+                st.markdown(
+                    f"| 軸 | ×重み | pt |\n|----|-------|----|\n"
+                    f"| エージェント | ×30% | {_ag_s*0.30:.1f} |\n"
+                    f"| パイプライン | ×20% | {_pl_r*0.20:.1f} |\n"
+                    f"| 出力品質 | ×35% | {_oq_s*0.35:.1f} |\n"
+                    f"| PC安定性 | ×15% | {_pc_s*0.15:.1f} |\n"
+                    f"| **計** | | **{_rel_score:.1f}** |"
+                )
+                _failed = [p.get("name","") for p in _pl.get("pipelines",[]) if p.get("status")=="failed"]
+                if _failed:
+                    st.caption(f"⚠️ 失敗: {', '.join(_failed)}")
+
+        with _r1c2:
+            st.metric("🟠 自律性 ×25%", f"{_aut_score:.0f}/100",
+                      delta=f"解決{_res_pct:.0f}% 価値{_val_pct:.0f}%",
+                      delta_color="normal" if _aut_score >= 60 else "inverse",
+                      help="問題解決性×50% + 価値創出性×50%")
+            with st.expander("📊 内訳"):
+                _pr  = _aut.get("problem_resolution", {})
+                _vc  = _aut.get("value_creation", {})
+                _rev = _vc.get("revenue_contribution", {})
+                _cc2 = _vc.get("company_contribution", {})
+                _wc  = _cc2.get("contribution_log", {})
+                _ctx = _cc2.get("company_context", {})
+                _ctx_asp = _ctx.get("aspects", [])
+                _pen = _pr.get("total_penalty", 0)
+                _closure_pct = _ac.get("task_closure_rate_pct", 0)
+                st.markdown(
+                    f"| 軸 | ×重み | pt |\n|----|-------|----|\n"
+                    f"| 問題解決 | ×50% | {_res_pct*0.50:.1f} |\n"
+                    f"| 価値創出 | ×50% | {_val_pct*0.50:.1f} |\n"
+                    f"| **計** | | **{_aut_score:.1f}** |\n"
+                    f"| [参考]自律率 | — | {_closure_pct:.0f}% |"
+                )
+                if _pen > 0:
+                    _bt = _pr.get("blocked_tasks", {})
+                    _st2 = _pr.get("stale_tasks", {})
+                    _da = _pr.get("dashboard_alerts", {})
+                    _la = _pr.get("low_ai_score", {})
+                    st.caption(
+                        f"ペナルティ: -{_pen}pt "
+                        f"（ブロック{_bt.get('count',0)}件-{_bt.get('penalty',0)}pt / "
+                        f"放置{_st2.get('count',0)}件-{_st2.get('penalty',0)}pt / "
+                        f"アラート{_da.get('count',0)}件-{_da.get('penalty',0)}pt / "
+                        f"低スコア-{_la.get('penalty',0)}pt）"
+                    )
+                st.caption(
+                    f"AI収益: ¥{_rev.get('monthly_actual',0):,}/¥{_rev.get('monthly_target',0):,} = {_rev.get('rate_pct',0):.0f}%  "
+                    f"会社貢献: 実績{_wc.get('logged_count',0)}件 / 文脈{_ctx.get('known_count',0)}/{_ctx.get('total_aspects',5)}観点"
+                )
+                _ctx_unknown = [a["aspect"] for a in _ctx_asp if not a.get("known")]
+                if _ctx_unknown:
+                    st.caption(f"未把握: {' / '.join(_ctx_unknown)}")
+                _wc_recent = _wc.get("recent", [])
+                if _wc_recent:
+                    st.caption("業務貢献: " + " / ".join(e.get("description","")[:20] for e in _wc_recent))
+                else:
+                    st.caption("💡 work_contribution_log.json に成果を記録するとスコアが上昇")
+
+        with _r1c3:
+            _ut_label = f"充実{_enrich:.0f} 活用{_ut_s:.0f} 理解{_und_s:.0f}" if _ut_n >= 5 else f"充実{_enrich:.0f} 理解{_und_s:.0f}"
+            st.metric("🟡 学習率 ×10%", f"{_lrn_score:.0f}/100",
+                      delta=_ut_label,
+                      delta_color="normal" if _lrn_score >= 60 else "inverse",
+                      help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)")
+            with st.expander("📊 内訳"):
+                _mp2 = _lrn.get('mempalace', {})
+                _ob2 = _lrn.get('obsidian', {})
+                _utilize2 = _lrn.get('utilization_score', 0)
+                _ut_d2    = _lrn.get('utilization', {})
+                st.markdown(
+                    f"| 軸 | ×重み | スコア |\n|----|-------|--------|\n"
+                    f"| 知識充実 | ×34% | {_enrich:.0f} |\n"
+                    f"| 知識活用 | ×33% | {_utilize2:.0f} |\n"
+                    f"| 理解度 | ×33% | {_und_s:.0f} |\n"
+                    f"| **計** | | **{_lrn_score:.1f}** |"
+                )
+                st.caption(f"Mempalace: {_mp2.get('drawers',0):,}件 / {_mp2.get('edges',0)}KGエッジ")
+                st.caption(f"Obsidian: {_ob2.get('files',0)}件 / 平均{_ob2.get('avg_links_per_file',0):.1f}リンク/件")
+                st.caption(f"活用: 直近7日 {_ut_d2.get('utilized_sessions',0)}/{_ut_d2.get('total_sessions',0)}セッション")
+
+        # ── 行2: 観測性 / モデル活用 / GitHub活用 ─────────────────────────────
+        st.write("")
+        _r2c1, _r2c2, _r2c3 = st.columns(3)
+
+        with _r2c1:
+            st.metric("🟢 観測性 ×10%", f"{_obs_score:.0f}/100",
+                      delta="UI品質・精度", delta_color="normal" if _obs_score >= 70 else "inverse",
+                      help="ダッシュボードの情報集約度・UI深さ・データ鮮度を評価。問題が少ないほど高スコア")
+            with st.expander("📊 内訳"):
+                _obs_det  = _roi.get("observability_detail", {})
+                _obs_dims = _obs_det.get("dimensions", {})
+                _obs_w    = _obs_det.get("weights", {})
+                _dim_label = {
+                    "freshness":     ("🕐", "鮮度"),
+                    "sufficiency":   ("📦", "完全性"),
+                    "context":       ("📊", "文脈性"),
+                    "actionability": ("🎯", "行動性"),
+                    "clarity":       ("🔍", "明瞭性"),
+                    "accuracy":      ("✔️",  "正確性"),
+                    "metrics":       ("📈", "指標"),
+                    "logs":          ("📋", "ログ"),
+                    "traces":        ("🔗", "トレース"),
+                }
+                if _obs_dims:
+                    _rows_obs = ["| 軸 | ×重み | スコア | メモ |\n|---|---|---|---|"]
+                    for _dk, (_icon, _dname) in _dim_label.items():
+                        _dv = _obs_dims.get(_dk, {})
+                        _ds = _dv.get("score", 0)
+                        _dn = _dv.get("note", "")[:20]
+                        _dw = int(_obs_w.get(_dk, 0) * 100)
+                        _rows_obs.append(f"| {_icon}{_dname} | ×{_dw}% | {_ds} | {_dn} |")
+                    st.markdown("\n".join(_rows_obs))
+                _obs_issues = _roi.get("observability_issues", [])
+                for _oi in _obs_issues[:3]:
+                    st.caption(f"⚠️ {_oi}")
+
+        with _r2c2:
+            _mu_data   = _safe(lambda: data_loader.model_usage_kpi() if hasattr(data_loader, 'model_usage_kpi') else {}, {})
+            _mu_comps  = _mu_data.get("components", {})
+            _mu_detail = _mu_data.get("details", {})
+            _cc_d      = _mu_detail.get("cc", {})
+            st.metric("⚪ モデル活用 ×5%", f"{_mu_score:.0f}/100",
+                      delta="CC/Haiku/Sonnet", delta_color="off",
+                      help="CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20%")
+            with st.expander("📊 内訳"):
+                _cc_s = _mu_comps.get('cc_appropriateness', 0)
+                _hk_s = _mu_comps.get('haiku_fitness', 0)
+                _so_s = _mu_comps.get('sonnet_escalation', 0)
+                st.markdown(
+                    f"| 軸 | ×重み | スコア |\n|----|-------|--------|\n"
+                    f"| CC適切性 | ×50% | {_cc_s:.0f} |\n"
+                    f"| Haiku適正 | ×30% | {_hk_s:.0f} |\n"
+                    f"| Sonnet昇格 | ×20% | {_so_s:.0f} |\n"
+                    f"| **計** | | **{_mu_score:.1f}** |"
+                )
+                st.caption(
+                    f"CC比率: Sonnet {_cc_d.get('sonnet_ratio_pct','-')}% / "
+                    f"Opus {_cc_d.get('opus_ratio_pct','-')}% / "
+                    f"Haiku {_cc_d.get('haiku_ratio_pct','-')}%"
+                )
+                _roi_bk = _roi.get("roi")
+                if _roi_bk and isinstance(_roi_bk, dict):
+                    _sc = _roi.get("score_change", {})
+                    if _sc:
+                        _delta_s = _sc.get("delta", 0)
+                        _dir_s   = "▲" if _delta_s > 0 else ("▼" if _delta_s < 0 else "→")
+                        st.caption(
+                            f"ROI: {_roi_bk.get('value','N/A')} ({_roi_bk.get('window_span_str','?')})  "
+                            f"週次変化: {_dir_s}{abs(_delta_s):.1f}pt"
+                        )
+
+        with _r2c3:
+            _gh_active = sum(1 for r in _gh_repos if r.get("status") == "active")
+            st.metric("🔵 GitHub活用 ×5%", f"{_gh_score:.0f}/100",
+                      delta=f"{_gh_active}/{len(_gh_repos)} 活用中",
+                      delta_color="normal" if _gh_score >= 50 else "inverse",
+                      help=f"Anthropic公式リポジトリ活用充足度。次: {_gh.get('top_opportunity','')}")
+            with st.expander("📊 内訳"):
+                _s_icon = {"active":"✅", "partial":"⚠️", "not_started":"❌"}
+                for _r in _gh_repos:
+                    st.markdown(
+                        f"{_s_icon.get(_r.get('status',''),'❓')} **{_r.get('name','')}** "
+                        f"— 活用{_r.get('utilization',0)}/100 (+{_r.get('contribution',0):.1f}pt)"
+                    )
+                    if _r.get("note"):
+                        st.caption(f"　{_r['note'][:50]}")
+                _gh_opp = _gh.get("top_opportunity", "")
+                if _gh_opp:
+                    st.caption(f"💡 {_gh_opp}")
+                st.caption(f"評価: {_gh.get('assessed_at','')} / 次回: {_gh.get('next_review','')}")
+
+        # ── 行3: モダン度 / アーキテクチャ / 復旧性 ────────────────────────────
+        st.write("")
+        _r3c1, _r3c2, _r3c3 = st.columns(3)
+
+        with _r3c1:
+            st.metric("🟣 モダン度 ×10%", f"{_mod_score:.0f}/100",
+                      delta=f"{_mod_data.get('implemented',0)}✅ {_mod_data.get('partial',0)}⚠️ {_mod_data.get('missing',0)}❌",
+                      delta_color="normal" if _mod_score >= 60 else "inverse",
+                      help="モダンAIシステム18項目（知性・知識・行動・設計・品質・運用）の充足度")
+            with st.expander("📊 内訳"):
+                _mod_bk = _mod_data.get("breakdown", {})
+                for _cat, _cdata in list(_mod_bk.items()):
+                    _sub = _cdata.get("subtotal", 0)
+                    _max_m = _cdata.get("max", 0)
+                    st.markdown(f"**{_cat}** {_sub}/{_max_m}pt")
+                    for _item in _cdata.get("items", []):
+                        st.markdown(f"　{_item}")
+                if _mod_data.get("next_action"):
+                    st.caption(f"💡 次: {_mod_data['next_action']}")
+
+        with _r3c2:
+            st.metric("🏗️ アーキ再評価 ×10%", f"{_arch_score:.0f}/100",
+                      delta=f"✅{_arch_impl} ⚠️{_arch_partial} ❌{_arch_miss}  -{_arch_penalty}pt",
+                      delta_color="normal" if _arch_score >= 60 else "inverse",
+                      help="10項目チェックリスト（分離・整合性・堅牢性・拡張性）− 構造問題ペナルティ（HIGH-7/MED-3）")
+            with st.expander("📊 内訳"):
+                _arch_bk = _arch.get("breakdown", {})
+                for _cat, _cdata in _arch_bk.items():
+                    _sub = _cdata.get("subtotal", 0)
+                    _max_a = _cdata.get("max", 0)
+                    st.markdown(f"**{_cat}** {_sub}/{_max_a}pt")
+                    for _item in _cdata.get("items", []):
+                        st.markdown(f"　{_item}")
+                _fld = _arch.get("folder_detail", {})
+                if _fld and _fld.get("checks"):
+                    st.markdown(f"**フォルダ構成** {_fld.get('score',0):.0f}/100")
+                    for _fc in _fld["checks"]:
+                        st.markdown(f"　{_fc.get('icon','?')} {_fc.get('label','')} — {_fc.get('detail','')}")
+                if _arch_issues.get("issues"):
+                    st.markdown(f"⚠️ **構造問題 {_arch_open}件 (-{_arch_penalty}pt)**")
+                    for _si in _arch_issues["issues"]:
+                        _sv_ic = "🔴" if _si.get("severity") == "high" else "🟡"
+                        st.markdown(f"　{_sv_ic} **{_si.get('id','')}** — {_si.get('description','')}")
+                if _arch_next:
+                    st.caption(f"💡 次: {_arch_next}")
+
+        with _r3c3:
+            st.metric("🔄 復旧性 ×5%", f"{_rec_score:.0f}/100",
+                      delta=f"✅{_rec_impl} ⚠️{_rec_partial} ❌{_rec_miss}",
+                      delta_color="normal" if _rec_score >= 60 else "inverse",
+                      help="Cloud Scheduler/Cloud Functions/anthropic-sdk/Firestore/GitHub管理/Windows非依存の6項目")
+            with st.expander("📊 内訳"):
                 for _item in _rec_items:
                     _ev = _item.get("evidence", "")
                     st.markdown(f"{_item.get('label','?')} **{_item.get('name','')}**")
                     if _ev:
-                        st.caption(f"　根拠: {_ev}")
+                        st.caption(f"　{_ev}")
                 if _rec_at:
                     st.caption(f"自動検出: {_rec_at} UTC")
+                if _rec_next:
+                    st.caption(f"💡 次: {_rec_next}")
 
         with st.expander("📖 各スコアの定義"):
             st.markdown("""
