@@ -149,7 +149,7 @@ with tab1:
                     def _pf_icon(s):
                         return "✅" if s in ("ok", "active", "normal", "completed") else "⏳" if s == "pending" else "❌"
                     cols = st.columns(min(len(watches), 4))
-                    for i, item in enumerate(watches[:4]):
+                    for i, item in enumerate(watches[:15]):
                         if not isinstance(item, dict): continue
                         plat   = item.get("platform", item.get("name", "?"))
                         status = item.get("status", "?")
