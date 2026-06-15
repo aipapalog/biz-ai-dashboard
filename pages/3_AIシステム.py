@@ -375,7 +375,7 @@ with tab1:
                     "観測性":     ("actionability/metrics UIの強化",                                  2),
                     "AIレベル計": ("上記いずれかを1つ改善",                                             0),
                 }
-                for _gap, _kname, _know, _ktgt in _gap_list[:3]:
+                for _gap, _kname, _know, _ktgt in _gap_list[:15]:
                     _pure = _kname.replace("📝 ","").replace("⚡ ","").replace("🎓 ","").replace("💼 ","").replace("🔒 ","").replace("🟢 ","").replace("🏆 **","").replace("**","")
                     _action, _impact = _action_map.get(_pure, (f"{_pure}スコア改善", 1))
                     st.markdown(f"- **{_kname}** {int(_know)}→目標{_ktgt}（gap {int(_gap)}pt）: {_action} _(+{_impact}pt見込み)_")
@@ -682,10 +682,10 @@ with tab2:
                             or pname in (t.get("name") or "").lower()
                         )
                     ]
-                    related_tasks = sorted(related_tasks, key=lambda t: t.get("updated_at", ""), reverse=True)[:3]
+                    related_tasks = sorted(related_tasks, key=lambda t: t.get("updated_at", ""), reverse=True)[:15]
                     related_outputs = [f for f in output_files
                                        if pname and pname.replace("_", "-") in f["name"].lower()
-                                       or pname in f["name"].lower()][:3]
+                                       or pname in f["name"].lower()][:15]
 
                     with st.expander(f"{icon} **{pname}**  🕐{last}", expanded=True):
                         st.caption(f"カテゴリ: {p.get('category', '')}  ｜  スケジュール: {p.get('schedule', '')}")
