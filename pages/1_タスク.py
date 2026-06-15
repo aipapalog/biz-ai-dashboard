@@ -180,7 +180,7 @@ with tab1:
     with rcol:
         style.section_card_start("🔵 進行中タスク")
         if active_top5:
-            for t in active_top5[:5]:
+            for t in active_top5[:15]:
                 st.write(f"• `{t.get('id','')}` {str(t.get('name',''))[:120]} — {t.get('assignee','')}")
         else:
             st.info("進行中のタスクはありません")
