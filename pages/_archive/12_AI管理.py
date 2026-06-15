@@ -85,7 +85,7 @@ with tab_mem:
             for room in ("products", "strategy", "lessons"):
                 if rooms.get(room, 0) < 5:
                     issues.append(f"⚠️ {ROOM_LABELS.get(room, room)}が{rooms.get(room,0)}件のみ — 構造化ナレッジを優先追加")
-            for iss in issues[:3]:
+            for iss in issues[:15]:
                 st.warning(iss)
 
             # 14日推移
