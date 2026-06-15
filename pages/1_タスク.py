@@ -171,7 +171,7 @@ with tab1:
                                  "要対応" if tv >= 5 else "",
                                  "warn" if tv >= 5 else "info")
         if verify_top5:
-            for t in verify_top5[:5]:
+            for t in verify_top5[:15]:
                 st.write(f"• `{t.get('id','')}` {str(t.get('name',''))[:120]} — {t.get('assignee','')}")
             st.caption("→ 「📋 タスクボード」タブで承認・差し戻し")
         else:
