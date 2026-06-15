@@ -1063,7 +1063,7 @@ with tab2:
                 v_ea     = a_ea.get("verdicts", {})
                 sico     = "🔴" if (avg_ea and avg_ea < 4) else ("🟡" if (avg_ea and avg_ea < 6) else "🟢")
                 eico     = "🔴" if err_ea > 20 else ("🟡" if err_ea > 5 else "🟢")
-                vstr     = " / ".join(f"{k[:6]}:{c}" for k, c in sorted(v_ea.items(), key=lambda x: -x[1])[:3]) or "—"
+                vstr     = " / ".join(f"{k[:15]}:{c}" for k, c in sorted(v_ea.items(), key=lambda x: -x[1])[:15]) or "—"
                 cols_eb  = st.columns([2, 1, 1, 1, 3])
                 cols_eb[0].code(a_ea.get("agent", "?"))
                 cols_eb[1].write(f"{sico} {avg_ea:.1f}" if avg_ea else "—")
