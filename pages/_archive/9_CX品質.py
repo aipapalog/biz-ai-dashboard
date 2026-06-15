@@ -62,7 +62,7 @@ with tab_health:
         with lc1: st.metric("🔴 高度",  len(highs))
         with lc2: st.metric("🟡 中度",  len(mids))
         with lc3: st.metric("📁 総件数", len(issues))
-        for iss in highs[:5]:
+        for iss in highs[:15]:
             st.warning(f"**{iss.get('file','?')}** — {iss.get('message','')}")
 
 # ── トークン管理 ──────────────────────────────────────────────────────────────
