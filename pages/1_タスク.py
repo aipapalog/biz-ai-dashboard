@@ -151,8 +151,8 @@ with tab1:
     if not alerts:
         st.success("✅ 現在、緊急の対応が必要な項目はありません。")
     else:
-        crit  = [a for a in alerts if a[0] == "critical"][:3]
-        warns = [a for a in alerts if a[0] == "warn"][:3]
+        crit  = [a for a in alerts if a[0] == "critical"][:15]
+        warns = [a for a in alerts if a[0] == "warn"][:15]
         for _, msg, dest in crit:
             st.error(f"{msg}　→ **{dest}** ページへ")
         for _, msg, dest in warns:
