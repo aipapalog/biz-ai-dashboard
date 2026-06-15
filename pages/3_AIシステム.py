@@ -1587,7 +1587,7 @@ with tab4:
                 for room_m in ("products", "strategy", "lessons"):
                     if rooms_m.get(room_m, 0) < 5:
                         issues_m.append(f"⚠️ {ROOM_LABELS.get(room_m, room_m)}が{rooms_m.get(room_m,0)}件のみ — 構造化ナレッジを優先追加")
-                for iss in issues_m[:3]:
+                for iss in issues_m[:15]:
                     st.warning(iss)
 
                 if history_m:
