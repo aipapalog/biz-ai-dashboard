@@ -322,7 +322,7 @@ with tab1:
                         _dw = int(_obs_w.get(_dk, 0) * 100)
                         st.write(f"- {_icon}{_dname}: **{_ds}** × {_dw}%   {_dn}")
                 _obs_issues = _roi.get("observability_issues", [])
-                for _oi in _obs_issues[:3]:
+                for _oi in _obs_issues[:15]:
                     st.caption(f"⚠️ {_oi}")
 
         # ── 定義・KPI目標テーブル ────────────────────────────────────────────────
