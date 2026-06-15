@@ -161,16 +161,6 @@ with tab1:
                           delta=f"eval:{_oq_d.get('eval_passed','?')}/{_oq_d.get('eval_total','?')}pass | 出力:{_oq_d.get('output_quality_raw',0):.0f}",
                           delta_color="normal" if _oq_s >= 65 else "inverse",
                           help="AIが良いアウトプットを出しているか？ eval_runner通過率×45% + エージェント出力品質×45% + モデル選択適切性×10%")
-                with st.expander("📊 計算根拠"):
-                    _oq_ss = _oq_d.get("sub_scores", {})
-                    _rows = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
-                    for _k, _v in _oq_ss.items():
-                        _rows.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
-                    _rows.append(f"| **計** | | | **{_oq_s:.1f}** |")
-                    st.markdown("\n".join(_rows))
-                    st.caption(f"式: {_oq_d.get('formula','')}")
-                    if _oq_s < 70:
-                        st.caption("💡 eval_runner.py 定期実行 + エージェント出力品質改善でスコア上昇")
 
         with _r1c2:
             with st.container(border=True):
@@ -184,20 +174,6 @@ with tab1:
                           delta=f"{_it_str} 放置{_ai_d.get('stale_ratio_pct',0):.0f}%{_pen_note}",
                           delta_color="normal" if _ai_s >= 65 else "inverse",
                           help="人なしで動くか？ タスク自律完結率×50% + 承認待ち比率逆数×30% + 実行スループット×20%")
-                with st.expander("📊 計算根拠"):
-                    _ai_ss = _ai_d.get("sub_scores", {})
-                    _rows2 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
-                    for _k, _v in _ai_ss.items():
-                        _rows2.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
-                    if _fp:
-                        _rows2.append(f"| フロー停止ペナルティ | — | — | -{_fp:.0f} |")
-                    _rows2.append(f"| **計** | | | **{_ai_s:.1f}** |")
-                    st.markdown("\n".join(_rows2))
-                    st.caption(f"式: {_ai_d.get('formula','')}")
-                    st.caption(f"open: {_ai_d.get('total_open',0)}件 / 承認待ち比率: {f'{_it_ratio*100:.1f}%' if _it_ratio is not None else 'N/A'}")
-                    if _flow_issues:
-                        for _fi in _flow_issues:
-                            st.caption(f"⚠️ {_fi}")
 
         with _r1c3:
             with st.container(border=True):
@@ -206,31 +182,53 @@ with tab1:
                           delta=f"学習:{_sub(_lg_d,'learning_quality'):.0f} 知識:{_sub(_lg_d,'knowledge_extern'):.0f} GitHub:{_sub(_lg_d,'github_knowledge'):.0f}",
                           delta_color="normal" if _lg_s >= 65 else "inverse",
                           help="AIが成長しているか？ 学習品質×40% + AI推薦実行率×20% + 知識外部化×25% + GitHub活用×15%")
-                with st.expander("📊 計算根拠"):
-                    _lg_ss = _lg_d.get("sub_scores", {})
-                    _rows3 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
-                    for _k, _v in _lg_ss.items():
-                        _rows3.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
-                    _rows3.append(f"| **計** | | | **{_lg_s:.1f}** |")
-                    st.markdown("\n".join(_rows3))
-                    st.caption(f"式: {_lg_d.get('formula','')}")
-                    _ke_dets = _lg_d.get("knowledge_details", {})
-                    if _ke_dets:
-                        for _k2, _v2 in _ke_dets.items():
-                            st.caption(f"　{_k2}: {_v2}")
-                    # GitHub詳細
-                    _gh_repos = _gh.get("repos", [])
-                    _gh_oss   = _gh.get("oss_tools", [])
-                    if _gh_repos or _gh_oss:
-                        _s_icon = {"active":"✅", "partial":"⚠️", "not_started":"❌"}
-                        if _gh_repos:
-                            st.markdown("**Anthropic公式リポジトリ:**")
-                            for _r in _gh_repos:
-                                st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} — 活用{_r.get('utilization',0)}/100")
-                        if _gh_oss:
-                            st.markdown("**OSSツール:**")
-                            for _r in _gh_oss:
-                                st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} — 活用{_r.get('utilization',0)}/100")
+
+        # ── Row 1 計算根拠（全幅・一列表示）────────────────────────────────────────
+        with st.expander("📊 📝出力品質 / ⚡自律実行度 / 🎓学習・成長 — 計算根拠"):
+            _exp_c1, _exp_c2, _exp_c3 = st.columns(3)
+            with _exp_c1:
+                st.markdown("**📝 出力品質**")
+                _oq_ss = _oq_d.get("sub_scores", {})
+                for _k, _v in _oq_ss.items():
+                    st.write(f"- {_v.get('label',_k)}: **{_v.get('score',0):.0f}** × {int(_v.get('weight',0)*100)}% = {_v.get('pt',0):.1f}pt")
+                st.write(f"**合計: {_oq_s:.1f}**")
+                st.caption(f"式: {_oq_d.get('formula','')}")
+                if _oq_s < 70:
+                    st.caption("💡 eval_runner.py定期実行 + 出力品質改善")
+            with _exp_c2:
+                st.markdown("**⚡ 自律実行度**")
+                _ai_ss = _ai_d.get("sub_scores", {})
+                for _k, _v in _ai_ss.items():
+                    st.write(f"- {_v.get('label',_k)}: **{_v.get('score',0):.0f}** × {int(_v.get('weight',0)*100)}% = {_v.get('pt',0):.1f}pt")
+                if _fp:
+                    st.write(f"- フロー停止ペナルティ: **-{_fp:.0f}pt**")
+                st.write(f"**合計: {_ai_s:.1f}**")
+                st.caption(f"open: {_ai_d.get('total_open',0)}件 / 承認待ち: {f'{_it_ratio*100:.1f}%' if _it_ratio is not None else 'N/A'}")
+                if _flow_issues:
+                    for _fi in _flow_issues:
+                        st.caption(f"⚠️ {_fi}")
+            with _exp_c3:
+                st.markdown("**🎓 学習・成長**")
+                _lg_ss = _lg_d.get("sub_scores", {})
+                for _k, _v in _lg_ss.items():
+                    st.write(f"- {_v.get('label',_k)}: **{_v.get('score',0):.0f}** × {int(_v.get('weight',0)*100)}% = {_v.get('pt',0):.1f}pt")
+                st.write(f"**合計: {_lg_s:.1f}**")
+                _ke_dets = _lg_d.get("knowledge_details", {})
+                if _ke_dets:
+                    for _k2, _v2 in _ke_dets.items():
+                        st.caption(f"　{_k2}: {_v2}")
+                _gh_repos = _gh.get("repos", [])
+                _gh_oss   = _gh.get("oss_tools", [])
+                if _gh_repos or _gh_oss:
+                    _s_icon = {"active":"✅", "partial":"⚠️", "not_started":"❌"}
+                    if _gh_repos:
+                        st.caption("**Anthropic公式:**")
+                        for _r in _gh_repos:
+                            st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} 活用{_r.get('utilization',0)}/100")
+                    if _gh_oss:
+                        st.caption("**OSS:**")
+                        for _r in _gh_oss:
+                            st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} 活用{_r.get('utilization',0)}/100")
 
         # ── Row 2: 事業価値 / 信頼性 / 観測性 ────────────────────────────────────
         _r2c1, _r2c2, _r2c3 = st.columns(3)
@@ -244,26 +242,6 @@ with tab1:
                           delta=f"収益¥{_bo_rev:,}/¥{_bo_tgt:,} | 採択:{_sub(_bv_d,'adoption_accuracy'):.0f}pt",
                           delta_color="normal" if _bv_s >= 50 else "inverse",
                           help="AIが実際の価値を生んでいるか？ ビジネスアウトカム×60% + AI提案採択正解率×40%")
-                with st.expander("📊 計算根拠"):
-                    _bv_ss = _bv_d.get("sub_scores", {})
-                    _rows4 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
-                    for _k, _v in _bv_ss.items():
-                        _rows4.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
-                    _rows4.append(f"| **計** | | | **{_bv_s:.1f}** |")
-                    st.markdown("\n".join(_rows4))
-                    st.caption(f"式: {_bv_d.get('formula','')}")
-                    st.caption(
-                        f"貢献ログ: {_bv_d.get('contribution_log_rate_pct',0):.0f}% | "
-                        f"収益: {_bv_d.get('revenue_rate_pct',0):.0f}% | "
-                        f"文脈: {_bv_d.get('context_rate_pct',0):.0f}%"
-                    )
-                    if _bv_d.get("gap"):
-                        st.caption(f"💡 {_bv_d['gap']}")
-                    _aa_outcomes = _bv_d.get("outcomes_logged", 0)
-                    st.caption(
-                        f"採択正解率: outcome_log.json {_aa_outcomes}件記録済み"
-                        if _aa_outcomes else "💡 outcome_log.json に5件記録で採択正解率が有効化"
-                    )
 
         with _r2c2:
             with st.container(border=True):
@@ -277,34 +255,6 @@ with tab1:
                           delta=f"稼働:{_sub(_rl_d,'system_reliability'):.0f} | 復旧:✅{_rec_impl}⚠️{_rec_part}❌{_rec_miss}",
                           delta_color="normal" if _rl_s >= 65 else "inverse",
                           help="システムが安定稼働しているか？ 稼働信頼性×70% + 復旧性×30%")
-                with st.expander("📊 計算根拠"):
-                    _rl_ss = _rl_d.get("sub_scores", {})
-                    _rows5 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
-                    for _k, _v in _rl_ss.items():
-                        _rows5.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
-                    _rows5.append(f"| **計** | | | **{_rl_s:.1f}** |")
-                    st.markdown("\n".join(_rows5))
-                    st.caption(f"式: {_rl_d.get('formula','')}")
-                    st.caption(
-                        f"エージェント: {_rl_bk.get('agent_score',0):.0f}/100 | "
-                        f"パイプライン: {_rl_bk.get('pipeline_success_rate_pct',0):.0f}% | "
-                        f"PC: {_rl_bk.get('pc_stability_score',50):.0f}/100"
-                    )
-                    if _rec_items:
-                        st.markdown("**復旧性チェック:**")
-                        for _item in _rec_items:
-                            st.caption(f"{_item.get('label','?')} {_item.get('name','')}")
-                    if _rl_d.get("recovery_next"):
-                        st.caption(f"💡 次: {_rl_d['recovery_next']}")
-                    # アーキテクチャ構造問題（前提条件・参考）
-                    _arch_issues = _arch.get("structural_issues", {})
-                    if _arch_issues.get("issues"):
-                        _arch_open = _arch_issues.get("open_count", 0)
-                        _arch_pen  = _arch_issues.get("penalty_pt", 0)
-                        st.markdown(f"⚠️ **構造問題 {_arch_open}件 (-{_arch_pen}pt 出力品質・自律度に適用)**")
-                        for _si in _arch_issues["issues"]:
-                            _sv_ic = "🔴" if _si.get("severity") == "high" else "🟡"
-                            st.caption(f"　{_sv_ic} {_si.get('id','')} — {_si.get('description','')}")
 
         with _r2c3:
             with st.container(border=True):
@@ -315,32 +265,65 @@ with tab1:
                 st.metric("🟢 観測性 ×5%", f"{_obs_score:.0f}/100",
                           delta="ダッシュボード品質・鮮度", delta_color="normal" if _obs_score >= 70 else "inverse",
                           help="必要な情報が一目でわかるか？ 11次元加重平均（鮮度/完全性/文脈性/行動性/明瞭性/正確性/指標/ログ/トレース/マクロ/見やすさ）")
-                with st.expander("📊 内訳"):
-                    _dim_label = {
-                        "freshness":     ("🕐", "鮮度"),
-                        "sufficiency":   ("📦", "完全性"),
-                        "context":       ("📊", "文脈性"),
-                        "actionability": ("🎯", "行動性"),
-                        "clarity":       ("🔍", "明瞭性"),
-                        "accuracy":      ("✔️",  "正確性"),
-                        "metrics":       ("📈", "指標"),
-                        "logs":          ("📋", "ログ"),
-                        "traces":        ("🔗", "トレース"),
-                        "macro_utility": ("🏗️", "マクロ"),
-                        "readability":   ("👁️", "見やすさ"),
-                    }
-                    if _obs_dims:
-                        _rows_obs = ["| 軸 | ×重み | スコア | メモ |\n|---|---|---|---|"]
-                        for _dk, (_icon, _dname) in _dim_label.items():
-                            _dv = _obs_dims.get(_dk, {})
-                            _ds = _dv.get("score", 0)
-                            _dn = _dv.get("note", "")[:20]
-                            _dw = int(_obs_w.get(_dk, 0) * 100)
-                            _rows_obs.append(f"| {_icon}{_dname} | ×{_dw}% | {_ds} | {_dn} |")
-                        st.markdown("\n".join(_rows_obs))
-                    _obs_issues = _roi.get("observability_issues", [])
-                    for _oi in _obs_issues[:3]:
-                        st.caption(f"⚠️ {_oi}")
+
+        # ── Row 2 計算根拠（全幅・一列表示）────────────────────────────────────────
+        with st.expander("📊 💼事業価値 / 🔒信頼性 / 🟢観測性 — 計算根拠"):
+            _exp2_c1, _exp2_c2, _exp2_c3 = st.columns(3)
+            with _exp2_c1:
+                st.markdown("**💼 事業価値**")
+                _bv_ss = _bv_d.get("sub_scores", {})
+                for _k, _v in _bv_ss.items():
+                    st.write(f"- {_v.get('label',_k)}: **{_v.get('score',0):.0f}** × {int(_v.get('weight',0)*100)}% = {_v.get('pt',0):.1f}pt")
+                st.write(f"**合計: {_bv_s:.1f}**")
+                st.caption(f"貢献ログ:{_bv_d.get('contribution_log_rate_pct',0):.0f}% 収益:{_bv_d.get('revenue_rate_pct',0):.0f}% 文脈:{_bv_d.get('context_rate_pct',0):.0f}%")
+                if _bv_d.get("gap"):
+                    st.caption(f"💡 {_bv_d['gap']}")
+                _aa_outcomes = _bv_d.get("outcomes_logged", 0)
+                st.caption(f"採択: {_aa_outcomes}件記録" if _aa_outcomes else "💡 outcome_log.json 5件で採択正解率有効化")
+            with _exp2_c2:
+                st.markdown("**🔒 信頼性**")
+                _rl_ss = _rl_d.get("sub_scores", {})
+                for _k, _v in _rl_ss.items():
+                    st.write(f"- {_v.get('label',_k)}: **{_v.get('score',0):.0f}** × {int(_v.get('weight',0)*100)}% = {_v.get('pt',0):.1f}pt")
+                st.write(f"**合計: {_rl_s:.1f}**")
+                st.caption(f"エージェント:{_rl_bk.get('agent_score',0):.0f}/100 パイプライン:{_rl_bk.get('pipeline_success_rate_pct',0):.0f}% PC:{_rl_bk.get('pc_stability_score',50):.0f}/100")
+                if _rec_items:
+                    st.caption("**復旧性:**")
+                    for _item in _rec_items:
+                        st.caption(f"{_item.get('label','?')} {_item.get('name','')}")
+                _arch_issues = _arch.get("structural_issues", {})
+                if _arch_issues.get("issues"):
+                    _arch_open = _arch_issues.get("open_count", 0)
+                    _arch_pen  = _arch_issues.get("penalty_pt", 0)
+                    st.caption(f"⚠️ 構造問題 {_arch_open}件 (-{_arch_pen}pt)")
+                    for _si in _arch_issues["issues"]:
+                        _sv_ic = "🔴" if _si.get("severity") == "high" else "🟡"
+                        st.caption(f"　{_sv_ic} {_si.get('id','')} — {_si.get('description','')}")
+            with _exp2_c3:
+                st.markdown("**🟢 観測性**")
+                _dim_label = {
+                    "freshness":     ("🕐", "鮮度"),
+                    "sufficiency":   ("📦", "完全性"),
+                    "context":       ("📊", "文脈性"),
+                    "actionability": ("🎯", "行動性"),
+                    "clarity":       ("🔍", "明瞭性"),
+                    "accuracy":      ("✔️",  "正確性"),
+                    "metrics":       ("📈", "指標"),
+                    "logs":          ("📋", "ログ"),
+                    "traces":        ("🔗", "トレース"),
+                    "macro_utility": ("🏗️", "マクロ"),
+                    "readability":   ("👁️", "見やすさ"),
+                }
+                if _obs_dims:
+                    for _dk, (_icon, _dname) in _dim_label.items():
+                        _dv = _obs_dims.get(_dk, {})
+                        _ds = _dv.get("score", 0)
+                        _dn = _dv.get("note", "")
+                        _dw = int(_obs_w.get(_dk, 0) * 100)
+                        st.write(f"- {_icon}{_dname}: **{_ds}** × {_dw}%   {_dn}")
+                _obs_issues = _roi.get("observability_issues", [])
+                for _oi in _obs_issues[:3]:
+                    st.caption(f"⚠️ {_oi}")
 
         # ── 定義・KPI目標テーブル ────────────────────────────────────────────────
         with st.expander("📖 6軸スコアの定義と計算根拠（v4）"):
