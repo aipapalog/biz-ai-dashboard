@@ -125,8 +125,8 @@ with left:
     t5.metric("📦 合計",     str(total_tasks))
 
     # 進行中・確認待ち上位リスト
-    active_top = list(ks.get("active_top5") or [])[:3]
-    verify_top = list(ks.get("verify_top5") or [])[:3]
+    active_top = list(ks.get("active_top5") or [])[:15]
+    verify_top = list(ks.get("verify_top5") or [])[:15]
     ta1, ta2 = st.columns(2)
     with ta1:
         st.markdown("**🔵 進行中（上位3件）**")
