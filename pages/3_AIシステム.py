@@ -113,12 +113,9 @@ with tab1:
     counts = pl_status.get("counts", {}) if pl_status else {}
 
     # ── 🎯 AIレベルスコア（最上部・最優先表示）──────────────────────────────────
-    _roi = _safe(lambda: data_loader.roi_score(), {})
-    _rel = _safe(lambda: data_loader.reliability_kpi(), {})
-    _aut = _safe(lambda: data_loader.autonomy_kpi(), {})
-    _eff = _safe(lambda: data_loader.efficiency_kpi(), {})
-    _lrn = _safe(lambda: data_loader.learning_kpi(), {})
-    _gh  = _safe(lambda: data_loader.anthropic_github_kpi(), {})
+    _roi  = _safe(lambda: data_loader.roi_score(), {})
+    _rel  = _safe(lambda: data_loader.reliability_kpi(), {})
+    _gh   = _safe(lambda: data_loader.anthropic_github_kpi(), {})
     _arch = _safe(lambda: data_loader.architecture_kpi() if hasattr(data_loader, 'architecture_kpi') else {}, {})
 
     if _roi:
@@ -136,534 +133,241 @@ with tab1:
             f'<span style="font-size:2.2rem;font-weight:800;line-height:1">{_grade_emoji} {_level}</span>'
             f'<span style="font-size:1.1rem;opacity:0.55;font-weight:400">/100</span>'
             f'<span style="font-size:1.3rem;font-weight:700;letter-spacing:0.02em">[{_grade}]</span>'
-            f'<span style="font-size:0.9rem;color:#9aa4b2">AIレベルスコア</span>'
+            f'<span style="font-size:0.9rem;color:#9aa4b2">AIレベルスコア v4（6軸設計）</span>'
             f'<span style="font-size:0.85rem;color:#9aa4b2;margin-left:8px">ROI: <code style="font-size:0.85rem">{_roi_val}</code></span>'
             f'</div>',
             unsafe_allow_html=True
         )
-        # ── KPI 一覧（1列フル幅 — 根拠の幅を確保）────────────────────────────────
-        _rel_score  = _comps.get("reliability", 0)
-        _aut_score  = _comps.get("autonomy", 0)
-        _lrn_score  = _comps.get("learning", 0)
-        _obs_score  = _comps.get("observability", 0)
-        _mu_score   = _comps.get("model_usage", 0)
-        _mod_score  = _comps.get("modernity", 0)
-        _gh_score   = _comps.get("anthropic_github", 0)
-        _arch_score = _comps.get("architecture", 0)
-        _rec_score  = _comps.get("recovery", 0)
-        _mod_data    = _roi.get("modernity_detail", {})
-        _gh_repos    = _gh.get("repos", [])
-        _gh_oss      = _gh.get("oss_tools", [])
-        _arch_quality= _arch.get("quality_score", _arch_score)
-        _arch_impl   = _arch.get("implemented", 0)
-        _arch_partial= _arch.get("partial", 0)
-        _arch_miss   = _arch.get("missing", 0)
-        _arch_issues = _arch.get("structural_issues", {})
-        _arch_penalty= _arch_issues.get("penalty_pt", 0)
-        _arch_open   = _arch_issues.get("open_count", 0)
-        _arch_next   = _arch.get("next_action", "")
-        _rec_detail  = _roi.get("recovery_detail", {})
-        _rec_impl    = _rec_detail.get("implemented", 0)
-        _rec_partial = _rec_detail.get("partial", 0)
-        _rec_miss    = _rec_detail.get("missing", 0)
-        _rec_items   = _rec_detail.get("items", [])
-        _rec_next    = _rec_detail.get("next_action", "")
-        _rec_at      = _rec_detail.get("assessed_at", "")[:16].replace("T", " ")
-        _enrich      = _lrn.get('enrichment_score', 0)
-        _ut_d        = _lrn.get('utilization', {})
-        _ut_s        = _lrn.get('utilization_score', 0)
-        _ut_n        = _ut_d.get('total_sessions', 0)
-        _und_s       = _lrn.get('understanding_score', 0)
-        _und_d       = _lrn.get('user_understanding', {})
-        _mem_d       = _und_d.get('memory', {})
-        _ac          = _aut.get("components", {})
-        _res_pct     = _ac.get("problem_resolution_pct", 0)
-        _val_pct     = _ac.get("value_creation_pct", 0)
-        # 新指標（v2）
-        _tf_score    = _comps.get("tech_foundation", 0)
-        _it_score    = _comps.get("intervention_trend", 0)
-        _ke_score    = _comps.get("knowledge_extern", 0)
-        _aa_score    = _comps.get("adoption_accuracy", 0)
-        _tf_detail   = _roi.get("tech_foundation_detail", {})
-        _it_detail   = _roi.get("intervention_trend_detail", {})
-        _ke_detail   = _roi.get("knowledge_extern_detail", {})
-        _aa_detail   = _roi.get("adoption_accuracy_detail", {})
-        # 新指標（v3: Gap指標）
-        _er_score    = _comps.get("execution_rate", 0)
-        _pq_score    = _comps.get("prompt_quality", 0)
-        _bo_score    = _comps.get("business_outcome", 0)
-        _lv_score    = _comps.get("learning_velocity", 0)
-        _er_detail   = _roi.get("execution_rate_detail", {})
-        _pq_detail   = _roi.get("prompt_quality_detail", {})
-        _bo_detail   = _roi.get("business_outcome_detail", {})
-        _lv_detail   = _roi.get("learning_velocity_detail", {})
+
+        # ── 6軸データ取得 ─────────────────────────────────────────────────────────
+        _oq_d  = _roi.get("output_quality_detail", {})
+        _ai_d  = _roi.get("autonomy_index_detail", {})
+        _lg_d  = _roi.get("learning_growth_detail", {})
+        _bv_d  = _roi.get("business_value_detail", {})
+        _rl_d  = _roi.get("reliability_detail", {})
         _flow_pen    = _roi.get("flow_penalty", {})
         _flow_issues = _flow_pen.get("issues", [])
-        _flow_pt     = _flow_pen.get("penalty", 0)
 
-        _r1c1 = st.container(border=True)
-        _r1c2 = st.container(border=True)
-        _r1c3 = st.container(border=True)
+        def _sub(detail, key, field="score"):
+            return detail.get("sub_scores", {}).get(key, {}).get(field, 0)
+
+        # ── Row 1: 出力品質 / 自律実行度 / 学習・成長 ─────────────────────────────
+        _r1c1, _r1c2, _r1c3 = st.columns(3)
 
         with _r1c1:
-            st.metric("🔴 信頼性 ×15%", f"{_rel_score:.0f}/100",
-                      delta=f"成功率 {_rel.get('overall',{}).get('success_rate_pct',0)}%",
-                      delta_color="normal" if _rel_score >= 60 else "inverse",
-                      help="エージェント×30% + パイプライン×20% + 出力品質×35% + PC安定性×15%")
-            with st.expander("📊 内訳"):
-                _ag  = _rel.get("agent_reliability", {})
-                _pl  = _rel.get("pipeline_reliability", {})
-                _oq  = _rel.get("output_quality", {})
-                _pc  = _rel.get("pc_stability", {})
-                _ag_s = _ag.get("agent_score", 0)
-                _pl_r = _pl.get("pipeline_success_rate_pct") or 0
-                _oq_s = _oq.get("score_100", 0)
-                _pc_s = _pc.get("pc_stability_score", 50)
-                st.markdown(
-                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
-                    f"| エージェント信頼性 | {_ag_s:.0f}/100 | ×30% | {_ag_s*0.30:.1f} |\n"
-                    f"| パイプライン成功率 | {_pl_r:.0f}% | ×20% | {_pl_r*0.20:.1f} |\n"
-                    f"| 出力品質 | {_oq_s:.0f}/100 | ×35% | {_oq_s*0.35:.1f} |\n"
-                    f"| PC安定性 | {_pc_s:.0f}/100 | ×15% | {_pc_s*0.15:.1f} |\n"
-                    f"| **計** | | | **{_rel_score:.1f}** |"
-                )
-                _failed = [p.get("name","") for p in _pl.get("pipelines",[]) if p.get("status")=="failed"]
-                if _failed:
-                    st.caption(f"⚠️ 失敗: {', '.join(_failed)}")
+            with st.container(border=True):
+                _oq_s = _comps.get("output_quality", 0)
+                st.metric("📝 出力品質 ×30%", f"{_oq_s:.0f}/100",
+                          delta=f"eval:{_oq_d.get('eval_passed','?')}/{_oq_d.get('eval_total','?')}pass | 出力:{_oq_d.get('output_quality_raw',0):.0f}",
+                          delta_color="normal" if _oq_s >= 65 else "inverse",
+                          help="AIが良いアウトプットを出しているか？ eval_runner通過率×45% + エージェント出力品質×45% + モデル選択適切性×10%")
+                with st.expander("📊 計算根拠"):
+                    _oq_ss = _oq_d.get("sub_scores", {})
+                    _rows = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
+                    for _k, _v in _oq_ss.items():
+                        _rows.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
+                    _rows.append(f"| **計** | | | **{_oq_s:.1f}** |")
+                    st.markdown("\n".join(_rows))
+                    st.caption(f"式: {_oq_d.get('formula','')}")
+                    if _oq_s < 70:
+                        st.caption("💡 eval_runner.py 定期実行 + エージェント出力品質改善でスコア上昇")
 
         with _r1c2:
-            _pen_note = f" ⚠️フロー停止-{_flow_pt:.0f}pt" if _flow_pt else ""
-            st.metric("🟠 自律性 ×15%", f"{_aut_score:.0f}/100",
-                      delta=f"解決{_res_pct:.0f}% 価値{_val_pct:.0f}%{_pen_note}",
-                      delta_color="normal" if _aut_score >= 60 else "inverse",
-                      help="問題解決性×50% + 価値創出性×50% − フロー停止ペナルティ")
-            with st.expander("📊 内訳"):
-                _pr  = _aut.get("problem_resolution", {})
-                _vc  = _aut.get("value_creation", {})
-                _rev = _vc.get("revenue_contribution", {})
-                _cc2 = _vc.get("company_contribution", {})
-                _wc  = _cc2.get("contribution_log", {})
-                _ctx = _cc2.get("company_context", {})
-                _ctx_asp = _ctx.get("aspects", [])
-                _pen = _pr.get("total_penalty", 0)
-                _closure_pct = _ac.get("task_closure_rate_pct", 0)
-                st.markdown(
-                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
-                    f"| 問題解決性 | {_res_pct:.0f}% | ×50% | {_res_pct*0.50:.1f} |\n"
-                    f"| 価値創出性 | {_val_pct:.0f}% | ×50% | {_val_pct*0.50:.1f} |\n"
-                    f"| **計** | | | **{_aut_score:.1f}** |\n"
-                    f"| [参考]タスク自律率 | {_closure_pct:.0f}% | — | — |"
-                )
-                if _pen > 0:
-                    _bt = _pr.get("blocked_tasks", {})
-                    _st2 = _pr.get("stale_tasks", {})
-                    _da = _pr.get("dashboard_alerts", {})
-                    _la = _pr.get("low_ai_score", {})
-                    st.caption(
-                        f"ペナルティ: -{_pen}pt "
-                        f"（ブロック{_bt.get('count',0)}件-{_bt.get('penalty',0)}pt / "
-                        f"放置{_st2.get('count',0)}件-{_st2.get('penalty',0)}pt / "
-                        f"アラート{_da.get('count',0)}件-{_da.get('penalty',0)}pt / "
-                        f"低スコア-{_la.get('penalty',0)}pt）"
-                    )
-                st.caption(
-                    f"AI収益: ¥{_rev.get('monthly_actual',0):,}/¥{_rev.get('monthly_target',0):,} = {_rev.get('rate_pct',0):.0f}%  "
-                    f"会社貢献: 実績{_wc.get('logged_count',0)}件 / 文脈{_ctx.get('known_count',0)}/{_ctx.get('total_aspects',5)}観点"
-                )
-                _ctx_unknown = [a["aspect"] for a in _ctx_asp if not a.get("known")]
-                if _ctx_unknown:
-                    st.caption(f"未把握: {' / '.join(_ctx_unknown)}")
-                _wc_recent = _wc.get("recent", [])
-                if _wc_recent:
-                    st.caption("業務貢献: " + " / ".join(e.get("description","")[:20] for e in _wc_recent))
-                else:
-                    st.caption("💡 work_contribution_log.json に成果を記録するとスコアが上昇")
+            with st.container(border=True):
+                _ai_s = _comps.get("autonomy_index", 0)
+                _ai_raw = _ai_d.get("raw_before_penalty", _ai_s)
+                _fp = _ai_d.get("flow_penalty", 0)
+                _pen_note = f" ⚠️フロー-{_fp:.0f}pt" if _fp else ""
+                _it_ratio = _ai_d.get("pending_ratio")
+                _it_str = f"承認待ち{_it_ratio*100:.0f}%" if _it_ratio is not None else ""
+                st.metric("⚡ 自律実行度 ×25%", f"{_ai_s:.0f}/100",
+                          delta=f"{_it_str} 放置{_ai_d.get('stale_ratio_pct',0):.0f}%{_pen_note}",
+                          delta_color="normal" if _ai_s >= 65 else "inverse",
+                          help="人なしで動くか？ タスク自律完結率×50% + 承認待ち比率逆数×30% + 実行スループット×20%")
+                with st.expander("📊 計算根拠"):
+                    _ai_ss = _ai_d.get("sub_scores", {})
+                    _rows2 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
+                    for _k, _v in _ai_ss.items():
+                        _rows2.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
+                    if _fp:
+                        _rows2.append(f"| フロー停止ペナルティ | — | — | -{_fp:.0f} |")
+                    _rows2.append(f"| **計** | | | **{_ai_s:.1f}** |")
+                    st.markdown("\n".join(_rows2))
+                    st.caption(f"式: {_ai_d.get('formula','')}")
+                    st.caption(f"open: {_ai_d.get('total_open',0)}件 / 承認待ち比率: {f'{_it_ratio*100:.1f}%' if _it_ratio is not None else 'N/A'}")
+                    if _flow_issues:
+                        for _fi in _flow_issues:
+                            st.caption(f"⚠️ {_fi}")
 
         with _r1c3:
-            _ut_label = f"充実{_enrich:.0f} 活用{_ut_s:.0f} 理解{_und_s:.0f}" if _ut_n >= 5 else f"充実{_enrich:.0f} 理解{_und_s:.0f}"
-            st.metric("🟡 学習率 ×6%", f"{_lrn_score:.0f}/100",
-                      delta=_ut_label,
-                      delta_color="normal" if _lrn_score >= 60 else "inverse",
-                      help=f"充実×34%+活用×33%+理解度×33%。理解度=MEMORY.md({_mem_d.get('feedback_files',0)}FB/{_mem_d.get('project_files',0)}PJ)")
-            with st.expander("📊 内訳"):
-                _mp2 = _lrn.get('mempalace', {})
-                _ob2 = _lrn.get('obsidian', {})
-                _utilize2 = _lrn.get('utilization_score', 0)
-                _ut_d2    = _lrn.get('utilization', {})
-                st.markdown(
-                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
-                    f"| 知識充実 | {_enrich:.0f}/100 | ×34% | {_enrich*0.34:.1f} |\n"
-                    f"| 知識活用 | {_utilize2:.0f}/100 | ×33% | {_utilize2*0.33:.1f} |\n"
-                    f"| ユーザー理解度 | {_und_s:.0f}/100 | ×33% | {_und_s*0.33:.1f} |\n"
-                    f"| **計** | | | **{_lrn_score:.1f}** |"
-                )
-                st.caption(f"Mempalace: {_mp2.get('drawers',0):,}件 / {_mp2.get('edges',0)}KGエッジ")
-                st.caption(f"Obsidian: {_ob2.get('files',0)}件 / 平均{_ob2.get('avg_links_per_file',0):.1f}リンク/件")
-                st.caption(f"活用: 直近7日 {_ut_d2.get('utilized_sessions',0)}/{_ut_d2.get('total_sessions',0)}セッション")
+            with st.container(border=True):
+                _lg_s = _comps.get("learning_growth", 0)
+                st.metric("🎓 学習・成長 ×15%", f"{_lg_s:.0f}/100",
+                          delta=f"学習:{_sub(_lg_d,'learning_quality'):.0f} 知識:{_sub(_lg_d,'knowledge_extern'):.0f} GitHub:{_sub(_lg_d,'github_knowledge'):.0f}",
+                          delta_color="normal" if _lg_s >= 65 else "inverse",
+                          help="AIが成長しているか？ 学習品質×40% + AI推薦実行率×20% + 知識外部化×25% + GitHub活用×15%")
+                with st.expander("📊 計算根拠"):
+                    _lg_ss = _lg_d.get("sub_scores", {})
+                    _rows3 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
+                    for _k, _v in _lg_ss.items():
+                        _rows3.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
+                    _rows3.append(f"| **計** | | | **{_lg_s:.1f}** |")
+                    st.markdown("\n".join(_rows3))
+                    st.caption(f"式: {_lg_d.get('formula','')}")
+                    _ke_dets = _lg_d.get("knowledge_details", {})
+                    if _ke_dets:
+                        for _k2, _v2 in _ke_dets.items():
+                            st.caption(f"　{_k2}: {_v2}")
+                    # GitHub詳細
+                    _gh_repos = _gh.get("repos", [])
+                    _gh_oss   = _gh.get("oss_tools", [])
+                    if _gh_repos or _gh_oss:
+                        _s_icon = {"active":"✅", "partial":"⚠️", "not_started":"❌"}
+                        if _gh_repos:
+                            st.markdown("**Anthropic公式リポジトリ:**")
+                            for _r in _gh_repos:
+                                st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} — 活用{_r.get('utilization',0)}/100")
+                        if _gh_oss:
+                            st.markdown("**OSSツール:**")
+                            for _r in _gh_oss:
+                                st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} — 活用{_r.get('utilization',0)}/100")
 
-        _r2c1 = st.container(border=True)
-        _r2c2 = st.container(border=True)
-        _r2c3 = st.container(border=True)
+        # ── Row 2: 事業価値 / 信頼性 / 観測性 ────────────────────────────────────
+        _r2c1, _r2c2, _r2c3 = st.columns(3)
 
         with _r2c1:
-            st.metric("🟢 観測性 ×5%", f"{_obs_score:.0f}/100",
-                      delta="UI品質・精度", delta_color="normal" if _obs_score >= 70 else "inverse",
-                      help="ダッシュボードの情報集約度・UI深さ・データ鮮度を評価。問題が少ないほど高スコア")
-            with st.expander("📊 内訳"):
+            with st.container(border=True):
+                _bv_s = _comps.get("business_value", 0)
+                _bo_rev  = _bv_d.get("monthly_actual", 0)
+                _bo_tgt  = _bv_d.get("monthly_target", 20000)
+                st.metric("💼 事業価値 ×15%", f"{_bv_s:.0f}/100",
+                          delta=f"収益¥{_bo_rev:,}/¥{_bo_tgt:,} | 採択:{_sub(_bv_d,'adoption_accuracy'):.0f}pt",
+                          delta_color="normal" if _bv_s >= 50 else "inverse",
+                          help="AIが実際の価値を生んでいるか？ ビジネスアウトカム×60% + AI提案採択正解率×40%")
+                with st.expander("📊 計算根拠"):
+                    _bv_ss = _bv_d.get("sub_scores", {})
+                    _rows4 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
+                    for _k, _v in _bv_ss.items():
+                        _rows4.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
+                    _rows4.append(f"| **計** | | | **{_bv_s:.1f}** |")
+                    st.markdown("\n".join(_rows4))
+                    st.caption(f"式: {_bv_d.get('formula','')}")
+                    st.caption(
+                        f"貢献ログ: {_bv_d.get('contribution_log_rate_pct',0):.0f}% | "
+                        f"収益: {_bv_d.get('revenue_rate_pct',0):.0f}% | "
+                        f"文脈: {_bv_d.get('context_rate_pct',0):.0f}%"
+                    )
+                    if _bv_d.get("gap"):
+                        st.caption(f"💡 {_bv_d['gap']}")
+                    _aa_outcomes = _bv_d.get("outcomes_logged", 0)
+                    st.caption(
+                        f"採択正解率: outcome_log.json {_aa_outcomes}件記録済み"
+                        if _aa_outcomes else "💡 outcome_log.json に5件記録で採択正解率が有効化"
+                    )
+
+        with _r2c2:
+            with st.container(border=True):
+                _rl_s = _comps.get("reliability", 0)
+                _rl_bk = _rl_d.get("reliability_breakdown", {})
+                _rec_items = _rl_d.get("recovery_items", [])
+                _rec_impl = sum(1 for i in _rec_items if i.get("label","").startswith("✅"))
+                _rec_part = sum(1 for i in _rec_items if i.get("label","").startswith("⚠️"))
+                _rec_miss = sum(1 for i in _rec_items if i.get("label","").startswith("❌"))
+                st.metric("🔒 信頼性 ×10%", f"{_rl_s:.0f}/100",
+                          delta=f"稼働:{_sub(_rl_d,'system_reliability'):.0f} | 復旧:✅{_rec_impl}⚠️{_rec_part}❌{_rec_miss}",
+                          delta_color="normal" if _rl_s >= 65 else "inverse",
+                          help="システムが安定稼働しているか？ 稼働信頼性×70% + 復旧性×30%")
+                with st.expander("📊 計算根拠"):
+                    _rl_ss = _rl_d.get("sub_scores", {})
+                    _rows5 = ["| 指標 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|"]
+                    for _k, _v in _rl_ss.items():
+                        _rows5.append(f"| {_v.get('label',_k)} | {_v.get('score',0):.0f}/100 | ×{int(_v.get('weight',0)*100)}% | {_v.get('pt',0):.1f} |")
+                    _rows5.append(f"| **計** | | | **{_rl_s:.1f}** |")
+                    st.markdown("\n".join(_rows5))
+                    st.caption(f"式: {_rl_d.get('formula','')}")
+                    st.caption(
+                        f"エージェント: {_rl_bk.get('agent_score',0):.0f}/100 | "
+                        f"パイプライン: {_rl_bk.get('pipeline_success_rate_pct',0):.0f}% | "
+                        f"PC: {_rl_bk.get('pc_stability_score',50):.0f}/100"
+                    )
+                    if _rec_items:
+                        st.markdown("**復旧性チェック:**")
+                        for _item in _rec_items:
+                            st.caption(f"{_item.get('label','?')} {_item.get('name','')}")
+                    if _rl_d.get("recovery_next"):
+                        st.caption(f"💡 次: {_rl_d['recovery_next']}")
+                    # アーキテクチャ構造問題（前提条件・参考）
+                    _arch_issues = _arch.get("structural_issues", {})
+                    if _arch_issues.get("issues"):
+                        _arch_open = _arch_issues.get("open_count", 0)
+                        _arch_pen  = _arch_issues.get("penalty_pt", 0)
+                        st.markdown(f"⚠️ **構造問題 {_arch_open}件 (-{_arch_pen}pt 出力品質・自律度に適用)**")
+                        for _si in _arch_issues["issues"]:
+                            _sv_ic = "🔴" if _si.get("severity") == "high" else "🟡"
+                            st.caption(f"　{_sv_ic} {_si.get('id','')} — {_si.get('description','')}")
+
+        with _r2c3:
+            with st.container(border=True):
+                _obs_score = _comps.get("observability", 0)
                 _obs_det  = _roi.get("observability_detail", {})
                 _obs_dims = _obs_det.get("dimensions", {})
                 _obs_w    = _obs_det.get("weights", {})
-                _dim_label = {
-                    "freshness":     ("🕐", "鮮度"),
-                    "sufficiency":   ("📦", "完全性"),
-                    "context":       ("📊", "文脈性"),
-                    "actionability": ("🎯", "行動性"),
-                    "clarity":       ("🔍", "明瞭性"),
-                    "accuracy":      ("✔️",  "正確性"),
-                    "metrics":       ("📈", "指標"),
-                    "logs":          ("📋", "ログ"),
-                    "traces":        ("🔗", "トレース"),
-                    "macro_utility": ("🏗️", "マクロ"),
-                    "readability":   ("👁️", "見やすさ"),
-                }
-                if _obs_dims:
-                    _rows_obs = ["| 軸 | ×重み | スコア | メモ |\n|---|---|---|---|"]
-                    for _dk, (_icon, _dname) in _dim_label.items():
-                        _dv = _obs_dims.get(_dk, {})
-                        _ds = _dv.get("score", 0)
-                        _dn = _dv.get("note", "")[:20]
-                        _dw = int(_obs_w.get(_dk, 0) * 100)
-                        _rows_obs.append(f"| {_icon}{_dname} | ×{_dw}% | {_ds} | {_dn} |")
-                    st.markdown("\n".join(_rows_obs))
-                _obs_issues = _roi.get("observability_issues", [])
-                for _oi in _obs_issues[:3]:
-                    st.caption(f"⚠️ {_oi}")
+                st.metric("🟢 観測性 ×5%", f"{_obs_score:.0f}/100",
+                          delta="ダッシュボード品質・鮮度", delta_color="normal" if _obs_score >= 70 else "inverse",
+                          help="必要な情報が一目でわかるか？ 11次元加重平均（鮮度/完全性/文脈性/行動性/明瞭性/正確性/指標/ログ/トレース/マクロ/見やすさ）")
+                with st.expander("📊 内訳"):
+                    _dim_label = {
+                        "freshness":     ("🕐", "鮮度"),
+                        "sufficiency":   ("📦", "完全性"),
+                        "context":       ("📊", "文脈性"),
+                        "actionability": ("🎯", "行動性"),
+                        "clarity":       ("🔍", "明瞭性"),
+                        "accuracy":      ("✔️",  "正確性"),
+                        "metrics":       ("📈", "指標"),
+                        "logs":          ("📋", "ログ"),
+                        "traces":        ("🔗", "トレース"),
+                        "macro_utility": ("🏗️", "マクロ"),
+                        "readability":   ("👁️", "見やすさ"),
+                    }
+                    if _obs_dims:
+                        _rows_obs = ["| 軸 | ×重み | スコア | メモ |\n|---|---|---|---|"]
+                        for _dk, (_icon, _dname) in _dim_label.items():
+                            _dv = _obs_dims.get(_dk, {})
+                            _ds = _dv.get("score", 0)
+                            _dn = _dv.get("note", "")[:20]
+                            _dw = int(_obs_w.get(_dk, 0) * 100)
+                            _rows_obs.append(f"| {_icon}{_dname} | ×{_dw}% | {_ds} | {_dn} |")
+                        st.markdown("\n".join(_rows_obs))
+                    _obs_issues = _roi.get("observability_issues", [])
+                    for _oi in _obs_issues[:3]:
+                        st.caption(f"⚠️ {_oi}")
 
-        with _r2c2:
-            _mu_data   = _safe(lambda: data_loader.model_usage_kpi() if hasattr(data_loader, 'model_usage_kpi') else {}, {})
-            _mu_comps  = _mu_data.get("components", {})
-            _mu_detail = _mu_data.get("details", {})
-            _cc_d      = _mu_detail.get("cc", {})
-            st.metric("⚪ モデル活用 ×3%", f"{_mu_score:.0f}/100",
-                      delta="CC/Haiku/Sonnet", delta_color="off",
-                      help="CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20%")
-            with st.expander("📊 内訳"):
-                _cc_s = _mu_comps.get('cc_appropriateness', 0)
-                _hk_s = _mu_comps.get('haiku_fitness', 0)
-                _so_s = _mu_comps.get('sonnet_escalation', 0)
-                st.markdown(
-                    f"| 軸 | スコア | ×重み | pt貢献 |\n|----|--------|-------|--------|\n"
-                    f"| CCセッション適切性 | {_cc_s:.0f}/100 | ×50% | {_cc_s*0.50:.1f} |\n"
-                    f"| Haiku適正 | {_hk_s:.0f}/100 | ×30% | {_hk_s*0.30:.1f} |\n"
-                    f"| Sonnet昇格 | {_so_s:.0f}/100 | ×20% | {_so_s*0.20:.1f} |\n"
-                    f"| **計** | | | **{_mu_score:.1f}** |"
-                )
-                st.caption(
-                    f"CC比率: Sonnet {_cc_d.get('sonnet_ratio_pct','-')}% / "
-                    f"Opus {_cc_d.get('opus_ratio_pct','-')}% / "
-                    f"Haiku {_cc_d.get('haiku_ratio_pct','-')}%"
-                )
-                _roi_bk = _roi.get("roi")
-                if _roi_bk and isinstance(_roi_bk, dict):
-                    _sc = _roi.get("score_change", {})
-                    if _sc:
-                        _delta_s = _sc.get("delta", 0)
-                        _dir_s   = "▲" if _delta_s > 0 else ("▼" if _delta_s < 0 else "→")
-                        st.caption(
-                            f"ROI: {_roi_bk.get('value','N/A')} ({_roi_bk.get('window_span_str','?')})  "
-                            f"週次変化: {_dir_s}{abs(_delta_s):.1f}pt"
-                        )
-
-        with _r2c3:
-            _gh_active = sum(1 for r in _gh_repos if r.get("status") == "active")
-            _oss_active = sum(1 for r in _gh_oss if r.get("status") == "active")
-            _gh_anthropic_score = _gh.get("anthropic_repos_score", _gh_score)
-            _gh_oss_score = _gh.get("oss_tools_score", 0)
-            st.metric("🔵 GitHub活用 ×3%", f"{_gh_score:.0f}/100",
-                      delta=f"Anthropic:{_gh_anthropic_score} / OSS:{_gh_oss_score}",
-                      delta_color="normal" if _gh_score >= 50 else "inverse",
-                      help=f"Anthropic公式+導入済みOSSリポジトリ活用充足度。次: {_gh.get('top_opportunity','')}")
-            with st.expander("📊 内訳"):
-                _s_icon = {"active":"✅", "partial":"⚠️", "not_started":"❌"}
-                st.markdown("**Anthropic 公式リポジトリ**")
-                for _r in _gh_repos:
-                    st.markdown(
-                        f"{_s_icon.get(_r.get('status',''),'❓')} **{_r.get('name','')}** "
-                        f"— 活用{_r.get('utilization',0)}/100 (+{_r.get('contribution',0):.1f}pt)"
-                    )
-                    if _r.get("note"):
-                        st.caption(f"　{_r['note'][:60]}")
-                if _gh_oss:
-                    st.markdown("**導入済み OSS ツール**")
-                    for _r in _gh_oss:
-                        st.markdown(
-                            f"{_s_icon.get(_r.get('status',''),'❓')} **{_r.get('name','')}** "
-                            f"— 活用{_r.get('utilization',0)}/100 (+{_r.get('contribution',0):.1f}pt)"
-                        )
-                        if _r.get("note"):
-                            st.caption(f"　{_r['note'][:60]}")
-                _gh_opp = _gh.get("top_opportunity", "")
-                if _gh_opp:
-                    st.caption(f"💡 {_gh_opp}")
-                st.caption(f"評価: {_gh.get('assessed_at','')} / 次回: {_gh.get('next_review','')}")
-                _gh_excl = _gh.get("excluded", [])
-                if _gh_excl:
-                    st.markdown("**🚫 不採用・除外リポジトリ（採用しない理由）:**")
-                    for _ex in _gh_excl:
-                        _st_icon = "🔴" if _ex.get("status") == "恒久除外" else "🟡"
-                        st.markdown(f"{_st_icon} **{_ex.get('name','')}** `{_ex.get('status','除外')}`")
-                        st.caption(f"　{_ex.get('reason','')}")
-
-        _r3c1 = st.container(border=True)
-        _r3c2 = st.container(border=True)
-        _r3c3 = st.container(border=True)
-
-        with _r3c1:
-            _tf_warn = " ⚠️天井" if _tf_detail.get("ceiling_warning") else ""
-            st.metric("🔧 技術基盤 ×3%", f"{_tf_score:.0f}/100",
-                      delta=f"モダン度{_mod_score:.0f} アーキ{_arch_score:.0f}{_tf_warn}",
-                      delta_color="normal" if _tf_score >= 80 else "inverse",
-                      help="モダン度+アーキテクチャの平均。天井=静的チェックリスト完了・外部ベンチマーク比較で次のレベルへ")
-            with st.expander("📊 モダン度内訳（18項目・各2pt満点）"):
-                _mod_bk = _mod_data.get("breakdown", {})
-                if _mod_bk:
-                    def _parse_score(s):
-                        return 2 if s.startswith("✅") else (1 if "⚠" in s else 0)
-                    _rows = ["| カテゴリ | 項目 | 点数 | /満点 |\n|---|---|---|---|"]
-                    for _cat, _cdata in _mod_bk.items():
-                        _sub = _cdata.get("subtotal", 0)
-                        _max_m = _cdata.get("max", 0)
-                        _rows.append(f"| **{_cat}** | **(小計)** | **{_sub}** | **{_max_m}** |")
-                        for _item_str in _cdata.get("items", []):
-                            _sc = _parse_score(_item_str)
-                            _name = _item_str.split(" ", 1)[1] if " " in _item_str else _item_str
-                            _rows.append(f"| | {_item_str[:2]} {_name} | {_sc} | 2 |")
-                    st.markdown("\n".join(_rows))
-            with st.expander("📊 アーキテクチャ内訳（10項目・各2pt満点）"):
-                _arch_bk = _arch.get("breakdown", {})
-                if _arch_bk:
-                    def _parse_score_a(s):
-                        return 2 if s.startswith("✅") else (1 if "⚠" in s else 0)
-                    _ab_rows = ["| カテゴリ | 項目 | 点数 | /満点 |\n|---|---|---|---|"]
-                    for _cat, _cdata in _arch_bk.items():
-                        _sub = _cdata.get("subtotal", 0)
-                        _max_a = _cdata.get("max", 0)
-                        _ab_rows.append(f"| **{_cat}** | **(小計)** | **{_sub}** | **{_max_a}** |")
-                        for _item_str in _cdata.get("items", []):
-                            _sc = _parse_score_a(_item_str)
-                            _name = _item_str.split(" ", 1)[1] if " " in _item_str else _item_str
-                            _ab_rows.append(f"| | {_item_str[:2]} {_name} | {_sc} | 2 |")
-                    st.markdown("\n".join(_ab_rows))
-                if _arch_issues.get("issues"):
-                    st.markdown(f"⚠️ **構造問題 {_arch_open}件 (-{_arch_penalty}pt)**")
-                    for _si in _arch_issues["issues"]:
-                        _sv_ic = "🔴" if _si.get("severity") == "high" else "🟡"
-                        st.markdown(f"　{_sv_ic} **{_si.get('id','')}** — {_si.get('description','')}")
-
-        with _r3c2:
-            _it_ratio = _it_detail.get("pending_ratio")
-            _it_ratio_str = f"承認待ち{_it_ratio*100:.0f}%" if _it_ratio is not None else "集計中"
-            _it_open  = _it_detail.get("total_open", 0)
-            st.metric("📉 介入率 ×10%", f"{_it_score:.0f}/100",
-                      delta=f"{_it_ratio_str} / open{_it_open}件",
-                      delta_color="normal" if _it_score >= 70 else "inverse",
-                      help="Kanban承認待ち比率の逆数。比率低い=会長介入なしで完結するタスクが多い=真の自律化")
-            with st.expander("📊 内訳"):
-                if _it_ratio is not None:
-                    st.markdown(
-                        f"| 指標 | 値 |\n|---|---|\n"
-                        f"| 承認待ちタスク | {_it_detail.get('pending_count',0)}件 |\n"
-                        f"| オープンタスク合計 | {_it_open}件 |\n"
-                        f"| 承認待ち比率 | {_it_ratio*100:.1f}% |\n"
-                        f"| スコア | {_it_score}/100 |"
-                    )
-                st.caption(_it_detail.get("note", ""))
-                if _flow_issues:
-                    st.markdown("**⚠️ フロー停止ペナルティ（自律性に適用）:**")
-                    for _fi in _flow_issues:
-                        st.caption(f"　{_fi}")
-
-        with _r3c3:
-            st.metric("🔄 復旧性 ×3%", f"{_rec_score:.0f}/100",
-                      delta=f"✅{_rec_impl} ⚠️{_rec_partial} ❌{_rec_miss}",
-                      delta_color="normal" if _rec_score >= 60 else "inverse",
-                      help="setup.ps1/nightly_git_sync/Firestore/GitHub管理/Windows非依存の5項目（2026-06-14 GitHub一本化戦略確定）")
-            with st.expander("📊 内訳"):
-                for _item in _rec_items:
-                    _ev = _item.get("evidence", "")
-                    st.markdown(f"{_item.get('label','?')} **{_item.get('name','')}**")
-                    if _ev:
-                        st.caption(f"　{_ev}")
-                if _rec_at:
-                    st.caption(f"自動検出: {_rec_at} UTC")
-                if _rec_next:
-                    st.caption(f"💡 次: {_rec_next}")
-                _rec_bk = _rec_detail.get("backup_strategy", {})
-
-                if _rec_bk:
-                    st.markdown("**💾 バックアップ戦略（2026-06-14確定）:**")
-                    st.caption(f"方針: {_rec_bk.get('principle','')}")
-                    st.markdown("📦 **GitHub保存対象:**")
-                    for _g in _rec_bk.get("github", []):
-                        st.caption(f"　• {_g}")
-                    st.markdown("☁️ **Google Drive保存対象:**")
-                    for _gd in _rec_bk.get("google_drive", []):
-                        st.caption(f"　• {_gd}")
-                    st.caption(f"🔑 secrets: {_rec_bk.get('secrets','')}")
-                    st.caption(f"🔧 復元手順: {_rec_bk.get('restore_steps','')}")
-                _rec_excl = _rec_detail.get("excluded", [])
-                if _rec_excl:
-                    st.markdown("**🚫 不採用・除外項目（導入しない理由）:**")
-                    for _ex in _rec_excl:
-                        _ex_icon = "🔴" if _ex.get("status") == "恒久除外" else "🟡"
-                        st.markdown(f"{_ex_icon} **{_ex.get('name','')}** `{_ex.get('status','除外')}`")
-                        st.caption(f"　{_ex.get('reason','')}")
-
-        _r4c1 = st.container(border=True)
-        _r4c2 = st.container(border=True)
-
-        with _r4c1:
-            _ke_dets = _ke_detail.get("details", {})
-            st.metric("📚 知識外部化 ×5%", f"{_ke_score:.0f}/100",
-                      delta="CLAUDE.md+rules+agents+memory",
-                      delta_color="normal" if _ke_score >= 80 else "inverse",
-                      help="ルール・エージェント・記憶として外部化された知識量。判断がコードとして残っているほど高スコア")
-            with st.expander("📊 内訳"):
-                if _ke_dets:
-                    for _k, _v in _ke_dets.items():
-                        st.caption(f"　{_k}: {_v}")
-                else:
-                    st.caption("データなし")
-
-        with _r4c2:
-            _aa_outcomes = _aa_detail.get("outcomes", 0)
-            _aa_note     = _aa_detail.get("note", "")
-            st.metric("🎯 採択正解率 ×5%", f"{_aa_score:.0f}/100",
-                      delta=f"記録済み{_aa_outcomes}件" if _aa_outcomes else "データ蓄積中",
-                      delta_color="off",
-                      help="AI提案を採択後に正しかった率。outcome_log.jsonに5件以上記録されると有効化")
-            with st.expander("📊 詳細"):
-                st.caption(_aa_note or "outcome_log.json が存在すれば自動計算")
-                st.markdown(
-                    "**有効化手順:**\n"
-                    "`.claude/scripts/agents/data/outcome_log.json` を作成し、"
-                    "`[{\"correct\": true/false, \"proposal\": \"...\"}]` 形式で5件以上記録"
-                )
-
-        # ── Row 5: Gap指標（v3）──────────────────────────────────────────────────
-        _r5c1 = st.container(border=True)
-        _r5c2 = st.container(border=True)
-        _r5c3 = st.container(border=True)
-        _r5c4 = st.container(border=True)
-
-        with _r5c1:
-            _er_gap = _er_detail.get("gap", _er_detail.get("note", ""))
-            st.metric("⚡ 実行率 ×8%", f"{_er_score:.0f}/100",
-                      delta=f"自律{_er_detail.get('autonomous_rate_pct',0):.0f}% 放置{_er_detail.get('stale_ratio_pct',0):.0f}%",
-                      delta_color="normal" if _er_score >= 60 else "inverse",
-                      help="自律クローズ率×(1-放置率)。AIが「分析」だけでなく実際に動かすスループット指標")
-            with st.expander("📊 詳細"):
-                st.markdown(
-                    f"| 指標 | 値 |\n|---|---|\n"
-                    f"| 自律クローズ率 | {_er_detail.get('autonomous_rate_pct',0):.1f}% |\n"
-                    f"| 放置タスク率 | {_er_detail.get('stale_ratio_pct',0):.1f}% |\n"
-                    f"| 実行スループット | {_er_detail.get('throughput_raw',0):.1f} |\n"
-                    f"| スコア | {_er_score}/100 |"
-                )
-                if _er_gap:
-                    st.caption(f"💡 {_er_gap}")
-
-        with _r5c2:
-            _pq_gap = _pq_detail.get("gap", _pq_detail.get("note", ""))
-            _pq_passed = _pq_detail.get("passed")
-            _pq_total  = _pq_detail.get("total")
-            _pq_delta  = f"{_pq_passed}/{_pq_total}件pass" if _pq_passed is not None else "eval未実行"
-            st.metric("📝 プロンプト品質 ×5%", f"{_pq_score:.0f}/100",
-                      delta=_pq_delta,
-                      delta_color="normal" if _pq_score >= 70 else "inverse",
-                      help="eval_runner.pyの通過率。プロンプトが品質基準を満たしているか定量評価")
-            with st.expander("📊 詳細"):
-                if _pq_passed is not None:
-                    st.caption(f"pass: {_pq_passed}/{_pq_total} (source: {_pq_detail.get('source','-')})")
-                if _pq_gap:
-                    st.caption(f"💡 {_pq_gap}")
-
-        with _r5c3:
-            _bo_gap  = _bo_detail.get("gap", _bo_detail.get("note", ""))
-            _bo_rev  = _bo_detail.get("monthly_actual", 0)
-            _bo_tgt  = _bo_detail.get("monthly_target", 20000)
-            st.metric("💼 ビジネスアウトカム ×5%", f"{_bo_score:.0f}/100",
-                      delta=f"貢献{_bo_detail.get('contribution_log_rate_pct',0):.0f}% 収益{_bo_detail.get('revenue_rate_pct',0):.0f}% 文脈{_bo_detail.get('context_rate_pct',0):.0f}%",
-                      delta_color="normal" if _bo_score >= 60 else "inverse",
-                      help="貢献ログ×35% + 収益×40% + 会社文脈×25%。ビジネス成果の定量評価")
-            with st.expander("📊 詳細"):
-                st.markdown(
-                    f"| 軸 | スコア | ×重み |\n|---|---|---|\n"
-                    f"| 貢献ログ充足率 | {_bo_detail.get('contribution_log_rate_pct',0):.0f}% | ×35% |\n"
-                    f"| 収益貢献率 | {_bo_detail.get('revenue_rate_pct',0):.0f}% (¥{_bo_rev:,}/¥{_bo_tgt:,}) | ×40% |\n"
-                    f"| 会社文脈把握率 | {_bo_detail.get('context_rate_pct',0):.0f}% | ×25% |"
-                )
-                if _bo_gap:
-                    st.caption(f"💡 {_bo_gap}")
-
-        with _r5c4:
-            _lv_gap = _lv_detail.get("gap", _lv_detail.get("note", ""))
-            _lv_exec = _lv_detail.get("executed")
-            _lv_total = _lv_detail.get("total")
-            _lv_delta = f"{_lv_exec}/{_lv_total}件実行" if _lv_exec is not None else "ログ未作成"
-            st.metric("🎓 学習推薦精度 ×4%", f"{_lv_score:.0f}/100",
-                      delta=_lv_delta,
-                      delta_color="normal" if _lv_score >= 60 else "inverse",
-                      help="AIが推薦した学習優先度が実行された割合。learning_recommendation_log.jsonに3件以上で有効化")
-            with st.expander("📊 詳細"):
-                if _lv_gap:
-                    st.caption(f"💡 {_lv_gap}")
-                st.markdown(
-                    "**有効化手順:**\n"
-                    "`.claude/scripts/agents/data/learning_recommendation_log.json` を作成し、"
-                    "`[{\"skill\": \"...\", \"executed\": true/false}]` 形式で3件以上記録"
-                )
-
-        with st.expander("📖 各スコアの定義"):
+        # ── 定義・KPI目標テーブル ────────────────────────────────────────────────
+        with st.expander("📖 6軸スコアの定義と計算根拠（v4）"):
             st.markdown("""
-| スコア | 重み | 計算式 | 高い = |
-|--------|------|--------|--------|
-| 🔴 **信頼性** | ×15% | エージェントスコア×30% + パイプライン成功率×20% + 出力品質×35% + PC安定性×15% − フロー停止ペナルティ×0.5 | 安定動作・出力品質・フロー継続稼働 |
-| 🟠 **自律性** | ×15% | 問題解決性×40% + 価値創出性×40% + 自律実行率×20% − フロー停止ペナルティ | 問題を放置せず・収益貢献し・フローが止まっていない |
-| 🟡 **学習率** | ×6% | 知識充実×34% + 知識活用×33% + ユーザー理解度×33% | 知識が蓄積・活用され続けている |
-| 🟢 **観測性** | ×5% | ダッシュボードの情報集約度・UI深さ・データ鮮度 | 必要な情報が一目でわかる状態 |
-| ⚪ **モデル活用** | ×3% | CCセッション適切性×50% + Haiku適正×30% + Sonnet昇格×20% | 適切なモデル選択・Haiku活用 |
-| 🔧 **技術基盤** | ×3% | (モダン度+アーキテクチャ) ÷ 2 | 静的チェックリスト完備（天井=外部ベンチマーク要） |
-| 🔵 **GitHub活用** | ×3% | Anthropic公式5リポジトリの活用充足度 | フル活用でAIシステムが高度化 |
-| 🔄 **復旧性** | ×3% | 5項目チェックリスト（setup.ps1/GitHub/Firestore等）÷10×100 | PC故障時でも即復旧できる |
-| 📉 **介入率** | ×10% | Kanban承認待ち比率の逆数（低い比率=高スコア） | 会長介入なしで完結するタスクが多い |
-| 📚 **知識外部化** | ×5% | CLAUDE.md量+rules/件数+エージェント定義数+memory/件数 | 判断がルール化・エージェント化されている |
-| 🎯 **採択正解率** | ×5% | AI提案採択後の事後正解率（outcome_log.json蓄積中） | AIの判断を信頼できる実績がある |
-| ⚡ **実行率** | ×8% | 自律クローズ率×(1-放置率)（実行スループット代理指標） | AIが分析だけでなく実際にタスクを動かしている |
-| 📝 **プロンプト品質** | ×5% | eval_runner通過率（eval_results.json） | プロンプトが品質基準を継続的に満たしている |
-| 💼 **ビジネスアウトカム** | ×5% | 貢献ログ×35% + 収益×40% + 会社文脈×25% | AIが実際のビジネス成果に繋がっている |
-| 🎓 **学習推薦精度** | ×4% | 推薦した学習の実行率（learning_recommendation_log.json） | AI推薦の学習が実際に実行されている |
+| 軸 | 重み | 計算式 | 高い = |
+|-----|------|--------|--------|
+| 📝 **出力品質** | ×30% | eval_runner通過率×45% + エージェント出力品質×45% + モデル選択適切性×10% | AIが良いアウトプットを継続的に出している |
+| ⚡ **自律実行度** | ×25% | タスク自律完結率×50% + 承認待ち比率逆数×30% + 実行スループット×20% − フロー停止ペナルティ | 人なしで動き・実際にタスクをこなしている |
+| 🎓 **学習・成長** | ×15% | 学習品質×40% + AI推薦実行率×20% + 知識外部化×25% + GitHub活用×15% | 失敗から学び・知識が外部化され続けている |
+| 💼 **事業価値** | ×15% | ビジネスアウトカム×60% + AI提案採択正解率×40% | 実際のビジネス成果に繋がっている |
+| 🔒 **信頼性** | ×10% | 稼働信頼性（エージェント/パイプライン/PC）×70% + 復旧性×30% | 安定稼働・障害時に即復旧できる |
+| 🟢 **観測性** | ×5% | 11次元加重平均（鮮度/完全性/文脈性/行動性/明瞭性/正確性/指標/ログ/トレース/マクロ/見やすさ） | 必要な情報が一目でわかる |
 
-**グレード基準**: S≥95（フロー無人稼働+介入改善中）/ A≥80 / B≥65 / C≥50 / D≥35 / F
-**v3追加**: Gap指標4件（実行率・プロンプト品質・ビジネスアウトカム・学習推薦精度）= スコア低下中は成長余地として読む
+**グレード基準**: S≥95 / A≥80 / B≥65 / C≥50 / D≥35 / F
+
+**前提条件（スコア外・達成済み）**: モダン度・アーキテクチャ・技術基盤 → スコアに含めない（table stakes）
+
+**v4変更点**: 旧15指標の重複（自律性3重複・学習2重複・ビジネス2重複）を解消し6軸に統合。High構造問題は出力品質・自律実行度にペナルティとして作用。
 """)
             _kpi_targets = [
-                ("🔴 信頼性",       _comps.get("reliability", 0),           75),
-                ("🟠 自律性",       _comps.get("autonomy", 0),              70),
-                ("🟡 学習率",       _comps.get("learning_rate", 0),         92),
-                ("🟢 観測性",       _comps.get("observability", 0),         85),
-                ("⚪ モデル活用",    _comps.get("model_usage", 0),           70),
-                ("🔧 技術基盤",      _comps.get("tech_foundation", 0),      100),
-                ("🔵 GitHub活用",   _comps.get("anthropic_github", 0),      70),
-                ("🔄 復旧性",        _comps.get("recovery", 0),             70),
-                ("📉 介入率",        _comps.get("intervention_trend", 0),   80),
-                ("📚 知識外部化",    _comps.get("knowledge_extern", 0),    100),
-                ("🎯 採択正解率",    _comps.get("adoption_accuracy", 0),    80),
-                ("⚡ 実行率",         _comps.get("execution_rate", 0),       70),
-                ("📝 プロンプト品質", _comps.get("prompt_quality", 0),       80),
-                ("💼 ビジネスアウトカム", _comps.get("business_outcome", 0), 60),
-                ("🎓 学習推薦精度",   _comps.get("learning_velocity", 0),    70),
-                ("🏆 **AIレベル計**", _level,                               80),
+                ("📝 出力品質",    _comps.get("output_quality", 0),   80),
+                ("⚡ 自律実行度",  _comps.get("autonomy_index", 0),   75),
+                ("🎓 学習・成長",  _comps.get("learning_growth", 0),  85),
+                ("💼 事業価値",    _comps.get("business_value", 0),   65),
+                ("🔒 信頼性",      _comps.get("reliability", 0),      75),
+                ("🟢 観測性",      _comps.get("observability", 0),    85),
+                ("🏆 **AIレベル計**", _level,                         80),
             ]
             st.markdown("**📊 KPI数値目標（現在 → 目標）**")
             _tgt_rows = "| KPI | 現在 | 目標 | 達成率 |\n|-----|------|------|--------|\n"
@@ -672,7 +376,6 @@ with tab1:
                 _tgt_rows += f"| {_kname} | {int(_know)} | {_ktgt} | {_rate}% |\n"
             st.markdown(_tgt_rows)
 
-            # 推奨アクション（目標未達KPIから自動生成）
             _gap_list = sorted(
                 [(_ktgt - _know, _kname, _know, _ktgt) for _kname, _know, _ktgt in _kpi_targets if _know < _ktgt],
                 reverse=True
@@ -681,26 +384,17 @@ with tab1:
                 st.divider()
                 st.markdown("**🎯 推奨アクション（ギャップ大順）**")
                 _action_map = {
-                    "信頼性":       ("Prefectフロー再稼働（strategy/content/daily停止中）",      "reliability", 5),
-                    "自律性":       ("Prefectフロー再稼働（フロー停止=自律性ペナルティ直結）",    "autonomy",    8),
-                    "観測性":       ("actionabilityUI追加 or logs/metricsの収集強化",            "observability", 2),
-                    "モデル活用":   ("Sonnetの利用比率最適化・CC活用状況の確認",                  "model_usage", 2),
-                    "技術基盤":     ("✅ 100点達成済み（モダン度+アーキ平均）静的チェックリスト完了", "tech_foundation", 0),
-                    "GitHub活用":   ("defending-code-reference-harness実装（SQA業務向け）",      "anthropic_github", 3),
-                    "復旧性":       ("✅ 100点達成済み（GitHub一本化+mempalace→GDrive確定）",    "recovery",      0),
-                    "学習率":       ("mempalaceトンネル追加 or Obsidianリンク密度向上",           "learning_rate", 1),
-                    "介入率":       ("承認待ちタスクを会長→社長に移譲 or 自動化でクローズ加速",    "intervention_trend", 5),
-                    "知識外部化":   ("✅ 100点達成済み（CLAUDE.md+rules+agents+memory充実）",    "knowledge_extern", 0),
-                    "採択正解率":   ("outcome_log.json作成→AI提案の正誤を記録開始（5件でスコア有効化）", "adoption_accuracy", 15),
-                    "実行率":       ("放置タスク削減（stale_ratio54%→20%以下）→スループット大幅改善", "execution_rate", 20),
-                    "プロンプト品質": ("eval_runner.pyの定期実行+eval_results.json保存実装（eval_flow登録）", "prompt_quality", 10),
-                    "ビジネスアウトカム": ("Gumroad/Payhip収益化推進→revenue_rate上昇（最大影響）",   "business_outcome", 15),
-                    "学習推薦精度": ("learning_recommendation_log.json作成→AIの学習提案を記録開始（3件で有効化）", "learning_velocity", 10),
-                    "AIレベル計":   ("上記KPIを1つ改善",                                         "total",       0),
+                    "出力品質":   ("eval_runner定期実行 + エージェント出力品質改善（oq_raw 42→65+）", 8),
+                    "自律実行度": ("Prefectフロー再稼働 + 放置タスク削減（stale_ratio低減）",          10),
+                    "学習・成長": ("outcome_log.json作成 + learning_recommendation_log.json有効化",   5),
+                    "事業価値":   ("Gumroad/Payhip収益化推進 + outcome_log.json記録（採択正解率有効化）", 12),
+                    "信頼性":     ("パイプライン稼働監視強化 + setup.ps1復旧テスト",                    3),
+                    "観測性":     ("actionability/metrics UIの強化",                                  2),
+                    "AIレベル計": ("上記いずれかを1つ改善",                                             0),
                 }
                 for _gap, _kname, _know, _ktgt in _gap_list[:3]:
-                    _pure = _kname.replace("🔴 ","").replace("🟠 ","").replace("🟡 ","").replace("🟢 ","").replace("⚪ ","").replace("🟣 ","").replace("🔵 ","").replace("🏗️ ","").replace("🔄 ","").replace("🎯 **","").replace("**","")
-                    _action, _, _impact = _action_map.get(_pure, (f"{_pure}スコア改善", _pure, 1))
+                    _pure = _kname.replace("📝 ","").replace("⚡ ","").replace("🎓 ","").replace("💼 ","").replace("🔒 ","").replace("🟢 ","").replace("🏆 **","").replace("**","")
+                    _action, _impact = _action_map.get(_pure, (f"{_pure}スコア改善", 1))
                     st.markdown(f"- **{_kname}** {int(_know)}→目標{_ktgt}（gap {int(_gap)}pt）: {_action} _(+{_impact}pt見込み)_")
 
         style.kpi_wrap_end()
