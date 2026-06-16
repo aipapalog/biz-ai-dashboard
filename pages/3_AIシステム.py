@@ -217,18 +217,20 @@ with tab1:
                 if _ke_dets:
                     for _k2, _v2 in _ke_dets.items():
                         st.caption(f"　{_k2}: {_v2}")
-                _gh_repos = _gh.get("repos", [])
+                _gh_repos = _gh.get("anthropic_repos", [])
                 _gh_oss   = _gh.get("oss_tools", [])
                 if _gh_repos or _gh_oss:
-                    _s_icon = {"active":"✅", "partial":"⚠️", "not_started":"❌"}
+                    def _score_icon(s): return "✅" if s >= 80 else ("⚠️" if s >= 50 else "❌")
                     if _gh_repos:
                         st.caption("**Anthropic公式:**")
                         for _r in _gh_repos:
-                            st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} 活用{_r.get('utilization',0)}/100")
+                            _sc = _r.get("score", 0); _mx = _r.get("max_score", 100)
+                            st.caption(f"{_score_icon(_sc)} {_r.get('name','')} {_sc}/{_mx}")
                     if _gh_oss:
                         st.caption("**OSS:**")
                         for _r in _gh_oss:
-                            st.caption(f"{_s_icon.get(_r.get('status',''),'❓')} {_r.get('name','')} 活用{_r.get('utilization',0)}/100")
+                            _sc = _r.get("score", 0); _mx = _r.get("max_score", 100)
+                            st.caption(f"{_score_icon(_sc)} {_r.get('name','')} {_sc}/{_mx}")
 
         # ── Row 2: 事業価値 / 信頼性 / 観測性 ────────────────────────────────────
         _r2c1, _r2c2, _r2c3 = st.columns(3)
