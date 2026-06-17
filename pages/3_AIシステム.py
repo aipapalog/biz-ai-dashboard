@@ -718,7 +718,7 @@ with tab2:
                         if related_tasks:
                             for t in related_tasks:
                                 tid    = t.get("id", "")
-                                tname  = t.get("name", "")[:40]
+                                tname  = t.get("name", "")[:80]
                                 status = t.get("status", "")
                                 s_icon = {"open": "🔵", "in_progress": "🟡", "to_verify": "🟠", "closed": "✅"}.get(status, "⬜")
                                 st.write(f"{s_icon} [{tid}] {tname}")

@@ -698,7 +698,7 @@ with tab3:
                 sec   = c.get("section", "")
                 user  = c.get("user_comment", "")
                 ai    = c.get("ai_reply", "")
-                with st.expander(f"💬 {ts}  [{sec}] {title[:40]}"):
+                with st.expander(f"💬 {ts}  [{sec}] {title[:80]}"):
                     st.write(f"👤 **ユーザー:** {user}")
                     if ai:
                         st.write(f"🤖 **AI返信:** {ai}")
