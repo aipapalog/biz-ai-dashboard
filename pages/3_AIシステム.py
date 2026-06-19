@@ -461,7 +461,7 @@ with tab1:
             for a in agent_stats["by_agent"]:
                 agent_24h[a.get("agent_name", "")] = a
 
-        header_cols = st.columns([2, 3, 2, 1, 1])
+        header_cols = st.columns([2, 3, 2, 2, 2])
         header_cols[0].markdown("**エージェント名**")
         header_cols[1].markdown("**役割**")
         header_cols[2].markdown("**使用パイプライン**")
@@ -469,7 +469,7 @@ with tab1:
         header_cols[4].markdown("**エラー率**")
 
         for agent_name, role, pipeline in AGENTS:
-            cols = st.columns([2, 3, 2, 1, 1])
+            cols = st.columns([2, 3, 2, 2, 2])
             cols[0].code(agent_name)
             cols[1].write(role)
             cols[2].write(pipeline)
@@ -2058,14 +2058,14 @@ with tab4:
                  "2バージョンのプロンプトを同一入力で比較評価",
                  "後日", "eval_runner.py 拡張"),
             ]
-            cols_h5e = st.columns([0.5, 2, 4, 1, 2])
+            cols_h5e = st.columns([1, 2, 4, 1, 2])
             cols_h5e[0].markdown("**#**")
             cols_h5e[1].markdown("**機能**")
             cols_h5e[2].markdown("**内容**")
             cols_h5e[3].markdown("**工数**")
             cols_h5e[4].markdown("**統合先**")
             for no5, name5f, desc5f, effort5, where5f in PLANNED_ITEMS5:
-                cols5e = st.columns([0.5, 2, 4, 1, 2])
+                cols5e = st.columns([1, 2, 4, 1, 2])
                 cols5e[0].write(no5)
                 cols5e[1].code(name5f)
                 cols5e[2].write(desc5f)
