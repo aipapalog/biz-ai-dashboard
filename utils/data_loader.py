@@ -400,6 +400,12 @@ def datasource() -> dict:
     return fb if isinstance(fb, dict) else {}
 
 
+def data_freshness() -> dict:
+    """各データ源の鮮度サマリ（pusherのcollect_data_freshnessが生成）。"""
+    fb = firebase_client.get_doc("dashboard", "data_freshness")
+    return fb if isinstance(fb, dict) else {}
+
+
 def eval_status() -> dict:
     fb = firebase_client.get_doc("dashboard", "eval_status")
     return fb if isinstance(fb, dict) else {}

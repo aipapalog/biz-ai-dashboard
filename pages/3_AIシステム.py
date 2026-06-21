@@ -1086,6 +1086,30 @@ with tab2:
         sys_info_h = _safe_h(lambda: data_loader.system_info(), {})
         ds_h       = _safe_h(lambda: data_loader.datasource(), {})
 
+        # ── データ鮮度モニタ（fail-loud・通知のみ／自動修復しない）──
+        fresh_h = _safe_h(lambda: data_loader.data_freshness(), {}) or {}
+        if fresh_h.get("sections"):
+            _stale_n = fresh_h.get("stale_count", 0)
+            _total_n = fresh_h.get("total", 0)
+            _fresh_color = "critical" if _stale_n >= 5 else ("warn" if _stale_n > 0 else "ok")
+            style.section_card_start("🕒 データ鮮度モニタ", f"古い/欠損 {_stale_n}/{_total_n}", _fresh_color)
+            if _stale_n == 0:
+                st.success("✅ 全データ源が新鮮です（ダッシュボードは最新を表示）")
+            else:
+                st.warning(f"⚠️ {_stale_n}件のデータ源が古い/欠損。該当セクションは古い値を表示している可能性があります。")
+                _mark = {"stale": "🔴 古い", "missing": "❌ 欠損", "warn": "⚠️ 注意", "ok": "✅"}
+                _bad = [s for s in fresh_h["sections"] if s.get("status") in ("stale", "missing", "warn")]
+                import pandas as pd
+                _df = pd.DataFrame([
+                    {"データ源": s.get("name", ""),
+                     "状態": _mark.get(s.get("status"), s.get("status", "")),
+                     "経過": (f"{s.get('age_hours')}h" if s.get("age_hours") is not None else "—")}
+                    for s in _bad
+                ])
+                st.dataframe(_df, hide_index=True, use_container_width=True)
+            st.caption(f"計測: {fresh_h.get('checked_at','')}　判定: 36h未満=OK / 36-72h=注意 / 72h以上=古い")
+            style.section_card_end()
+
         pl_status_h = _safe_h(lambda: data_loader.pipeline_status(), {})
         pl_counts_h = pl_status_h.get("counts", {}) if pl_status_h else {}
         failed_pipes_h = [p for p in pl_status_h.get("pipelines", [])
